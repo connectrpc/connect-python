@@ -1,6 +1,6 @@
 # connect-python
 
-[![Build](https://github.com/connectrpc/connect-python/actions/workflows/python.yml/badge.svg?branch=main)](https://github.com/connectrpc/connect-python/actions/workflows/ci.yml)
+[![Build](https://github.com/connectrpc/connect-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/connectrpc/connect-python/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Documentation Status](https://readthedocs.org/projects/connect-python/badge/?version=latest)](https://connect-python.readthedocs.io/en/latest/?badge=latest)
 
