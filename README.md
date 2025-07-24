@@ -1,5 +1,7 @@
-# Connect Python
+# connect-Python
 
+[![Build](https://github.com/connectrpc/connect-python/actions/workflows/python.yml/badge.svg?branch=main)](https://github.com/connectrpc/connect-python/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Documentation Status](https://readthedocs.org/projects/connect-python/badge/?version=latest)](https://connect-python.readthedocs.io/en/latest/?badge=latest)
 
 A Python implementation of the Connect RPC framework.
@@ -140,7 +142,7 @@ input and output types have little wrappers:
    `ClientRequest.msg`) with request metadata (headers and trailers)
    as well as any client-requested timeout.
  - `ClientStream` provides headers and a timeout, and is an iterator -
-   you can do `for msg in stream` with a ClientStream. 
+   you can do `for msg in stream` with a ClientStream.
  - `ServerResponse` gives a way to return header and trailer metadata
    alongside the response message (or alongside a `ConnectError`
    error).
@@ -148,7 +150,7 @@ input and output types have little wrappers:
    alongside an iterator of response messages. The iterator is also
    allowed to yield a `ConnectError` at any point to interrupt
    streaming and abort with the given error.
-   
+
 These docs are immature, and more is to come on them. I'd like to get
 a Read the Docs site up, this README is getting unwieldy.
 
@@ -247,8 +249,6 @@ async def main():
             print("    Eliza: {response.sentence}")
 
 ```
-
-
 
 #### Low-level Call APIs
 
@@ -413,7 +413,7 @@ For code generation (protoc plugin):
 pip install connect-python[compiler]
 ```
 
-### Development
+## Development
 
 We use `ruff` for linting and formatting, and `mypy` for type checking.
 
@@ -447,3 +447,11 @@ Available recipes:
 ```
 
 For example, `uv run check` will lint code.
+
+## Status
+
+This project is in alpha and is being actively developed. Expect breaking changes.
+
+## Legal
+
+Offered under the [Apache 2 license](/LICENSE).

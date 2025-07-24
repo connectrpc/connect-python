@@ -8,9 +8,11 @@ dynamic = ["version"]
 description = "Client runtime library for Connect RPC"
 readme = "README.md"
 license = {text = "Apache-2.0"}
+# TODO: update
 authors = [
     {name = "Spencer Nelson", email = "spencer@firetiger.com"},
 ]
+# TODO: update
 maintainers = [
     {name = "Spencer Nelson", email = "spencer@firetiger.com"},
 ]
@@ -59,9 +61,9 @@ dev = [
 protoc-gen-connect_python = "connectrpc.protoc_gen_connect_python.main:main"
 
 [project.urls]
-Homepage = "https://github.com/firetiger-oss/connect-python"
-Repository = "https://github.com/firetiger-oss/connect-python"
-Issues = "https://github.com/firetiger-oss/connect-python/issues"
+Homepage = "https://github.com/connectrpc/connect-python"
+Repository = "https://github.com/connectrpc/connect-python"
+Issues = "https://github.com/connectrpc/connect-python/issues"
 
 [tool.hatch.version]
 source = "vcs"
