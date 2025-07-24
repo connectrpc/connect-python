@@ -8,13 +8,9 @@ dynamic = ["version"]
 description = "Client runtime library for Connect RPC"
 readme = "README.md"
 license = {text = "Apache-2.0"}
-# TODO: update
-authors = [
-    {name = "Spencer Nelson", email = "spencer@firetiger.com"},
-]
-# TODO: update
 maintainers = [
     {name = "Spencer Nelson", email = "spencer@firetiger.com"},
+    {name = "Stefan VanBuren", email = "svanburen@buf.build"},
 ]
 keywords = ["rpc", "grpc", "connect", "protobuf", "http"]
 classifiers = [
