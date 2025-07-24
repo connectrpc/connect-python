@@ -75,7 +75,6 @@ jobs:
           ${{ steps.extract-release-notes.outputs.previous_tag && format('See the full changelog at https://github.com/{0}/compare/{1}...v{2}', github.repository, steps.extract-release-notes.outputs.previous_tag, steps.extract-release-notes.outputs.version) || 'Initial release' }}
 
           ### Installation
-          # TODO update now that this is in connectrpc
           ```bash
-          pip install firetiger-connect-python==${{ steps.extract-release-notes.outputs.version }}
+          pip install connect-python==${{ steps.extract-release-notes.outputs.version }}
           ```
