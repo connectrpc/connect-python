@@ -24,6 +24,7 @@ git fetch upstream
 ```
 
 Make sure that the tests and the linters pass.
+Their usage is described [here](https://github.com/connectrpc/connect-python?tab=readme-ov-file#development).
 
 ## Making Changes
 
