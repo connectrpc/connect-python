@@ -130,7 +130,7 @@ class SyncClientGenerator:
 
     def generate_unary_rpc(self, m: protogen.Method) -> None:
         self.g.P("def call_", m.py_name, "(")
-        self.g.P("    self, req: ", m.input.py_ident, ",", common_params_str)
+        self.g.P("    self, req: ", m.input.py_ident, ", ", common_params_str)
         self.g.P(") -> UnaryOutput[", m.output.py_ident, "]:")
         self.g.set_indent(8)
         docstring(
