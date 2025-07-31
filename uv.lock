@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.11'",
@@ -384,6 +384,7 @@ dependencies = [
     { name = "aiohttp" },
     { name = "multidict" },
     { name = "protobuf" },
+    { name = "typing-extensions" },
     { name = "urllib3" },
 ]
 
@@ -441,6 +442,7 @@ requires-dist = [
     { name = "sphinx", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "sphinx-autodoc-typehints", marker = "extra == 'dev'", specifier = ">=1.25.0" },
     { name = "sphinx-rtd-theme", marker = "extra == 'dev'", specifier = ">=2.0.0" },
+    { name = "typing-extensions", specifier = ">=4.14.0" },
     { name = "urllib3", specifier = ">=2.5.0" },
 ]
 provides-extras = ["compiler", "dev"]
