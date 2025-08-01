@@ -22,10 +22,27 @@ jobs:
       run: uv sync --group dev --all-extras
 
     - name: Run linting
-      run: uv run just check
+      run: just check
 
     - name: Run type checking
-      run: uv run just mypy
+      run: just mypy
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+
+    - name: Set up Python
+      run: uv python install 3.13.3
+
+    - name: Install dependencies
+      run: uv sync --group dev --all-extras
+
+    - name: Run integration tests
+      run: just integration-test
 
   conformance-tests:
     runs-on: ubuntu-latest
@@ -45,16 +62,17 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.24'
+        go-version: 'latest'
+        cache: false
 
     - name: Install connectconformance
       run: go install connectrpc.com/conformance/cmd/connectconformance@latest
 
     - name: Run async client conformance tests
-      run: uv run just conformance-test-client-async
+      run: just conformance-test-client-async
 
     - name: Run sync client conformance tests
-      run: uv run just conformance-test-client-sync
+      run: just conformance-test-client-sync
 
     - name: Run sync server conformance tests
-      run: uv run just conformance-test-server-sync
+      run: just conformance-test-server-sync

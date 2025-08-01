@@ -430,8 +430,9 @@ Install the package in editable mode to produce a local `protoc-gen-connect_pyth
 uv pip install -e .[compiler]
 ```
 
-Then, use `uv run just` to do development checks:
-```
+Then, use `just` to do development checks:
+```console
+$ just --list
 Available recipes:
     all                    # Run all checks (format, check, mypy, test, integration-test)
     check                  # Check code with ruff linter
@@ -446,7 +447,7 @@ Available recipes:
     test                   # Run tests
 ```
 
-For example, `uv run check` will lint code.
+For example, `just check` will lint code.
 
 ## Status
 
