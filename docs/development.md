@@ -31,28 +31,28 @@ We use `just` as a task runner. Available commands:
 
 ```bash
 # Format code
-just format
+uv run just format
 
 # Check code with linter
-just check
+uv run just check
 
 # Fix auto-fixable issues
-just fix
+uv run just fix
 
 # Run type checking
-just mypy
+uv run just mypy
 
 # Run tests
-just test
+uv run just test
 
 # Run integration tests
-just integration-test
+uv run just integration-test
 
 # Run conformance tests
-just conformance-test
+uv run just conformance-test
 
 # Run all checks
-just all
+uv run just all
 ```
 
 ## Code Style
@@ -69,13 +69,13 @@ The project follows strict type checking and formatting standards.
 ### Unit Tests
 
 ```bash
-just test
+uv run just test
 ```
 
 ### Integration Tests
 
 ```bash
-just integration-test
+uv run just integration-test
 ```
 
 ### Conformance Tests
@@ -87,12 +87,12 @@ The project uses the official Connect conformance test suite:
 go install connectrpc.com/conformance/cmd/connectconformance@latest
 
 # Run all conformance tests
-just conformance-test
+uv run just conformance-test
 
 # Run specific conformance tests
-just conformance-test-client-async
-just conformance-test-client-sync
-just conformance-test-server-sync
+uv run just conformance-test-client-async
+uv run just conformance-test-client-sync
+uv run just conformance-test-server-sync
 ```
 
 ## Code Generation
@@ -100,7 +100,7 @@ just conformance-test-server-sync
 The project includes protobuf code generation for examples and tests:
 
 ```bash
-just generate
+uv run just generate
 ```
 
 ## Documentation
@@ -109,10 +109,10 @@ just generate
 
 ```bash
 # Build documentation
-just docs
+uv run just docs
 
 # Serve documentation locally
-just docs-serve
+uv run just docs-serve
 ```
 
 ### Writing Documentation
@@ -132,7 +132,7 @@ See the `devdocs/releases.md` file in the repository for detailed release proced
 # Patch release
 uv run bump-my-version bump patch
 
-# Minor release  
+# Minor release
 uv run bump-my-version bump minor
 
 # Major release
@@ -144,7 +144,7 @@ uv run bump-my-version bump major
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run the full test suite: `just all`
+4. Run the full test suite: `uv run just all`
 5. Submit a pull request
 
 ### Pull Request Guidelines

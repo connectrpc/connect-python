@@ -430,24 +430,24 @@ Install the package in editable mode to produce a local `protoc-gen-connect_pyth
 uv pip install -e .[compiler]
 ```
 
-Then, use `just` to do development checks:
+Then, use `uv run just` to do development checks:
 ```console
-$ just --list
+$ uv run just --list
 Available recipes:
     all                    # Run all checks (format, check, mypy, test, integration-test)
     check                  # Check code with ruff linter
-    conformance-test *ARGS # Run conformance tests (requires connectconformance binary). Usage: just conformance-test [ARGS...]
+    conformance-test *ARGS # Run conformance tests (requires connectconformance binary). Usage: uv run just conformance-test [ARGS...]
     fix                    # Fix auto-fixable ruff linter issues
     format                 # Format code with ruff
     integration-test       # Run integration test against demo.connectrpc.com
     mypy                   # Run mypy type checking
     mypy-package
     mypy-tests
-    protoc-gen *ARGS       # Run protoc with connect_python plugin (development mode). usage: just protoc-gen [PROTOC_ARGS...]
+    protoc-gen *ARGS       # Run protoc with connect_python plugin (development mode). usage: uv run just protoc-gen [PROTOC_ARGS...]
     test                   # Run tests
 ```
 
-For example, `just check` will lint code.
+For example, `uv run just check` will lint code.
 
 ## Status
 

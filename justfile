@@ -1,37 +1,37 @@
 # Run all checks (format, check, mypy, integration-test)
-default: format check mypy integration-test
+all: format check mypy integration-test
 
 # Run mypy type checking
 mypy: mypy-package mypy-tests
 
 mypy-package:
-    uv run -- mypy --package connectrpc
+    mypy --package connectrpc
 
 mypy-tests:
-    MYPYPATH=tests/conformance uv run -- mypy --module conformance_client --module conformance --module conformance_server --module connectrpc.conformance.v1.service_pb2_connect
+    MYPYPATH=tests/conformance mypy --module conformance_client --module conformance --module conformance_server --module connectrpc.conformance.v1.service_pb2_connect
 
 # Format code with ruff
 format:
-    uv run -- ruff format src tests examples
+    ruff format src tests examples
 
 # Check code with ruff linter
 check:
-    uv run -- ruff check src tests examples
+    ruff check src tests examples
 
 # Fix auto-fixable ruff linter issues
 fix:
-    uv run -- ruff check src tests examples --fix
+    ruff check src tests examples --fix
 
 # Run tests
 # NOTE: Fails currently, as there are no unit tests within tests/.
 test:
-    uv run -- pytest
+    pytest
 
 # Run integration test against demo.connectrpc.com
 integration-test:
-    cd examples && uv run -- python eliza_async_integration_test.py --protocols connect-proto connect-json
+    cd examples && python eliza_async_integration_test.py --protocols connect-proto connect-json
 
-# Run protoc with connect_python plugin (development mode). usage: just protoc-gen [PROTOC_ARGS...]
+# Run protoc with connect_python plugin (development mode). usage: uv run just protoc-gen [PROTOC_ARGS...]
 protoc-gen *ARGS:
     protoc --plugin=protoc-gen-connect_python=.venv/bin/protoc-gen-connect_python {{ ARGS }}
 
@@ -99,7 +99,7 @@ conformance-test-server-sync *ARGS:
         --mode server \
         {{ ARGS }} \
         -- \
-        uv run -- python conformance_server.py sync
+        python conformance_server.py sync
 
 # Clean all cache files and rebuild environment
 clean:
@@ -117,7 +117,7 @@ clean:
 
 # Build documentation
 docs:
-    cd docs && uv run -- sphinx-build -b html . _build/html
+    cd docs && sphinx-build -b html . _build/html
 
 # Serve documentation locally
 docs-serve: docs
