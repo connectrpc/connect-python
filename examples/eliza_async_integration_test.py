@@ -7,7 +7,7 @@ import aiohttp
 import eliza_pb2  # type: ignore[import-not-found]
 from eliza_pb2_connect import AsyncElizaServiceClient  # type: ignore[import-not-found]
 
-from connectrpc.client import ConnectProtocol
+from connectrpc.client_protocol import ConnectProtocol
 
 
 async def test_say(client: AsyncElizaServiceClient, protocol_name: str) -> bool:

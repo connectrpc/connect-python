@@ -27,6 +27,23 @@ jobs:
     - name: Run type checking
       run: uv run just mypy
 
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+
+    - name: Set up Python
+      run: uv python install 3.13.3
+
+    - name: Install dependencies
+      run: uv sync --group dev --all-extras
+
+    - name: Run integration tests
+      run: uv run just integration-test
+
   conformance-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -45,7 +62,8 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.24'
+        go-version: 'stable'
+        cache: false
 
     - name: Install connectconformance
       run: go install connectrpc.com/conformance/cmd/connectconformance@latest

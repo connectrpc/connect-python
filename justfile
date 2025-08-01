@@ -1,3 +1,6 @@
+# Run all checks (format, check, mypy, integration-test)
+all: format check mypy integration-test
+
 # Run mypy type checking
 mypy: mypy-package mypy-tests
 
@@ -20,16 +23,17 @@ fix:
     ruff check src tests examples --fix
 
 # Run tests
+# NOTE: Fails currently, as there are no unit tests within tests/.
 test:
-    uv run pytest
+    pytest
 
 # Run integration test against demo.connectrpc.com
 integration-test:
-    cd examples && uv run python eliza_async_integration_test.py --protocols connect-proto connect-json
+    cd examples && python eliza_async_integration_test.py --protocols connect-proto connect-json
 
-# Run protoc with connect_python plugin (development mode). usage: just protoc-gen [PROTOC_ARGS...]
+# Run protoc with connect_python plugin (development mode). usage: uv run just protoc-gen [PROTOC_ARGS...]
 protoc-gen *ARGS:
-    protoc --plugin=protoc-gen-connect_python=.venv/bin/protoc-gen-connect_python {{ARGS}}
+    protoc --plugin=protoc-gen-connect_python=.venv/bin/protoc-gen-connect_python {{ ARGS }}
 
 generate:
     cd tests/conformance && buf generate
@@ -54,9 +58,9 @@ conformance-test-client-async *ARGS:
         --conf ./async_config.yaml \
         --mode client \
         --known-failing="Client Cancellation/**" \
-        {{ARGS}} \
+        {{ ARGS }} \
         -- \
-    	uv run python conformance_client.py async
+        uv run python conformance_client.py async
 
 # Run conformance tests of sync client implementation
 conformance-test-client-sync *ARGS:
@@ -74,9 +78,9 @@ conformance-test-client-sync *ARGS:
         --conf ./sync_config.yaml \
         --mode client \
         --known-failing="Client Cancellation/**" \
-        {{ARGS}} \
+        {{ ARGS }} \
         -- \
-    	uv run python conformance_client.py sync
+        uv run python conformance_client.py sync
 
 # Run conformance tests of sync server implementation
 conformance-test-server-sync *ARGS:
@@ -93,9 +97,9 @@ conformance-test-server-sync *ARGS:
     connectconformance \
         --conf ./sync_server_config.yaml \
         --mode server \
-        {{ARGS}} \
+        {{ ARGS }} \
         -- \
-    	uv run python conformance_server.py sync
+        python conformance_server.py sync
 
 # Clean all cache files and rebuild environment
 clean:
@@ -113,7 +117,7 @@ clean:
 
 # Build documentation
 docs:
-    cd docs && uv run sphinx-build -b html . _build/html
+    cd docs && sphinx-build -b html . _build/html
 
 # Serve documentation locally
 docs-serve: docs
@@ -122,6 +126,3 @@ docs-serve: docs
 # Clean documentation build
 docs-clean:
     rm -rf docs/_build
-
-# Run all checks (format, check, mypy, test, integration-test)
-all: format check mypy test integration-test
