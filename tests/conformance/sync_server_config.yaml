@@ -18,8 +18,10 @@ features:
     - STREAM_TYPE_HALF_DUPLEX_BIDI_STREAM
   supports_half_duplex_bidi_over_http1: true
   supports_h2c: false
-  supports_tls: true
-  supports_tls_client_certs: false
+  # TLS is disabled because connect-python provides a WSGI application, but TLS serving is
+  # the responsibility of the WSGI server, which isn't in this repo directly. Users who
+  # want TLS termination should pick a good WSGI server.
+  supports_tls: false
   supports_trailers: false
   supports_connect_get: false
   supports_message_receive_limit: false

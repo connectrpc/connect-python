@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import socket
-import ssl
 import sys
-import tempfile
 import time
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
@@ -305,22 +303,9 @@ def prepare_sync(sc_req: ServerCompatRequest) -> tuple[ServerCompatResponse, Soc
     wsgi_app = wsgi_conformance_service(app)
     sock, port = create_bound_socket()
 
-    cfg: dict[str, str | ssl.VerifyMode] = {}
-    if sc_req.use_tls:
-        if sc_req.client_tls_cert != b"":
-            cfg["cert_reqs"] = ssl.VerifyMode.CERT_REQUIRED
+    server = SocketGunicornApp(wsgi_app, sock, {})
 
-        with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".pem") as cert_file:
-            cert_file.write(sc_req.server_creds.cert)
-            cfg["certfile"] = cert_file.name
-
-        with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".pem") as key_file:
-            key_file.write(sc_req.server_creds.key)
-            cfg["keyfile"] = key_file.name
-
-    server = SocketGunicornApp(wsgi_app, sock, cfg)
-
-    response = ServerCompatResponse(host="127.0.0.1", port=port, pem_cert=sc_req.server_creds.cert)
+    response = ServerCompatResponse(host="127.0.0.1", port=port)
     return response, server
 
 
