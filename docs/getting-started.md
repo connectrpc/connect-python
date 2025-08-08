@@ -22,7 +22,7 @@ With a protobuf definition in hand, you can generate a client. This is
 easiest using buf, but you can also use protoc directly.
 
 Install the compiler (eg `pip install connect-python[compiler]`), and
-it can be referenced as `protoc-gen-connect_python`.
+it can be referenced as `protoc-gen-connect-python`.
 
 ### Using Buf (Recommended)
 
@@ -34,14 +34,14 @@ plugins:
     out: .
   - remote: buf.build/protocolbuffers/pyi
     out: .
-  - local: .venv/bin/protoc-gen-connect_python
+  - local: .venv/bin/protoc-gen-connect-python
     out: .
 ```
 
 ### Using protoc
 
 ```bash
-protoc --plugin=protoc-gen-connect_python=.venv/bin/protoc-gen-connect_python \
+protoc --plugin=protoc-gen-connect-python=.venv/bin/protoc-gen-connect-python \
        --connect_python_out=. \
        --python_out=. \
        --pyi_out=. \
