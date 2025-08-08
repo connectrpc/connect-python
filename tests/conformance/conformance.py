@@ -1,3 +1,4 @@
+import asyncio
 import struct
 import sys
 import traceback
@@ -50,6 +51,8 @@ def exception_to_proto(error: Exception) -> Error:
     if isinstance(error, TimeoutError):
         error = ConnectError(ConnectErrorCode.DEADLINE_EXCEEDED, str(error))
     if isinstance(error, urllib3.exceptions.TimeoutError):
+        error = ConnectError(ConnectErrorCode.DEADLINE_EXCEEDED, str(error))
+    if isinstance(error, asyncio.TimeoutError):
         error = ConnectError(ConnectErrorCode.DEADLINE_EXCEEDED, str(error))
 
     if isinstance(error, UnexpectedContentType):
