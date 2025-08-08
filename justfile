@@ -60,7 +60,7 @@ conformance-test-client-async *ARGS:
         --known-failing="Client Cancellation/**" \
         {{ ARGS }} \
         -- \
-        uv run python conformance_client.py async
+        python conformance_client.py async
 
 # Run conformance tests of sync client implementation
 conformance-test-client-sync *ARGS:
@@ -80,7 +80,7 @@ conformance-test-client-sync *ARGS:
         --known-failing="Client Cancellation/**" \
         {{ ARGS }} \
         -- \
-        uv run python conformance_client.py sync
+        python conformance_client.py sync
 
 # Run conformance tests of sync server implementation
 conformance-test-server-sync *ARGS:
@@ -99,7 +99,7 @@ conformance-test-server-sync *ARGS:
         --mode server \
         {{ ARGS }} \
         -- \
-        uv run python conformance_server.py sync
+        python conformance_server.py sync
 
 # Clean all cache files and rebuild environment
 clean:
