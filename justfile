@@ -99,7 +99,7 @@ conformance-test-server-sync *ARGS:
         --mode server \
         {{ ARGS }} \
         -- \
-        python conformance_server.py sync
+        uv run python conformance_server.py sync
 
 # Clean all cache files and rebuild environment
 clean:
