@@ -3,6 +3,7 @@
 [![Build](https://github.com/connectrpc/connect-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/connectrpc/connect-python/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Documentation Status](https://readthedocs.org/projects/connect-python/badge/?version=latest)](https://connect-python.readthedocs.io/en/latest/?badge=latest)
+[![PyPI version](https://img.shields.io/pypi/v/connect-python)](https://pypi.org/project/connect-python)
 
 A Python implementation of the Connect RPC framework.
 
@@ -26,7 +27,7 @@ With a protobuf definition in hand, you can generate a client. This is
 easiest using buf, but you can also use protoc if you're feeling
 masochistic.
 
-Install the compiler (eg `pip install connect-python[compiler]`), and
+Install the compiler (e.g. `pip install connect-python[compiler]`), and
 it can be referenced as `protoc-gen-connect_python`.
 
 A reasonable `buf.gen.yaml`:
@@ -306,7 +307,7 @@ if output.error() is not None:
     raise output.error()
 ```
 
-The async client has exactly analagous capabilities:
+The async client has exactly analogous capabilities:
 
 ```python
 messages = []
