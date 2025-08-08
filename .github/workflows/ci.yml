@@ -9,14 +9,17 @@ on:
 jobs:
   lint-and-typecheck:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
     - name: Set up Python
-      run: uv python install 3.13.3
+      uses: astral-sh/setup-uv@v6
+      with:
+        python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
       run: uv sync --group dev --all-extras
@@ -29,14 +32,17 @@ jobs:
 
   integration-tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-
     - name: Set up Python
-      run: uv python install 3.13.3
+      uses: astral-sh/setup-uv@v6
+      with:
+        python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
       run: uv sync --group dev --all-extras
@@ -47,14 +53,17 @@ jobs:
   conformance-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
     - name: Set up Python
-      run: uv python install 3.13.3
+      uses: astral-sh/setup-uv@v6
+      with:
+        python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
       run: uv sync --group dev --all-extras
