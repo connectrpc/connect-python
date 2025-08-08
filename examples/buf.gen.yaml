@@ -4,5 +4,5 @@ plugins:
     out: .
   - remote: buf.build/protocolbuffers/pyi
     out: .
-  - local: ../.venv/bin/protoc-gen-connect_python
+  - local: ../.venv/bin/protoc-gen-connect-python
     out: .

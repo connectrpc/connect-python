@@ -55,7 +55,7 @@ dev = [
 ]
 
 [project.scripts]
-protoc-gen-connect_python = "connectrpc.protoc_gen_connect_python.main:main"
+protoc-gen-connect-python = "connectrpc.protoc_gen_connect_python.main:main"
 
 [project.urls]
 Homepage = "https://github.com/connectrpc/connect-python"
