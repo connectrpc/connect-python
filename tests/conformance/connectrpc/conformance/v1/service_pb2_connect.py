@@ -44,7 +44,7 @@ class ConformanceServiceClient:
         self.base_url = base_url
         self._connect_client = ConnectClient(http_client, protocol)
     def call_unary(
-        self, req: connectrpc.conformance.v1.service_pb2.UnaryRequest,extra_headers: HeaderInput | None=None, timeout_seconds: float | None=None
+        self, req: connectrpc.conformance.v1.service_pb2.UnaryRequest, extra_headers: HeaderInput | None=None, timeout_seconds: float | None=None
     ) -> UnaryOutput[connectrpc.conformance.v1.service_pb2.UnaryResponse]:
         """Low-level method to call Unary, granting access to errors and metadata"""
         url = self.base_url + "/connectrpc.conformance.v1.ConformanceService/Unary"
@@ -137,7 +137,7 @@ class ConformanceServiceClient:
         )
 
     def call_unimplemented(
-        self, req: connectrpc.conformance.v1.service_pb2.UnimplementedRequest,extra_headers: HeaderInput | None=None, timeout_seconds: float | None=None
+        self, req: connectrpc.conformance.v1.service_pb2.UnimplementedRequest, extra_headers: HeaderInput | None=None, timeout_seconds: float | None=None
     ) -> UnaryOutput[connectrpc.conformance.v1.service_pb2.UnimplementedResponse]:
         """Low-level method to call Unimplemented, granting access to errors and metadata"""
         url = self.base_url + "/connectrpc.conformance.v1.ConformanceService/Unimplemented"
@@ -157,7 +157,7 @@ class ConformanceServiceClient:
         return msg
 
     def call_idempotent_unary(
-        self, req: connectrpc.conformance.v1.service_pb2.IdempotentUnaryRequest,extra_headers: HeaderInput | None=None, timeout_seconds: float | None=None
+        self, req: connectrpc.conformance.v1.service_pb2.IdempotentUnaryRequest, extra_headers: HeaderInput | None=None, timeout_seconds: float | None=None
     ) -> UnaryOutput[connectrpc.conformance.v1.service_pb2.IdempotentUnaryResponse]:
         """Low-level method to call IdempotentUnary, granting access to errors and metadata"""
         url = self.base_url + "/connectrpc.conformance.v1.ConformanceService/IdempotentUnary"

@@ -6,3 +6,5 @@ plugins:
     out: .
   - local: ../../.venv/bin/protoc-gen-connect_python
     out: .
+inputs:
+  - module: buf.build/connectrpc/conformance:v1.0.4
