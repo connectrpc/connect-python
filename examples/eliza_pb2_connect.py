@@ -44,7 +44,7 @@ class ElizaServiceClient:
         self.base_url = base_url
         self._connect_client = ConnectClient(http_client, protocol)
     def call_say(
-        self, req: eliza_pb2.SayRequest,extra_headers: HeaderInput | None=None, timeout_seconds: float | None=None
+        self, req: eliza_pb2.SayRequest, extra_headers: HeaderInput | None=None, timeout_seconds: float | None=None
     ) -> UnaryOutput[eliza_pb2.SayResponse]:
         """Low-level method to call Say, granting access to errors and metadata"""
         url = self.base_url + "/connectrpc.eliza.v1.ElizaService/Say"

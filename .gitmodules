@@ -1,3 +1,0 @@
-[submodule "tests/conformance/vendor/conformance"]
-	path = tests/conformance/vendor/conformance
-	url = https://github.com/connectrpc/conformance.git
