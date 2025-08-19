@@ -28,7 +28,7 @@ easiest using buf, but you can also use protoc if you're feeling
 masochistic.
 
 Install the compiler (e.g. `pip install connect-python[compiler]`), and
-it can be referenced as `protoc-gen-connect_python`.
+it can be referenced as `protoc-gen-connect-python`.
 
 A reasonable `buf.gen.yaml`:
 ```yaml
@@ -38,7 +38,7 @@ plugins:
     out: .
   - remote: buf.build/protocolbuffers/pyi
     out: .
-  - local: .venv/bin/protoc-gen-connect_python
+  - local: .venv/bin/protoc-gen-connect-python
     out: .
 ```
 
@@ -426,7 +426,7 @@ Set up development dependencies:
 uv sync --extra dev --extra compiler
 ```
 
-Install the package in editable mode to produce a local `protoc-gen-connect_python` plugin for use with `protoc`:
+Install the package in editable mode to produce a local `protoc-gen-connect-python` plugin for use with `protoc`:
 ```sh
 uv pip install -e .[compiler]
 ```

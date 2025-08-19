@@ -33,7 +33,7 @@ integration-test:
 
 # Run protoc with connect_python plugin (development mode). usage: uv run just protoc-gen [PROTOC_ARGS...]
 protoc-gen *ARGS:
-    protoc --plugin=protoc-gen-connect_python=.venv/bin/protoc-gen-connect_python {{ ARGS }}
+    protoc --plugin=protoc-gen-connect-python=.venv/bin/protoc-gen-connect-python {{ ARGS }}
 
 generate:
     cd tests/conformance && buf generate
