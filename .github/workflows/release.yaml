@@ -37,6 +37,7 @@ jobs:
         with:
           version: "~> v2"
           args: release --clean
+          workdir: protoc-gen-connect-python
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
