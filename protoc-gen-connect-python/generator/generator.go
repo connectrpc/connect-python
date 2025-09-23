@@ -8,17 +8,17 @@ import (
 	"strings"
 	"unicode"
 
-	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/pluginpb"
 )
 
-func Generate(r *plugin.CodeGeneratorRequest) *plugin.CodeGeneratorResponse {
-	resp := &plugin.CodeGeneratorResponse{}
+func Generate(r *pluginpb.CodeGeneratorRequest) *pluginpb.CodeGeneratorResponse {
+	resp := &pluginpb.CodeGeneratorResponse{}
 
-	resp.SupportedFeatures = proto.Uint64(uint64(plugin.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL) | uint64(plugin.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS))
+	resp.SupportedFeatures = proto.Uint64(uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL) | uint64(pluginpb.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS))
 	resp.MinimumEdition = proto.Int32(int32(descriptorpb.Edition_EDITION_PROTO3))
 	resp.MaximumEdition = proto.Int32(int32(descriptorpb.Edition_EDITION_2023))
 
@@ -60,7 +60,7 @@ func Generate(r *plugin.CodeGeneratorRequest) *plugin.CodeGeneratorResponse {
 	return resp
 }
 
-func GenerateConnectFile(fd protoreflect.FileDescriptor, conf Config) (*plugin.CodeGeneratorResponse_File, error) {
+func GenerateConnectFile(fd protoreflect.FileDescriptor, conf Config) (*pluginpb.CodeGeneratorResponse_File, error) {
 	filename := fd.Path()
 
 	fileNameWithoutSuffix := strings.TrimSuffix(filename, path.Ext(filename))
@@ -131,7 +131,7 @@ func GenerateConnectFile(fd protoreflect.FileDescriptor, conf Config) (*plugin.C
 		return nil, err
 	}
 
-	resp := &plugin.CodeGeneratorResponse_File{
+	resp := &pluginpb.CodeGeneratorResponse_File{
 		Name:    proto.String(strings.TrimSuffix(filename, path.Ext(filename)) + "_connect.py"),
 		Content: proto.String(buf.String()),
 	}

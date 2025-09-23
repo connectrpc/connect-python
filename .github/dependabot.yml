@@ -18,3 +18,12 @@ updates:
       python:
         patterns:
           - "*"
+  - package-ecosystem: gomod
+    directories:
+      - "protoc-gen-connect-python/"
+    schedule:
+      interval: weekly
+    groups:
+      go:
+        patterns:
+          - "*"
