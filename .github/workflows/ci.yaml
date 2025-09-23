@@ -1,12 +1,15 @@
 name: CI
-permissions:
-  contents: read
 on:
   push:
     branches:
       - main
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
+  attestations: write
+  id-token: write
 
 concurrency:
   # Cancel in-progress jobs for PRs only
@@ -101,14 +104,6 @@ jobs:
 
       - run: uv sync --frozen
 
-      - name: Modify package name for TestPyPI
-        run: |
-          # The 'connect-python' name is claimed on TestPyPI. No big
-          # deal, we can use a different name since this is just to test
-          # publishing really.
-          # TODO: Update now that this is in connectrpc
-          sed -i 's/name = "connect-python"/name = "firetiger-connect-python"/' pyproject.toml
-
       - run: uv build
 
       - name: build codegen archives
@@ -133,5 +128,6 @@ jobs:
         uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
         if: github.event_name != 'pull_request'
         with:
+          repository-url: https://test.pypi.org/legacy/
           packages-dir: protoc-gen-connect-python/dist
           skip-existing: true
