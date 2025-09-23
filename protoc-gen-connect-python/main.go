@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/pluginpb"
 
 	"github.com/connectrpc/connect-python/protoc-gen-connect-python/generator"
 )
@@ -17,7 +17,7 @@ func main() {
 		log.Fatalln("could not read from stdin", err)
 		return
 	}
-	var req = &plugin.CodeGeneratorRequest{}
+	req := &pluginpb.CodeGeneratorRequest{}
 	err = proto.Unmarshal(data, req)
 	if err != nil {
 		log.Fatalln("could not unmarshal proto", err)
@@ -30,7 +30,7 @@ func main() {
 	resp := generator.Generate(req)
 
 	if resp == nil {
-		resp = &plugin.CodeGeneratorResponse{}
+		resp = &pluginpb.CodeGeneratorResponse{}
 	}
 
 	data, err = proto.Marshal(resp)
