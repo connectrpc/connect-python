@@ -1,9 +1,9 @@
 # connect-python
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![CI](https://github.com/github/connect-python/actions/workflows/ci.yaml/badge.svg)](https://github.com/github/connect-python/actions/workflows/ci.yaml)
-[![codecov](https://codecov.io/github/github/connect-python/graph/badge.svg)](https://codecov.io/github/github/connect-python)
-[![PyPI version](https://img.shields.io/pypi/v/connectrpc)](https://pypi.org/project/connectrpc)
+[![CI](https://github.com/connectrpc/connect-python/actions/workflows/ci.yaml/badge.svg)](https://github.com/connectrpc/connect-python/actions/workflows/ci.yaml)
+[![codecov](https://codecov.io/github/connectrpc/connect-python/graph/badge.svg)](https://codecov.io/github/connectrpc/connect-python)
+[![PyPI version](https://img.shields.io/pypi/v/connect-python)](https://pypi.org/project/connect-python)
 
 A Python implementation of [Connect](https://connectrpc.com/): Protobuf RPC that works.
 
