@@ -7,5 +7,7 @@ plugins:
   - local:
       - go
       - run
+      - -C
       - ../protoc-gen-connect-python
+      - .
     out: .

@@ -9,7 +9,9 @@ plugins:
   - local:
       - go
       - run
+      - -C
       - ../protoc-gen-connect-python
+      - .
     out: test/gen
     opt:
       - imports=relative
