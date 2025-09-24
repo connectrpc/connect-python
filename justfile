@@ -1,5 +1,8 @@
 BUF_VERSION := "v1.57.0"
 
+[private]
+@default: check
+
 format:
     uv run ruff check --fix .
     uv run ruff format .
