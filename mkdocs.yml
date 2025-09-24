@@ -2,6 +2,9 @@ site_name: Connect Documentation
 
 theme:
   name: material
+  features:
+    - content.code.copy
+    - content.tabs.link
 
 plugins:
   - mkdocstrings:
@@ -25,4 +28,6 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+  - pymdownx.tabbed:
+      alternate_style: true

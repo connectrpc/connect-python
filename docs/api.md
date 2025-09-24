@@ -2,7 +2,7 @@
 
 ::: connectrpc.client
 ::: connectrpc.code
-::: connectrpc.exceptions
+::: connectrpc.errors
 ::: connectrpc.interceptor
 ::: connectrpc.method
 ::: connectrpc.request
