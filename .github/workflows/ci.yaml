@@ -88,7 +88,8 @@ jobs:
         working-directory: protoc-gen-connect-python
 
       - name: check running `just generate` does not create a diff
-        if: startsWith(matrix.os, 'ubuntu-')
+        # NOTE: running on macOS as our sed command only works there
+        if: startsWith(matrix.os, 'macos-')
         run: uv run just checkgenerate
 
       - uses: codecov/codecov-action@v5
