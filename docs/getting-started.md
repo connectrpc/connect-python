@@ -236,7 +236,7 @@ We can also make requests using Connect's generated client. `touch client.py` an
         main()
     ```
 
-With your server still running in a separate termainl window, you can now run your client:
+With your server still running in a separate terminal window, you can now run your client:
 
 ```bash
 uv run python client.py
