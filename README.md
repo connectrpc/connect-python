@@ -45,10 +45,6 @@ With a protobuf definition in hand, you can generate stub code. This is
 easiest using buf, but you can also use protoc if you're feeling
 masochistic.
 
-Install the compiler (e.g. `pip install protoc-gen-connect-python`), and
-it can be referenced as `protoc-gen-connect-python`. Alternatively, download
-a precompiled binary from the [releases](https://github.com/connectrpc/connect-python/releases).
-
 A reasonable `buf.gen.yaml`:
 
 ```yaml
@@ -58,9 +54,21 @@ plugins:
     out: .
   - remote: buf.build/protocolbuffers/pyi
     out: .
+  - remote: buf.build/connectrpc/python
+    out: .
+```
+
+Or, you can install the compiler (e.g. `pip install protoc-gen-connect-python`), and
+it can be referenced as `protoc-gen-connect-python`.
+Then, you can use `protoc-gen-connect-python` as a local plugin:
+
+```yaml
   - local: .venv/bin/protoc-gen-connect-python
     out: .
 ```
+
+Alternatively, download a precompiled binary from the
+[releases](https://github.com/connectrpc/connect-python/releases).
 
 `protoc-gen-connect-python` is only needed for code generation. Your actual
 application should include `connect-python` as a dependency for the runtime
@@ -410,25 +418,8 @@ Set up a virtual env:
 uv sync
 ```
 
-Then, use `uv run just check` to do development checks:
-
-```console
-$ uv run just --list
-Available recipes:
-    all                    # Run all checks (format, check, mypy, test, integration-test)
-    check                  # Check code with ruff linter
-    conformance-test *ARGS # Run conformance tests (requires connectconformance binary). Usage: uv run just conformance-test [ARGS...]
-    fix                    # Fix auto-fixable ruff linter issues
-    format                 # Format code with ruff
-    integration-test       # Run integration test against demo.connectrpc.com
-    mypy                   # Run mypy type checking
-    mypy-package
-    mypy-tests
-    protoc-gen *ARGS       # Run protoc with connect_python plugin (development mode). usage: uv run just protoc-gen [PROTOC_ARGS...]
-    test                   # Run tests
-```
-
-For example, `uv run just check` will lint code.
+Then, use `uv run just` to do development checks, or check out `uv run just --list` for other targets.
+`just` is run via `uv` as a development dependency, but you can also install it globally and omit the `uv run` from the commands.
 
 ## Status
 
