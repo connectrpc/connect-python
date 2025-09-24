@@ -87,6 +87,8 @@ jobs:
         run: go test ./...
         working-directory: protoc-gen-connect-python
 
+      - run: uv run just checkgenerate
+
       - uses: codecov/codecov-action@v5
         if: ${{ matrix.coverage == 'cov' }}
 
