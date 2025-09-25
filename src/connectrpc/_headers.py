@@ -56,6 +56,9 @@ class Headers(MutableMapping[str, str]):
     def __len__(self) -> int:
         return len(self._store)
 
+    def __repr__(self) -> str:
+        return repr(list(self.allitems()))
+
     def add(self, key: str, value: str) -> None:
         """Add a header, appending to existing values without overwriting.
 
