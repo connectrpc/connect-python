@@ -154,6 +154,20 @@ To apply our new interceptor to handlers, we can pass it to the application with
     app = GreetingServiceWSGIApplication(service, interceptors=[GoodbyeInterceptor(["user1", "user2"])])
     ```
 
+Client constructors also accept an `interceptors=` parameter.
+
+=== "Async"
+
+    ```python
+    client = GreetingServiceClient("http://localhost:8000", interceptors=[GoodbyeInterceptor(["user1", "user2"])])
+    ```
+
+=== "Sync"
+
+    ```python
+    client = GreetingServiceClientSync("http://localhost:8000", interceptors=[GoodbyeInterceptor(["user1", "user2"])])
+    ```
+
 ## Metadata interceptors
 
 Because the signature is different for each RPC type, we have an interceptor protocol for each
