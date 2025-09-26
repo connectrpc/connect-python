@@ -33,7 +33,7 @@ from gen.connectrpc.conformance.v1.service_pb2 import (
     UnaryRequest,
     UnimplementedRequest,
 )
-from google.protobuf.any import Any
+from google.protobuf.any_pb2 import Any
 from google.protobuf.message import Message
 
 

@@ -5,8 +5,9 @@ version = "0.1.0"
 dependencies = [
     "brotli",
     "connect-python",
-    "httpx[http2]",
-    "hypercorn",
+    "httpx[http2]>=0.28.1",
+    "hypercorn>=0.17.3",
+    "protobuf",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",

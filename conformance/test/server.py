@@ -38,13 +38,19 @@ from gen.connectrpc.conformance.v1.service_pb2 import (
     UnaryResponse,
     UnaryResponseDefinition,
 )
-from google.protobuf.any import Any, pack
+from google.protobuf.any_pb2 import Any
 from hypercorn.asyncio import serve as hypercorn_serve
 from hypercorn.config import Config as HypercornConfig
 from hypercorn.logging import Logger
 
 if TYPE_CHECKING:
     from google.protobuf.message import Message
+
+
+def pack(msg) -> Any:
+    any_msg = Any()
+    any_msg.Pack(msg, type_url_prefix="'type.googleapis.com/'")
+    return any_msg
 
 
 def _convert_code(conformance_code: ConformanceCode) -> Code:
