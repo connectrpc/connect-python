@@ -39,18 +39,18 @@ dev = [
     "brotli>=1.1.0",
     "connect-python-example",
     "coverage>=7.10",
-    "flask>=3.1.1",
-    "just-bin; sys_platform != 'win32'",
+    "flask>=3.1.2",
+    "just-bin>=1.42.4; sys_platform != 'win32'",
     "mkdocs>=1.6.1",
-    "mkdocs-material>=9.6.16",
-    "mkdocstrings[python]>=0.30.0",
-    "pyright[nodejs]>=1.1.403",
-    "pytest>=8.4.1",
+    "mkdocs-material>=9.6.20",
+    "mkdocstrings[python]>=0.30.1",
+    "pyright[nodejs]>=1.1.405",
+    "pytest>=8.4.2",
     "pytest-asyncio>=1.1.0",
-    "pytest-cov>=6.2.1",
-    "ruff>=0.12.7",
-    "typing_extensions>=4.14.1",
-    "zstandard>=0.24.0",
+    "pytest-cov>=7.0.0",
+    "ruff~=0.12", # Stay compatible with 0.12 until we want to bump to 0.13, where formatting may change
+    "typing_extensions>=4.15.0",
+    "zstandard>=0.25.0",
 ]
 
 [build-system]
