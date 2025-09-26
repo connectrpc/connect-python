@@ -4,8 +4,7 @@ from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Iterable as _Iterable, Mapping as _Mapping
-from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -51,7 +50,7 @@ class TestSuite(_message.Message):
     relies_on_tls_client_certs: bool
     relies_on_connect_get: bool
     relies_on_message_receive_limit: bool
-    def __init__(self, name: _Optional[str] = ..., mode: _Optional[_Union[TestSuite.TestMode, str]] = ..., test_cases: _Optional[_Iterable[_Union[TestCase, _Mapping]]] = ..., relevant_protocols: _Optional[_Iterable[_Union[_config_pb2.Protocol, str]]] = ..., relevant_http_versions: _Optional[_Iterable[_Union[_config_pb2.HTTPVersion, str]]] = ..., relevant_codecs: _Optional[_Iterable[_Union[_config_pb2.Codec, str]]] = ..., relevant_compressions: _Optional[_Iterable[_Union[_config_pb2.Compression, str]]] = ..., connect_version_mode: _Optional[_Union[TestSuite.ConnectVersionMode, str]] = ..., relies_on_tls: _Optional[bool] = ..., relies_on_tls_client_certs: _Optional[bool] = ..., relies_on_connect_get: _Optional[bool] = ..., relies_on_message_receive_limit: _Optional[bool] = ...) -> None: ...
+    def __init__(self, name: _Optional[str] = ..., mode: _Optional[_Union[TestSuite.TestMode, str]] = ..., test_cases: _Optional[_Iterable[_Union[TestCase, _Mapping]]] = ..., relevant_protocols: _Optional[_Iterable[_Union[_config_pb2.Protocol, str]]] = ..., relevant_http_versions: _Optional[_Iterable[_Union[_config_pb2.HTTPVersion, str]]] = ..., relevant_codecs: _Optional[_Iterable[_Union[_config_pb2.Codec, str]]] = ..., relevant_compressions: _Optional[_Iterable[_Union[_config_pb2.Compression, str]]] = ..., connect_version_mode: _Optional[_Union[TestSuite.ConnectVersionMode, str]] = ..., relies_on_tls: bool = ..., relies_on_tls_client_certs: bool = ..., relies_on_connect_get: bool = ..., relies_on_message_receive_limit: bool = ...) -> None: ...
 
 class TestCase(_message.Message):
     __slots__ = ("request", "expand_requests", "expected_response", "other_allowed_error_codes")

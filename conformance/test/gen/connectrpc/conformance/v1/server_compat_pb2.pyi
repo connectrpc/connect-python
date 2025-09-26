@@ -1,8 +1,7 @@
 from gen.connectrpc.conformance.v1 import config_pb2 as _config_pb2
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Mapping as _Mapping
-from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
+from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -20,7 +19,7 @@ class ServerCompatRequest(_message.Message):
     client_tls_cert: bytes
     message_receive_limit: int
     server_creds: _config_pb2.TLSCreds
-    def __init__(self, protocol: _Optional[_Union[_config_pb2.Protocol, str]] = ..., http_version: _Optional[_Union[_config_pb2.HTTPVersion, str]] = ..., use_tls: _Optional[bool] = ..., client_tls_cert: _Optional[bytes] = ..., message_receive_limit: _Optional[int] = ..., server_creds: _Optional[_Union[_config_pb2.TLSCreds, _Mapping]] = ...) -> None: ...
+    def __init__(self, protocol: _Optional[_Union[_config_pb2.Protocol, str]] = ..., http_version: _Optional[_Union[_config_pb2.HTTPVersion, str]] = ..., use_tls: bool = ..., client_tls_cert: _Optional[bytes] = ..., message_receive_limit: _Optional[int] = ..., server_creds: _Optional[_Union[_config_pb2.TLSCreds, _Mapping]] = ...) -> None: ...
 
 class ServerCompatResponse(_message.Message):
     __slots__ = ("host", "port", "pem_cert")

@@ -21,6 +21,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        resolution: ["highest", "lowest-direct"]
         os:
           - macos-15
           - ubuntu-24.04
@@ -36,16 +37,23 @@ jobs:
           - os: ubuntu-24.04
             python: "3.11"
             coverage: "nocov"
+            resolution: "lowest-direct"
           - os: ubuntu-24.04
             python: "3.12"
             coverage: "nocov"
+            resolution: "lowest-direct"
           # Enable coverage on just one job
           - os: ubuntu-24.04
             python: "3.13"
             coverage: "cov"
+            resolution: "lowest-direct"
           - os: ubuntu-24.04
             python: "3.14.0-rc.2"
             coverage: "nocov"
+            resolution: "lowest-direct"
+    env:
+      # Shared env variables for all the tests
+      UV_RESOLUTION: '${{ matrix.resolution }}'
 
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -89,7 +97,8 @@ jobs:
 
       - name: check running `just generate` does not create a diff
         # NOTE: running on macOS as our sed command only works there
-        if: startsWith(matrix.os, 'macos-')
+        # We expect uv.lock to change when matrix.resolution == "highest", so we don't check it there.
+        if: ${{ startsWith(matrix.os, 'macos-') && matrix.resolution == 'lowest-direct' }}
         run: uv run just checkgenerate
 
       - uses: codecov/codecov-action@v5

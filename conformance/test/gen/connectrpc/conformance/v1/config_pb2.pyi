@@ -2,8 +2,7 @@ from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Iterable as _Iterable, Mapping as _Mapping
-from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -145,7 +144,7 @@ class Features(_message.Message):
     supports_half_duplex_bidi_over_http1: bool
     supports_connect_get: bool
     supports_message_receive_limit: bool
-    def __init__(self, versions: _Optional[_Iterable[_Union[HTTPVersion, str]]] = ..., protocols: _Optional[_Iterable[_Union[Protocol, str]]] = ..., codecs: _Optional[_Iterable[_Union[Codec, str]]] = ..., compressions: _Optional[_Iterable[_Union[Compression, str]]] = ..., stream_types: _Optional[_Iterable[_Union[StreamType, str]]] = ..., supports_h2c: _Optional[bool] = ..., supports_tls: _Optional[bool] = ..., supports_tls_client_certs: _Optional[bool] = ..., supports_trailers: _Optional[bool] = ..., supports_half_duplex_bidi_over_http1: _Optional[bool] = ..., supports_connect_get: _Optional[bool] = ..., supports_message_receive_limit: _Optional[bool] = ...) -> None: ...
+    def __init__(self, versions: _Optional[_Iterable[_Union[HTTPVersion, str]]] = ..., protocols: _Optional[_Iterable[_Union[Protocol, str]]] = ..., codecs: _Optional[_Iterable[_Union[Codec, str]]] = ..., compressions: _Optional[_Iterable[_Union[Compression, str]]] = ..., stream_types: _Optional[_Iterable[_Union[StreamType, str]]] = ..., supports_h2c: bool = ..., supports_tls: bool = ..., supports_tls_client_certs: bool = ..., supports_trailers: bool = ..., supports_half_duplex_bidi_over_http1: bool = ..., supports_connect_get: bool = ..., supports_message_receive_limit: bool = ...) -> None: ...
 
 class ConfigCase(_message.Message):
     __slots__ = ("version", "protocol", "codec", "compression", "stream_type", "use_tls", "use_tls_client_certs", "use_message_receive_limit")
@@ -165,7 +164,7 @@ class ConfigCase(_message.Message):
     use_tls: bool
     use_tls_client_certs: bool
     use_message_receive_limit: bool
-    def __init__(self, version: _Optional[_Union[HTTPVersion, str]] = ..., protocol: _Optional[_Union[Protocol, str]] = ..., codec: _Optional[_Union[Codec, str]] = ..., compression: _Optional[_Union[Compression, str]] = ..., stream_type: _Optional[_Union[StreamType, str]] = ..., use_tls: _Optional[bool] = ..., use_tls_client_certs: _Optional[bool] = ..., use_message_receive_limit: _Optional[bool] = ...) -> None: ...
+    def __init__(self, version: _Optional[_Union[HTTPVersion, str]] = ..., protocol: _Optional[_Union[Protocol, str]] = ..., codec: _Optional[_Union[Codec, str]] = ..., compression: _Optional[_Union[Compression, str]] = ..., stream_type: _Optional[_Union[StreamType, str]] = ..., use_tls: bool = ..., use_tls_client_certs: bool = ..., use_message_receive_limit: bool = ...) -> None: ...
 
 class TLSCreds(_message.Message):
     __slots__ = ("cert", "key")
