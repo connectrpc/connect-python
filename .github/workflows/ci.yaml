@@ -37,16 +37,20 @@ jobs:
           - os: ubuntu-24.04
             python: "3.11"
             coverage: "nocov"
+            resolution: "lowest-direct"
           - os: ubuntu-24.04
             python: "3.12"
             coverage: "nocov"
+            resolution: "lowest-direct"
           # Enable coverage on just one job
           - os: ubuntu-24.04
             python: "3.13"
             coverage: "cov"
+            resolution: "lowest-direct"
           - os: ubuntu-24.04
             python: "3.14.0-rc.2"
             coverage: "nocov"
+            resolution: "lowest-direct"
     env:
       # Shared env variables for all the tests
       UV_RESOLUTION: '${{ matrix.resolution }}'
