@@ -49,7 +49,7 @@ dev = [
     "pytest>=8.4.2",
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=7.0.0",
-    "ruff~=0.12", # Stay compatible with 0.12 until we want to bump to 0.13, where formatting may change
+    "ruff~=0.12.12", # Stay compatible with 0.12 until we want to bump to 0.13, where formatting may change
     "typing_extensions>=4.15.0",
     "zstandard>=0.25.0",
 ]
