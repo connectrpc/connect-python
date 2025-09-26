@@ -259,7 +259,6 @@ dev = [
     { name = "brotli" },
     { name = "connect-python-example" },
     { name = "coverage" },
-    { name = "flask" },
     { name = "httpx", extra = ["http2"] },
     { name = "hypercorn" },
     { name = "just-bin", marker = "sys_platform != 'win32'" },
@@ -287,7 +286,6 @@ dev = [
     { name = "brotli", specifier = ">=1.1.0" },
     { name = "connect-python-example", editable = "example" },
     { name = "coverage", specifier = ">=7.10" },
-    { name = "flask", specifier = ">=3.1.2" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },
     { name = "hypercorn", specifier = ">=0.17.3" },
     { name = "just-bin", marker = "sys_platform != 'win32'", specifier = ">=1.42.4" },
@@ -317,8 +315,8 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "connect-python", editable = "." },
-    { name = "flask" },
-    { name = "protobuf" },
+    { name = "flask", specifier = ">=3.1.2" },
+    { name = "protobuf", specifier = ">=5.28" },
     { name = "starlette", specifier = ">=0.48.0" },
 ]
 
@@ -338,9 +336,9 @@ dependencies = [
 requires-dist = [
     { name = "connect-python", editable = "." },
     { name = "connect-python-example", editable = "example" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "pytest-asyncio", specifier = ">=1.1.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
 ]
 
 [[package]]

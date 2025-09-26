@@ -39,7 +39,6 @@ dev = [
     "brotli>=1.1.0",
     "connect-python-example",
     "coverage>=7.10",
-    "flask>=3.1.2",
     "httpx[http2]>=0.28.1",
     "hypercorn>=0.17.3",
     "just-bin>=1.42.4; sys_platform != 'win32'",
