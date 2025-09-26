@@ -40,6 +40,8 @@ dev = [
     "connect-python-example",
     "coverage>=7.10",
     "flask>=3.1.2",
+    "httpx[http2]>=0.28.1",
+    "hypercorn>=0.17.3",
     "just-bin>=1.42.4; sys_platform != 'win32'",
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.6.20",
@@ -218,7 +220,7 @@ exclude = [
 ]
 
 [tool.uv.workspace]
-members = ["conformance", "example", "noextras"]
+members = ["example", "noextras"]
 
 [tool.uv.sources]
 connect-python = { workspace = true }

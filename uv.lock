@@ -8,7 +8,6 @@ resolution-mode = "lowest-direct"
 [manifest]
 members = [
     "connect-python",
-    "connect-python-conformance",
     "connect-python-example",
     "connect-python-noextras",
 ]
@@ -261,6 +260,8 @@ dev = [
     { name = "connect-python-example" },
     { name = "coverage" },
     { name = "flask" },
+    { name = "httpx", extra = ["http2"] },
+    { name = "hypercorn" },
     { name = "just-bin", marker = "sys_platform != 'win32'" },
     { name = "mkdocs" },
     { name = "mkdocs-material" },
@@ -287,6 +288,8 @@ dev = [
     { name = "connect-python-example", editable = "example" },
     { name = "coverage", specifier = ">=7.10" },
     { name = "flask", specifier = ">=3.1.2" },
+    { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },
+    { name = "hypercorn", specifier = ">=0.17.3" },
     { name = "just-bin", marker = "sys_platform != 'win32'", specifier = ">=1.42.4" },
     { name = "mkdocs", specifier = ">=1.6.1" },
     { name = "mkdocs-material", specifier = ">=9.6.20" },
@@ -298,35 +301,6 @@ dev = [
     { name = "ruff", specifier = "~=0.12" },
     { name = "typing-extensions", specifier = ">=4.15.0" },
     { name = "zstandard", specifier = ">=0.25.0" },
-]
-
-[[package]]
-name = "connect-python-conformance"
-version = "0.1.0"
-source = { virtual = "conformance" }
-dependencies = [
-    { name = "brotli" },
-    { name = "connect-python" },
-    { name = "httpx", extra = ["http2"] },
-    { name = "hypercorn" },
-    { name = "protobuf" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "zstandard" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "brotli" },
-    { name = "connect-python", editable = "." },
-    { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },
-    { name = "hypercorn", specifier = ">=0.17.3" },
-    { name = "protobuf" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "zstandard" },
 ]
 
 [[package]]
