@@ -10,10 +10,6 @@ from typing import Literal, TypeVar
 
 import httpx
 from _util import create_standard_streams
-from connectrpc.client import ResponseMetadata
-from connectrpc.code import Code
-from connectrpc.errors import ConnectError
-from connectrpc.request import Headers
 from gen.connectrpc.conformance.v1.client_compat_pb2 import (
     ClientCompatRequest,
     ClientCompatResponse,
@@ -33,8 +29,13 @@ from gen.connectrpc.conformance.v1.service_pb2 import (
     UnaryRequest,
     UnimplementedRequest,
 )
-from google.protobuf.any import Any
+from google.protobuf.any_pb2 import Any
 from google.protobuf.message import Message
+
+from connectrpc.client import ResponseMetadata
+from connectrpc.code import Code
+from connectrpc.errors import ConnectError
+from connectrpc.request import Headers
 
 
 def _convert_code(error: Code) -> ConformanceCode:
