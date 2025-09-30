@@ -258,7 +258,6 @@ dev = [
     { name = "asgiref" },
     { name = "brotli" },
     { name = "connect-python-example" },
-    { name = "coverage" },
     { name = "httpx", extra = ["http2"] },
     { name = "hypercorn" },
     { name = "just-bin", marker = "sys_platform != 'win32'" },
@@ -282,23 +281,22 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "asgiref", specifier = ">=3.9.1" },
-    { name = "brotli", specifier = ">=1.1.0" },
+    { name = "asgiref", specifier = "==3.9.1" },
+    { name = "brotli", specifier = "==1.1.0" },
     { name = "connect-python-example", editable = "example" },
-    { name = "coverage", specifier = ">=7.10" },
-    { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },
-    { name = "hypercorn", specifier = ">=0.17.3" },
-    { name = "just-bin", marker = "sys_platform != 'win32'", specifier = ">=1.42.4" },
-    { name = "mkdocs", specifier = ">=1.6.1" },
-    { name = "mkdocs-material", specifier = ">=9.6.20" },
-    { name = "mkdocstrings", extras = ["python"], specifier = ">=0.30.1" },
-    { name = "pyright", extras = ["nodejs"], specifier = ">=1.1.405" },
-    { name = "pytest", specifier = ">=8.4.2" },
-    { name = "pytest-asyncio", specifier = ">=1.1.0" },
-    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "httpx", extras = ["http2"], specifier = "==0.28.1" },
+    { name = "hypercorn", specifier = "==0.17.3" },
+    { name = "just-bin", marker = "sys_platform != 'win32'", specifier = "==1.42.4" },
+    { name = "mkdocs", specifier = "==1.6.1" },
+    { name = "mkdocs-material", specifier = "==9.6.20" },
+    { name = "mkdocstrings", extras = ["python"], specifier = "==0.30.1" },
+    { name = "pyright", extras = ["nodejs"], specifier = "==1.1.405" },
+    { name = "pytest", specifier = "==8.4.2" },
+    { name = "pytest-asyncio", specifier = "==1.1.0" },
+    { name = "pytest-cov", specifier = "==7.0.0" },
     { name = "ruff", specifier = "~=0.13.2" },
-    { name = "typing-extensions", specifier = ">=4.15.0" },
-    { name = "zstandard", specifier = ">=0.25.0" },
+    { name = "typing-extensions", specifier = "==4.15.0" },
+    { name = "zstandard", specifier = "==0.25.0" },
 ]
 
 [[package]]
@@ -315,9 +313,9 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "connect-python", editable = "." },
-    { name = "flask", specifier = ">=3.1.2" },
+    { name = "flask", specifier = "==3.1.2" },
     { name = "protobuf", specifier = ">=5.28" },
-    { name = "starlette", specifier = ">=0.48.0" },
+    { name = "starlette", specifier = "==0.48.0" },
 ]
 
 [[package]]
@@ -336,9 +334,9 @@ dependencies = [
 requires-dist = [
     { name = "connect-python", editable = "." },
     { name = "connect-python-example", editable = "example" },
-    { name = "pytest", specifier = ">=8.4.2" },
-    { name = "pytest-asyncio", specifier = ">=1.1.0" },
-    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "pytest", specifier = "==8.4.2" },
+    { name = "pytest-asyncio", specifier = "==1.1.0" },
+    { name = "pytest-cov", specifier = "==7.0.0" },
 ]
 
 [[package]]
