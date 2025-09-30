@@ -73,8 +73,6 @@ syntax = "proto3";
 
 package greet.v1;
 
-option go_package = "example/gen/greet/v1;greetv1";
-
 message GreetRequest {
   string name = 1;
 }
