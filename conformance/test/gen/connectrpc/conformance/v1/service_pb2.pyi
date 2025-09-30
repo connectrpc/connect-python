@@ -3,8 +3,7 @@ from google.protobuf import any_pb2 as _any_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Iterable as _Iterable, Mapping as _Mapping
-from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -104,7 +103,7 @@ class BidiStreamRequest(_message.Message):
     response_definition: StreamResponseDefinition
     full_duplex: bool
     request_data: bytes
-    def __init__(self, response_definition: _Optional[_Union[StreamResponseDefinition, _Mapping]] = ..., full_duplex: _Optional[bool] = ..., request_data: _Optional[bytes] = ...) -> None: ...
+    def __init__(self, response_definition: _Optional[_Union[StreamResponseDefinition, _Mapping]] = ..., full_duplex: bool = ..., request_data: _Optional[bytes] = ...) -> None: ...
 
 class BidiStreamResponse(_message.Message):
     __slots__ = ("payload",)
@@ -172,7 +171,7 @@ class RawHTTPRequest(_message.Message):
         name: str
         value: MessageContents
         base64_encode: bool
-        def __init__(self, name: _Optional[str] = ..., value: _Optional[_Union[MessageContents, _Mapping]] = ..., base64_encode: _Optional[bool] = ...) -> None: ...
+        def __init__(self, name: _Optional[str] = ..., value: _Optional[_Union[MessageContents, _Mapping]] = ..., base64_encode: bool = ...) -> None: ...
     VERB_FIELD_NUMBER: _ClassVar[int]
     URI_FIELD_NUMBER: _ClassVar[int]
     HEADERS_FIELD_NUMBER: _ClassVar[int]

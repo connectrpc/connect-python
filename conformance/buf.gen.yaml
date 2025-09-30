@@ -2,9 +2,10 @@ version: v2
 inputs:
   - module: buf.build/connectrpc/conformance:v1.0.4
 plugins:
-  - remote: buf.build/protocolbuffers/python:v32.0
+  # NOTE: v26.0 is the earliest version supporting protobuf==5.
+  - remote: buf.build/protocolbuffers/python:v26.0
     out: test/gen
-  - remote: buf.build/protocolbuffers/pyi:v32.0
+  - remote: buf.build/protocolbuffers/pyi:v26.0
     out: test/gen
   - local:
       - go

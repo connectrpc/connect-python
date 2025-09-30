@@ -6,8 +6,7 @@ from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Iterable as _Iterable, Mapping as _Mapping
-from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -62,7 +61,7 @@ class ClientCompatRequest(_message.Message):
     request_delay_ms: int
     cancel: ClientCompatRequest.Cancel
     raw_request: _service_pb2.RawHTTPRequest
-    def __init__(self, test_name: _Optional[str] = ..., http_version: _Optional[_Union[_config_pb2.HTTPVersion, str]] = ..., protocol: _Optional[_Union[_config_pb2.Protocol, str]] = ..., codec: _Optional[_Union[_config_pb2.Codec, str]] = ..., compression: _Optional[_Union[_config_pb2.Compression, str]] = ..., host: _Optional[str] = ..., port: _Optional[int] = ..., server_tls_cert: _Optional[bytes] = ..., client_tls_creds: _Optional[_Union[_config_pb2.TLSCreds, _Mapping]] = ..., message_receive_limit: _Optional[int] = ..., service: _Optional[str] = ..., method: _Optional[str] = ..., stream_type: _Optional[_Union[_config_pb2.StreamType, str]] = ..., use_get_http_method: _Optional[bool] = ..., request_headers: _Optional[_Iterable[_Union[_service_pb2.Header, _Mapping]]] = ..., request_messages: _Optional[_Iterable[_Union[_any_pb2.Any, _Mapping]]] = ..., timeout_ms: _Optional[int] = ..., request_delay_ms: _Optional[int] = ..., cancel: _Optional[_Union[ClientCompatRequest.Cancel, _Mapping]] = ..., raw_request: _Optional[_Union[_service_pb2.RawHTTPRequest, _Mapping]] = ...) -> None: ...
+    def __init__(self, test_name: _Optional[str] = ..., http_version: _Optional[_Union[_config_pb2.HTTPVersion, str]] = ..., protocol: _Optional[_Union[_config_pb2.Protocol, str]] = ..., codec: _Optional[_Union[_config_pb2.Codec, str]] = ..., compression: _Optional[_Union[_config_pb2.Compression, str]] = ..., host: _Optional[str] = ..., port: _Optional[int] = ..., server_tls_cert: _Optional[bytes] = ..., client_tls_creds: _Optional[_Union[_config_pb2.TLSCreds, _Mapping]] = ..., message_receive_limit: _Optional[int] = ..., service: _Optional[str] = ..., method: _Optional[str] = ..., stream_type: _Optional[_Union[_config_pb2.StreamType, str]] = ..., use_get_http_method: bool = ..., request_headers: _Optional[_Iterable[_Union[_service_pb2.Header, _Mapping]]] = ..., request_messages: _Optional[_Iterable[_Union[_any_pb2.Any, _Mapping]]] = ..., timeout_ms: _Optional[int] = ..., request_delay_ms: _Optional[int] = ..., cancel: _Optional[_Union[ClientCompatRequest.Cancel, _Mapping]] = ..., raw_request: _Optional[_Union[_service_pb2.RawHTTPRequest, _Mapping]] = ...) -> None: ...
 
 class ClientCompatResponse(_message.Message):
     __slots__ = ("test_name", "response", "error")

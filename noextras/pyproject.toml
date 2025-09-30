@@ -1,13 +1,12 @@
 [project]
 name = "connect-python-noextras"
 version = "0.1.0"
-
 dependencies = [
-    "connect-python",
-    "connect-python-example",
-    "pytest",
-    "pytest-asyncio",
-    "pytest-cov",
+  "connect-python",
+  "connect-python-example",
+  "pytest==8.4.2",
+  "pytest-asyncio==1.1.0",
+  "pytest-cov==7.0.0",
 ]
 
 [tool.ruff]
