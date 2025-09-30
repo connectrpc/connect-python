@@ -9,7 +9,7 @@ maintainers = [
     { name = "Yasushi Itoh", email = "i2y.may.roku@gmail.com" },
 ]
 requires-python = ">= 3.10"
-dependencies = ["httpx", "protobuf>=5.28"]
+dependencies = ["httpx>=0.28.1", "protobuf>=5.28"]
 readme = "README.md"
 license-files = ["LICENSE"]
 keywords = ["rpc", "grpc", "connect", "protobuf", "http"]
@@ -35,27 +35,30 @@ Issues = "https://github.com/connectrpc/connect-python/issues"
 
 [dependency-groups]
 dev = [
-    "asgiref",
-    "brotli",
+    "asgiref==3.9.1",
+    "brotli==1.1.0",
     "connect-python-example",
-    "coverage",
-    "flask",
-    "just-bin; sys_platform != 'win32'",
-    "mkdocs",
-    "mkdocs-material",
-    "mkdocstrings[python]",
-    "pyright[nodejs]",
-    "pytest",
-    "pytest-asyncio",
-    "pytest-cov",
-    "ruff",
-    "typing_extensions",
-    "zstandard",
+    "httpx[http2]==0.28.1",
+    "hypercorn==0.17.3",
+    "just-bin==1.42.4; sys_platform != 'win32'",
+    "mkdocs==1.6.1",
+    "mkdocs-material==9.6.20",
+    "mkdocstrings[python]==0.30.1",
+    "pyright[nodejs]==1.1.405",
+    "pytest==8.4.2",
+    "pytest-asyncio==1.1.0",
+    "pytest-cov==7.0.0",
+    "ruff~=0.13.2",
+    "typing_extensions==4.15.0",
+    "zstandard==0.25.0",
 ]
 
 [build-system]
 requires = ["uv_build>=0.8.13,<0.9.0"]
 build-backend = "uv_build"
+
+[tool.uv]
+resolution = "lowest-direct"
 
 [tool.uv.build-backend]
 module-name = "connectrpc"
@@ -215,7 +218,7 @@ exclude = [
 ]
 
 [tool.uv.workspace]
-members = ["conformance", "example", "noextras"]
+members = ["example", "noextras"]
 
 [tool.uv.sources]
 connect-python = { workspace = true }

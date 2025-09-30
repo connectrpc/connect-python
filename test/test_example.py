@@ -2,7 +2,6 @@ import threading
 from wsgiref.simple_server import WSGIServer, make_server
 
 import pytest
-
 from example.eliza_connect import ElizaServiceClient, ElizaServiceClientSync
 from example.eliza_pb2 import SayRequest
 from example.eliza_service_sync import app as wsgi_app

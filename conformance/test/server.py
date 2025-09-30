@@ -9,9 +9,6 @@ from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Literal, TypeVar
 
 from _util import create_standard_streams
-from connectrpc.code import Code
-from connectrpc.errors import ConnectError
-from connectrpc.request import RequestContext
 from gen.connectrpc.conformance.v1.config_pb2 import Code as ConformanceCode
 from gen.connectrpc.conformance.v1.server_compat_pb2 import (
     ServerCompatRequest,
@@ -38,13 +35,24 @@ from gen.connectrpc.conformance.v1.service_pb2 import (
     UnaryResponse,
     UnaryResponseDefinition,
 )
-from google.protobuf.any import Any, pack
+from google.protobuf.any_pb2 import Any
 from hypercorn.asyncio import serve as hypercorn_serve
 from hypercorn.config import Config as HypercornConfig
 from hypercorn.logging import Logger
 
+from connectrpc.code import Code
+from connectrpc.errors import ConnectError
+from connectrpc.request import RequestContext
+
 if TYPE_CHECKING:
     from google.protobuf.message import Message
+
+
+# TODO: Use google.protobuf.any.pack on upgrade to protobuf==6.
+def pack(msg: "Message") -> Any:
+    any_msg = Any()
+    any_msg.Pack(msg)
+    return any_msg
 
 
 def _convert_code(conformance_code: ConformanceCode) -> Code:
