@@ -2,6 +2,8 @@
 
 Connect uses a standard set of error codes to indicate what went wrong with an RPC. Each error includes a `Code`, a human-readable message, and optionally some typed error details. This document explains how to work with errors in connect-python.
 
+For streaming RPCs, error handling has some special considerations - see the [streaming documentation](streaming.md) for details. You can also attach error information to headers and trailers - see the [headers and trailers documentation](headers-and-trailers.md).
+
 ## Error codes
 
 Connect defines 16 error codes. Each code maps to a specific HTTP status code when using the Connect protocol over HTTP. The full list of codes is available in the `connectrpc.code.Code` enum:
@@ -74,14 +76,14 @@ When a client receives an error response, the client stub raises a `ConnectError
     from greet.v1.greet_pb2 import GreetRequest
 
     async def main():
-        client = GreetServiceClient("http://localhost:8000")
-        try:
-            response = await client.greet(GreetRequest(name=""))
-        except ConnectError as e:
-            if e.code == Code.INVALID_ARGUMENT:
-                print(f"Invalid request: {e.message}")
-            else:
-                print(f"RPC failed: {e.code} - {e.message}")
+        async with GreetServiceClient("http://localhost:8000") as client:
+            try:
+                response = await client.greet(GreetRequest(name=""))
+            except ConnectError as e:
+                if e.code == Code.INVALID_ARGUMENT:
+                    print(f"Invalid request: {e.message}")
+                else:
+                    print(f"RPC failed: {e.code} - {e.message}")
     ```
 
 === "Sync"
@@ -93,14 +95,14 @@ When a client receives an error response, the client stub raises a `ConnectError
     from greet.v1.greet_pb2 import GreetRequest
 
     def main():
-        client = GreetServiceClientSync("http://localhost:8000")
-        try:
-            response = client.greet(GreetRequest(name=""))
-        except ConnectError as e:
-            if e.code == Code.INVALID_ARGUMENT:
-                print(f"Invalid request: {e.message}")
-            else:
-                print(f"RPC failed: {e.code} - {e.message}")
+        with GreetServiceClientSync("http://localhost:8000") as client:
+            try:
+                response = client.greet(GreetRequest(name=""))
+            except ConnectError as e:
+                if e.code == Code.INVALID_ARGUMENT:
+                    print(f"Invalid request: {e.message}")
+                else:
+                    print(f"RPC failed: {e.code} - {e.message}")
     ```
 
 Client-side errors (like network failures, timeouts, or protocol violations) are also raised as `ConnectError` instances with appropriate error codes.
@@ -206,6 +208,44 @@ except ConnectError as e:
             print(f"Struct detail: {unpacked}")
 ```
 
+#### Understanding google.protobuf.Any
+
+The `google.protobuf.Any` type stores arbitrary protobuf messages along with their type information. Key properties:
+
+- `type_url`: A string identifying the message type (e.g., `type.googleapis.com/google.protobuf.Struct`)
+- `value`: The serialized bytes of the actual message
+
+Debugging tips:
+
+```python
+try:
+    response = await client.some_method(request)
+except ConnectError as e:
+    for detail in e.details:
+        # Inspect the type URL to understand what type this detail is
+        print(f"Detail type: {detail.type_url}")
+
+        # Try unpacking with the expected type
+        if "Struct" in detail.type_url:
+            unpacked = Struct()
+            if detail.Unpack(unpacked):
+                print(f"Struct content: {unpacked}")
+        elif "BadRequest" in detail.type_url:
+            from google.rpc.error_details_pb2 import BadRequest
+            unpacked = BadRequest()
+            if detail.Unpack(unpacked):
+                for violation in unpacked.field_violations:
+                    print(f"Field: {violation.field}, Error: {violation.description}")
+```
+
+Common issues and solutions:
+
+1. **Type mismatch**: If `Unpack()` returns `False`, the message type doesn't match. Check the `type_url` to see the actual type.
+
+2. **Missing proto imports**: Ensure you've imported the correct protobuf message classes for the error details you expect to receive.
+
+3. **Custom error details**: If using custom protobuf messages for error details, ensure both client and server have access to the same proto definitions.
+
 ### Common error detail types
 
 You can use any protobuf message type for error details. Some commonly used types include:
@@ -251,7 +291,7 @@ raise ConnectError(
 
 ## Error handling in interceptors
 
-Interceptors can catch and transform errors. This is useful for adding context, converting error types, or implementing retry logic:
+Interceptors can catch and transform errors. This is useful for adding context, converting error types, or implementing retry logic. For more details on interceptors, see the [interceptors documentation](interceptors.md):
 
 === "ASGI"
 
