@@ -9,6 +9,10 @@ Connect handlers raise errors using `ConnectError`:
 === "ASGI"
 
     ```python
+    from connectrpc.code import Code
+    from connectrpc.errors import ConnectError
+    from connectrpc.request import RequestContext
+
     async def greet(self, request: GreetRequest, ctx: RequestContext) -> GreetResponse:
         if not request.name:
             raise ConnectError(Code.INVALID_ARGUMENT, "name is required")
@@ -18,6 +22,10 @@ Connect handlers raise errors using `ConnectError`:
 === "WSGI"
 
     ```python
+    from connectrpc.code import Code
+    from connectrpc.errors import ConnectError
+    from connectrpc.request import RequestContext
+
     def greet(self, request: GreetRequest, ctx: RequestContext) -> GreetResponse:
         if not request.name:
             raise ConnectError(Code.INVALID_ARGUMENT, "name is required")
@@ -29,6 +37,9 @@ Clients catch errors the same way:
 === "Async"
 
     ```python
+    from connectrpc.code import Code
+    from connectrpc.errors import ConnectError
+
     async with GreetServiceClient("http://localhost:8000") as client:
         try:
             response = await client.greet(GreetRequest(name=""))
@@ -42,6 +53,9 @@ Clients catch errors the same way:
 === "Sync"
 
     ```python
+    from connectrpc.code import Code
+    from connectrpc.errors import ConnectError
+
     with GreetServiceClientSync("http://localhost:8000") as client:
         try:
             response = client.greet(GreetRequest(name=""))
@@ -82,6 +96,9 @@ except ConnectError as e:
 Errors can include strongly-typed details using protobuf messages:
 
 ```python
+from connectrpc.code import Code
+from connectrpc.errors import ConnectError
+from connectrpc.request import RequestContext
 from google.protobuf.struct_pb2 import Struct, Value
 
 async def create_user(self, request: CreateUserRequest, ctx: RequestContext) -> CreateUserResponse:
@@ -96,9 +113,12 @@ async def create_user(self, request: CreateUserRequest, ctx: RequestContext) -> 
             "Invalid user request",
             details=[error_detail]
         )
+    # ... rest of implementation
 ```
 
-Reading error details on the client - error details are `google.protobuf.Any` messages that can be unpacked to their original types:
+### Reading error details on the client
+
+Error details are `google.protobuf.Any` messages that can be unpacked to their original types:
 
 ```python
 try:
@@ -158,6 +178,11 @@ Content-Type: application/json
   ]
 }
 ```
+
+The `details` array contains error detail messages, where each entry has:
+
+- `type`: The fully-qualified protobuf message type (e.g., `google.protobuf.Struct`)
+- `value`: The protobuf message serialized in binary format and then base64-encoded
 
 ## See also
 
