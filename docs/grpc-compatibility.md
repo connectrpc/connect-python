@@ -3,7 +3,7 @@
 Connect-Python currently does not support the gRPC protocol due to lack of support for HTTP/2 trailers
 in the Python ecosystem. If you have an existing codebase using grpc-python and want to introduce Connect
 in a transition without downtime, you will need a way for the gRPC servers to be accessible from both
-gRPC and Connect clients at the same time. envoy is a widely used proxy server with support for translating
+gRPC and Connect clients at the same time. Envoy is a widely used proxy server with support for translating
 the Connect protocol to gRPC via the [Connect-gRPC Bridge](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/connect_grpc_bridge_filter).
 
 For example, if you have a gRPC server currently listening on port 8080, you update it to use port 8081
@@ -66,18 +66,18 @@ static_resources:
               max_concurrent_streams: 100
 ```
 
-Refer to [envoy docs](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ssl) for more configuration such
+Refer to [Envoy docs](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ssl) for more configuration such
 as TLS.
 
 ## Migration
 
-Migrating from grpc-python to Connect using envoy largely involves first adding envoy in front of the server,
-then migrating clients to Connect, and finally migrating servers to Connect and removing envoy.
+Migrating from grpc-python to Connect using Envoy largely involves first adding Envoy in front of the server,
+then migrating clients to Connect, and finally migrating servers to Connect and removing Envoy.
 
 The general code structure of grpc-python and Connect are very similar - if your code is configured to use a
 type checker, any changes to parameter names and such should be quite easy to spot.
 
-1. Reconfigure your gRPC servers to include envoy in front of the server port with a config similar to above.
+1. Reconfigure your gRPC servers to include Envoy in front of the server port with a config similar to above.
    For cloud deployments, this often means using functionality for sidecar containers.
 
 1. Begin generating code with `protoc-gen-connect-python`.
@@ -94,5 +94,5 @@ type checker, any changes to parameter names and such should be quite easy to sp
    to have type checking find differences in method names. Change uses of `abort` to directly `raise ConnectError` -
    for Connect services, it will be uncommon to pass the `RequestContext` into business logic code.
 
-1. Reconfigure server deployment to remove the envoy proxy and deploy. You're done! You can stop generating code with
+1. Reconfigure server deployment to remove the Envoy proxy and deploy. You're done! You can stop generating code with
    gRPC.
