@@ -98,48 +98,19 @@ async def create_user(self, request: CreateUserRequest, ctx: RequestContext) -> 
         )
 ```
 
-Reading error details on the client:
+Reading error details on the client - error details are `google.protobuf.Any` messages that can be unpacked to their original types:
 
 ```python
 try:
     response = await client.some_method(request)
 except ConnectError as e:
     for detail in e.details:
-        # Details are google.protobuf.Any messages
-        unpacked = Struct()
-        if detail.Unpack(unpacked):
-            print(f"Error detail: {unpacked}")
-```
-
-### Understanding google.protobuf.Any
-
-The `google.protobuf.Any` type stores arbitrary protobuf messages along with their type information:
-
-- `type_url`: A string identifying the message type (e.g., `type.googleapis.com/google.protobuf.Struct`)
-- `value`: The serialized bytes of the actual message
-
-Debugging tips:
-
-```python
-try:
-    response = await client.some_method(request)
-except ConnectError as e:
-    for detail in e.details:
-        # Inspect the type URL
-        print(f"Detail type: {detail.type_url}")
-
-        # Check type before unpacking
+        # Check the type before unpacking
         if detail.Is(Struct.DESCRIPTOR):
             unpacked = Struct()
             detail.Unpack(unpacked)
-            print(f"Struct detail: {unpacked}")
+            print(f"Error detail: {unpacked}")
 ```
-
-Common issues:
-
-1. **Type mismatch**: If `Unpack()` returns `False`, check the `type_url` to see the actual type
-2. **Missing imports**: Import the protobuf message classes for the error details you expect
-3. **Custom details**: Ensure both client and server have access to the same proto definitions
 
 ### Standard error detail types
 

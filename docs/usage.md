@@ -271,12 +271,14 @@ Interceptors can catch and transform errors. This is useful for adding context, 
                 return await call_next(request, ctx)
             except ConnectError as e:
                 # Log the error with context
-                print(f"Error in {ctx.method()}: {e.code} - {e.message}")
+                method = ctx.method()
+                print(f"Error in {method.service_name}/{method.name}: {e.code} - {e.message}")
                 # Re-raise the error
                 raise
             except Exception as e:
                 # Convert unexpected errors to ConnectError
-                print(f"Unexpected error in {ctx.method()}: {e}")
+                method = ctx.method()
+                print(f"Unexpected error in {method.service_name}/{method.name}: {e}")
                 raise ConnectError(Code.INTERNAL, "An unexpected error occurred")
     ```
 
@@ -292,11 +294,13 @@ Interceptors can catch and transform errors. This is useful for adding context, 
                 return call_next(request, ctx)
             except ConnectError as e:
                 # Log the error with context
-                print(f"Error in {ctx.method()}: {e.code} - {e.message}")
+                method = ctx.method()
+                print(f"Error in {method.service_name}/{method.name}: {e.code} - {e.message}")
                 # Re-raise the error
                 raise
             except Exception as e:
                 # Convert unexpected errors to ConnectError
-                print(f"Unexpected error in {ctx.method()}: {e}")
+                method = ctx.method()
+                print(f"Unexpected error in {method.service_name}/{method.name}: {e}")
                 raise ConnectError(Code.INTERNAL, "An unexpected error occurred")
     ```
