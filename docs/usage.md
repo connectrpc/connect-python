@@ -128,11 +128,11 @@ from your_generated_code import eliza_pb2
 
 class ElizaServiceImpl:
     async def say(self, request: eliza_pb2.SayRequest, ctx: RequestContext) -> eliza_pb2.SayResponse:
-        return eliza_pb2.SayResponse(sentence=f"You said: {req.sentence}")
+        return eliza_pb2.SayResponse(sentence=f"You said: {request.sentence}")
 
-    async def converse(self, req: AsyncIterator[eliza_pb2.ConverseRequest]) -> AsyncIterator[eliza_pb2.ConverseResponse]:
-        async for msg in req:
-            yield eliza_pb2.ConverseResponse(sentence=f"You said: {msg.sentence}")
+    async def converse(self, request: AsyncIterator[eliza_pb2.ConverseRequest], ctx: RequestContext) -> AsyncIterator[eliza_pb2.ConverseResponse]:
+        async for message in request:
+            yield eliza_pb2.ConverseResponse(sentence=f"You said: {message.sentence}")
 ```
 
 ### WSGI Server
@@ -153,11 +153,11 @@ from your_generated_code import eliza_pb2
 
 class ElizaServiceImpl:
     def say(self, request: eliza_pb2.SayRequest, ctx: RequestContext) -> eliza_pb2.SayResponse:
-        return eliza_pb2.SayResponse(sentence=f"You said: {req.msg.sentence}")
+        return eliza_pb2.SayResponse(sentence=f"You said: {request.sentence}")
 
-    def converse(self, req: Iterator[eliza_pb2.ConverseRequest]) -> Iterator[eliza_pb2.ConverseResponse]:
-        for msg in req:
-            yield eliza_pb2.ConverseResponse(sentence=f"You said: {msg.sentence}")
+    def converse(self, request: Iterator[eliza_pb2.ConverseRequest], ctx: RequestContext) -> Iterator[eliza_pb2.ConverseResponse]:
+        for message in request:
+            yield eliza_pb2.ConverseResponse(sentence=f"You said: {message.sentence}")
 ```
 
 ## Error Handling Best Practices
