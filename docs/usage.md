@@ -171,6 +171,8 @@ Select error codes that accurately reflect the situation:
 - Use `UNAVAILABLE` for transient failures that should be retried
 - Use `INTERNAL` sparingly - it indicates a bug in your code
 
+For more detailed guidance on choosing error codes, see the [Connect protocol documentation](https://connectrpc.com/docs/protocol#error-codes).
+
 ### Providing helpful error messages
 
 Error messages should help the caller understand what went wrong and how to fix it:
@@ -204,6 +206,8 @@ raise ConnectError(
     f"Validation failed: email: {email_error}, name: {name_error}"
 )
 ```
+
+**Note**: While error details provide structured error information, they require client-side deserialization to be fully useful for debugging. Make sure to document expected error detail types in your API documentation to help consumers properly handle them.
 
 ### Security considerations
 

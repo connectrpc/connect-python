@@ -163,7 +163,7 @@ raise ConnectError(
 
 In the Connect protocol, errors are always JSON:
 
-```json
+```http
 HTTP/1.1 400 Bad Request
 Content-Type: application/json
 
