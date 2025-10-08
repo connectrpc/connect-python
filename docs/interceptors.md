@@ -212,7 +212,7 @@ An authentication interceptor checking bearer tokens and storing them to a conte
         def __init__(self, valid_tokens: list[str]):
             self._valid_tokens = valid_tokens
 
-        def on_start(self, ctx: RequestContext):
+        def on_start(self, ctx: RequestContext) -> Token["auth_token"]:
             authorization = ctx.request_headers().get("authorization")
             if not authorization or not authorization.startswith("Bearer "):
                 raise ConnectError(Code.UNAUTHENTICATED)
