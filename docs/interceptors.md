@@ -239,7 +239,7 @@ the authorization header.
     _auth_token = ContextVar["auth_token"]("current_auth_token")
 
     class ClientAuthInterceptor:
-        async def on_start(self, ctx: RequestContext) -> Token["auth_token"]:
+        async def on_start(self, ctx: RequestContext):
             auth_token = _auth_token.get(None)
             if auth_token:
                 ctx.request_headers()["authorization"] = f"Bearer {auth_token}"
@@ -253,7 +253,7 @@ the authorization header.
     _auth_token = ContextVar["auth_token"]("current_auth_token")
 
     class ClientAuthInterceptor:
-        def on_start(self, ctx: RequestContext) -> Token["auth_token"]:
+        def on_start(self, ctx: RequestContext):
             auth_token = _auth_token.get(None)
             if auth_token:
                 ctx.request_headers()["authorization"] = f"Bearer {auth_token}"
