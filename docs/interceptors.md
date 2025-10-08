@@ -234,7 +234,7 @@ the authorization header.
 === "Async"
 
     ```python
-    from contextvars import ContextVar, Token
+    from contextvars import ContextVar
 
     _auth_token = ContextVar["auth_token"]("current_auth_token")
 
@@ -248,7 +248,7 @@ the authorization header.
 === "Sync"
 
     ```python
-    from contextvars import ContextVar, Token
+    from contextvars import ContextVar
 
     _auth_token = ContextVar["auth_token"]("current_auth_token")
 
