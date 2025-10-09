@@ -28,7 +28,7 @@ jobs:
           - windows-2025
         python:
           - "3.10"
-          - "3.13"
+          - "3.14"
         coverage:
           - "nocov"
         # Test oldest and newest on all OS's, but others only on one
@@ -42,14 +42,14 @@ jobs:
             python: "3.12"
             coverage: "nocov"
             resolution: "lowest-direct"
-          # Enable coverage on just one job
           - os: ubuntu-24.04
             python: "3.13"
-            coverage: "cov"
-            resolution: "lowest-direct"
-          - os: ubuntu-24.04
-            python: "3.14.0-rc.2"
             coverage: "nocov"
+            resolution: "lowest-direct"
+          # Enable coverage on just one job
+          - os: ubuntu-24.04
+            python: "3.14"
+            coverage: "cov"
             resolution: "lowest-direct"
     env:
       # Shared env variables for all the tests
