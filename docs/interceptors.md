@@ -193,7 +193,7 @@ An authentication interceptor checking bearer tokens and storing them to a conte
             if not authorization or not authorization.startswith("Bearer "):
                 raise ConnectError(Code.UNAUTHENTICATED)
             token = authorization[len("Bearer "):]
-            if token not in valid_tokens:
+            if token not in self._valid_tokens:
                 raise ConnectError(Code.PERMISSION_DENIED)
             return _auth_token.set(token)
 
@@ -217,7 +217,7 @@ An authentication interceptor checking bearer tokens and storing them to a conte
             if not authorization or not authorization.startswith("Bearer "):
                 raise ConnectError(Code.UNAUTHENTICATED)
             token = authorization[len("Bearer "):]
-            if token not in valid_tokens:
+            if token not in self._valid_tokens:
                 raise ConnectError(Code.PERMISSION_DENIED)
             return _auth_token.set(token)
 
