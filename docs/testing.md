@@ -20,7 +20,7 @@ uv add --dev pytest pytest-asyncio httpx
 
 ## Recommended approach: In-memory testing
 
-The recommended approach is **in-memory testing** using httpx's ASGI/WSGI transports. This tests your full application stack (routing, serialization, error handling, interceptors) while remaining fast and isolated - no network overhead or port conflicts.
+The recommended approach is **in-memory testing** using httpx's ASGI/WSGI transports (provided by httpx, not connect-python). This tests your full application stack (routing, serialization, error handling, interceptors) while remaining fast and isolated - no network overhead or port conflicts.
 
 ## Testing servers
 
@@ -413,6 +413,8 @@ Test code that uses request headers:
         assert response.greeting == "Hello, Alice!"
     ```
 
+> **Note:** For accessing response headers and trailers from clients, see [Headers and trailers](headers-and-trailers.md).
+
 
 ## Testing clients
 
@@ -719,6 +721,7 @@ Use fixtures to mock external services:
     ```python
     import pytest
     import pytest_asyncio
+    import httpx
     from unittest.mock import AsyncMock
     from greet.v1.greet_connect import GreetService, GreetServiceASGIApplication, GreetServiceClient
     from greet.v1.greet_pb2 import GreetRequest, GreetResponse
@@ -759,6 +762,7 @@ Use fixtures to mock external services:
 
     ```python
     import pytest
+    import httpx
     from unittest.mock import Mock
     from greet.v1.greet_connect import GreetServiceSync, GreetServiceWSGIApplication, GreetServiceClientSync
     from greet.v1.greet_pb2 import GreetRequest, GreetResponse
@@ -803,6 +807,7 @@ Test services that require authentication:
     ```python
     import pytest
     import pytest_asyncio
+    import httpx
     from connectrpc.code import Code
     from connectrpc.errors import ConnectError
     from greet.v1.greet_connect import GreetService, GreetServiceASGIApplication, GreetServiceClient
@@ -863,6 +868,7 @@ Test services that require authentication:
 
     ```python
     import pytest
+    import httpx
     from connectrpc.code import Code
     from connectrpc.errors import ConnectError
     from greet.v1.greet_connect import GreetServiceSync, GreetServiceWSGIApplication, GreetServiceClientSync
