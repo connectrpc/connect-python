@@ -1,10 +1,14 @@
 import argparse
 import asyncio
+import os
+import re
 import signal
+import socket
+import ssl
+import sys
 import time
 from collections.abc import AsyncIterator, Iterator
-from contextlib import ExitStack
-from ssl import VerifyMode
+from contextlib import ExitStack, closing
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Literal, TypeVar
 
@@ -36,7 +40,6 @@ from gen.connectrpc.conformance.v1.service_pb2 import (
     UnaryResponseDefinition,
 )
 from google.protobuf.any_pb2 import Any
-from hypercorn.asyncio import serve as hypercorn_serve
 from hypercorn.config import Config as HypercornConfig
 from hypercorn.logging import Logger
 
@@ -402,76 +405,228 @@ class PortCapturingLogger(Logger):
         await super().info(message, *args, **kwargs)
 
 
-async def serve(
-    request: ServerCompatRequest, mode: Literal["sync", "async"]
-) -> tuple[asyncio.Task, int]:
-    read_max_bytes = request.message_receive_limit or None
-    match mode:
-        case "async":
-            app = ConformanceServiceASGIApplication(
-                TestService(), read_max_bytes=read_max_bytes
-            )
-        case "sync":
-            app = ConformanceServiceWSGIApplication(
-                TestServiceSync(), read_max_bytes=read_max_bytes
-            )
+read_max_bytes = os.getenv("READ_MAX_BYTES")
+if read_max_bytes is not None:
+    read_max_bytes = int(read_max_bytes)
 
-    conf = HypercornConfig()
-    conf.bind = ["127.0.0.1:0"]
+asgi_app = ConformanceServiceASGIApplication(
+    TestService(), read_max_bytes=read_max_bytes
+)
+wsgi_app = ConformanceServiceWSGIApplication(
+    TestServiceSync(), read_max_bytes=read_max_bytes
+)
 
-    cleanup = ExitStack()
-    if request.use_tls:
-        cert_file = cleanup.enter_context(NamedTemporaryFile())
-        key_file = cleanup.enter_context(NamedTemporaryFile())
-        cert_file.write(request.server_creds.cert)
-        cert_file.flush()
-        key_file.write(request.server_creds.key)
-        key_file.flush()
-        conf.certfile = cert_file.name
-        conf.keyfile = key_file.name
-        if request.client_tls_cert:
-            ca_cert_file = cleanup.enter_context(NamedTemporaryFile())
-            ca_cert_file.write(request.client_tls_cert)
-            ca_cert_file.flush()
-            conf.ca_certs = ca_cert_file.name
-            conf.verify_mode = VerifyMode.CERT_REQUIRED
 
-    conf._log = PortCapturingLogger(conf)
+def _server_env(request: ServerCompatRequest) -> dict[str, str]:
+    pythonpath = os.pathsep.join(sys.path)
+    env = {
+        **os.environ,
+        "PYTHONPATH": pythonpath,
+        "PYTHONHOME": f"{sys.prefix}:{sys.exec_prefix}",
+    }
+    if request.message_receive_limit:
+        env["READ_MAX_BYTES"] = str(request.message_receive_limit)
+    return env
 
-    shutdown_event = asyncio.Event()
 
-    def _signal_handler(*_) -> None:
-        cleanup.close()
-        shutdown_event.set()
+_port_regex = re.compile(r".*://[^:]+:(\d+).*")
 
-    loop = asyncio.get_event_loop()
-    loop.add_signal_handler(signal.SIGTERM, _signal_handler)
-    loop.add_signal_handler(signal.SIGINT, _signal_handler)
 
-    serve_task = loop.create_task(
-        hypercorn_serve(
-            app,  # pyright:ignore[reportArgumentType] - some incompatibility in type
-            conf,
-            shutdown_trigger=shutdown_event.wait,
-            mode="asgi" if mode == "async" else "wsgi",
-        )
+async def serve_granian(
+    request: ServerCompatRequest,
+    mode: Literal["sync", "async"],
+    certfile: str | None,
+    keyfile: str | None,
+    cafile: str | None,
+    port_future: asyncio.Future[int],
+):
+    # Granian seems to have a bug that it prints out 0 rather than the resolved port,
+    # so we need to determine it ourselves. If we see race conditions because of it,
+    # we can set max-servers=1 in the runner.
+    port = _find_free_port()
+    args = [f"--port={port}"]
+    if certfile:
+        args.append(f"--ssl-certificate={certfile}")
+    if keyfile:
+        args.append(f"--ssl-keyfile={keyfile}")
+    if cafile:
+        args.append(f"--ssl-ca={cafile}")
+        args.append("--ssl-client-verify")
+
+    if mode == "sync":
+        args.append("--interface=wsgi")
+        args.append("server:wsgi_app")
+    else:
+        args.append("--interface=asgi")
+        args.append("server:asgi_app")
+
+    proc = await asyncio.create_subprocess_exec(
+        "granian",
+        *args,
+        stderr=asyncio.subprocess.STDOUT,
+        stdout=asyncio.subprocess.PIPE,
+        limit=1024,
+        env=_server_env(request),
     )
-    port = -1
-    for _ in range(100):
-        port = conf._log.port
-        if port != -1:
-            break
-        await asyncio.sleep(0.01)
-    return serve_task, port
+    stdout = proc.stdout
+    assert stdout is not None  # noqa: S101
+    try:
+        for _ in range(100):
+            line = await stdout.readline()
+            if b"Listening at:" in line:
+                break
+        port_future.set_result(port)
+        await proc.wait()
+    except asyncio.CancelledError:
+        proc.terminate()
+        await proc.wait()
+
+
+async def serve_gunicorn(
+    request: ServerCompatRequest,
+    certfile: str | None,
+    keyfile: str | None,
+    cafile: str | None,
+    port_future: asyncio.Future[int],
+):
+    args = ["--bind=127.0.0.1:0", "--workers=8"]
+    if certfile:
+        args.append(f"--certfile={certfile}")
+    if keyfile:
+        args.append(f"--keyfile={keyfile}")
+    if cafile:
+        args.append(f"--ca-certs={cafile}")
+        args.append(f"--cert-reqs={ssl.CERT_REQUIRED}")
+
+    args.append("server:wsgi_app")
+
+    proc = await asyncio.create_subprocess_exec(
+        "gunicorn",
+        *args,
+        stderr=asyncio.subprocess.STDOUT,
+        stdout=asyncio.subprocess.PIPE,
+        limit=1024,
+        env=_server_env(request),
+    )
+    stdout = proc.stdout
+    assert stdout is not None  # noqa: S101
+    try:
+        for _ in range(100):
+            line = await stdout.readline()
+            match = _port_regex.match(line.decode("utf-8"))
+            if match:
+                port_future.set_result(int(match.group(1)))
+                break
+        await proc.wait()
+    except asyncio.CancelledError:
+        proc.terminate()
+        await proc.wait()
+
+
+async def serve_hypercorn(
+    request: ServerCompatRequest,
+    mode: Literal["sync", "async"],
+    certfile: str | None,
+    keyfile: str | None,
+    cafile: str | None,
+    port_future: asyncio.Future[int],
+):
+    args = ["--bind=localhost:0"]
+    if certfile:
+        args.append(f"--certfile={certfile}")
+    if keyfile:
+        args.append(f"--keyfile={keyfile}")
+    if cafile:
+        args.append(f"--ca-certs={cafile}")
+        args.append("--verify-mode=CERT_REQUIRED")
+
+    if mode == "sync":
+        args.append("server:wsgi_app")
+    else:
+        args.append("server:asgi_app")
+
+    proc = await asyncio.create_subprocess_exec(
+        "hypercorn",
+        *args,
+        stderr=asyncio.subprocess.STDOUT,
+        stdout=asyncio.subprocess.PIPE,
+        limit=1024,
+        env=_server_env(request),
+    )
+    stdout = proc.stdout
+    assert stdout is not None  # noqa: S101
+    try:
+        for _ in range(100):
+            line = await stdout.readline()
+            match = _port_regex.match(line.decode("utf-8"))
+            if match:
+                port_future.set_result(int(match.group(1)))
+                break
+        await proc.wait()
+    except asyncio.CancelledError:
+        proc.terminate()
+        await proc.wait()
+
+
+async def serve_uvicorn(
+    request: ServerCompatRequest,
+    certfile: str | None,
+    keyfile: str | None,
+    cafile: str | None,
+    port_future: asyncio.Future[int],
+):
+    args = ["--port=0", "--no-access-log"]
+    if certfile:
+        args.append(f"--ssl-certfile={certfile}")
+    if keyfile:
+        args.append(f"--ssl-keyfile={keyfile}")
+    if cafile:
+        args.append(f"--ssl-ca-certs={cafile}")
+        args.append(f"--ssl-cert-reqs={ssl.CERT_REQUIRED}")
+
+    args.append("server:asgi_app")
+
+    proc = await asyncio.create_subprocess_exec(
+        "uvicorn",
+        *args,
+        stderr=asyncio.subprocess.STDOUT,
+        stdout=asyncio.subprocess.PIPE,
+        limit=1024,
+        env=_server_env(request),
+    )
+    stdout = proc.stdout
+    assert stdout is not None  # noqa: S101
+    try:
+        for _ in range(100):
+            line = await stdout.readline()
+            match = _port_regex.match(line.decode("utf-8"))
+            if match:
+                port_future.set_result(int(match.group(1)))
+                break
+        await proc.wait()
+    except asyncio.CancelledError:
+        proc.terminate()
+        await proc.wait()
+
+
+def _find_free_port():
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(("", 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
 
 
 class Args(argparse.Namespace):
     mode: Literal["sync", "async"]
+    server: Literal["granian", "hypercorn", "uvicorn"]
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(description="Conformance client")
+    parser = argparse.ArgumentParser(description="Conformance server")
     parser.add_argument("--mode", choices=["sync", "async"])
+    parser.add_argument(
+        "--server", choices=["granian", "gunicorn", "hypercorn", "uvicorn"]
+    )
     args = parser.parse_args(namespace=Args())
 
     stdin, stdout = await create_standard_streams()
@@ -485,19 +640,67 @@ async def main() -> None:
     request = ServerCompatRequest()
     request.ParseFromString(request_buf)
 
-    serve_task, port = await serve(request, args.mode)
-    response = ServerCompatResponse()
-    response.host = "127.0.0.1"
-    response.port = port
+    cleanup = ExitStack()
+    certfile = None
+    keyfile = None
+    cafile = None
     if request.use_tls:
-        response.pem_cert = request.server_creds.cert
-    response_buf = response.SerializeToString()
-    size_buf = len(response_buf).to_bytes(4, byteorder="big")
-    stdout.write(size_buf)
-    stdout.write(response_buf)
-    await stdout.drain()
-    # Runner will send sigterm which is handled by serve
-    await serve_task
+        cert_file = cleanup.enter_context(NamedTemporaryFile())
+        key_file = cleanup.enter_context(NamedTemporaryFile())
+        cert_file.write(request.server_creds.cert)
+        cert_file.flush()
+        key_file.write(request.server_creds.key)
+        key_file.flush()
+        certfile = cert_file.name
+        keyfile = key_file.name
+        if request.client_tls_cert:
+            ca_cert_file = cleanup.enter_context(NamedTemporaryFile())
+            ca_cert_file.write(request.client_tls_cert)
+            ca_cert_file.flush()
+            cafile = ca_cert_file.name
+
+    with cleanup:
+        port_future: asyncio.Future[int] = asyncio.get_event_loop().create_future()
+        match args.server:
+            case "granian":
+                serve_task = asyncio.create_task(
+                    serve_granian(
+                        request, args.mode, certfile, keyfile, cafile, port_future
+                    )
+                )
+            case "gunicorn":
+                if args.mode == "async":
+                    msg = "gunicorn does not support async mode"
+                    raise ValueError(msg)
+                serve_task = asyncio.create_task(
+                    serve_gunicorn(request, certfile, keyfile, cafile, port_future)
+                )
+            case "hypercorn":
+                serve_task = asyncio.create_task(
+                    serve_hypercorn(
+                        request, args.mode, certfile, keyfile, cafile, port_future
+                    )
+                )
+            case "uvicorn":
+                if args.mode == "sync":
+                    msg = "uvicorn does not support sync mode"
+                    raise ValueError(msg)
+                serve_task = asyncio.create_task(
+                    serve_uvicorn(request, certfile, keyfile, cafile, port_future)
+                )
+        port = await port_future
+        response = ServerCompatResponse()
+        response.host = "127.0.0.1"
+        response.port = port
+        if request.use_tls:
+            response.pem_cert = request.server_creds.cert
+        response_buf = response.SerializeToString()
+        size_buf = len(response_buf).to_bytes(4, byteorder="big")
+        stdout.write(size_buf)
+        stdout.write(response_buf)
+        await stdout.drain()
+        asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, serve_task.cancel)
+        await serve_task
 
 
 if __name__ == "__main__":

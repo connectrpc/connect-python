@@ -41,6 +41,8 @@ dev = [
     "connect-python-example",
     "httpx[http2]==0.28.1",
     "hypercorn==0.17.3",
+    "granian==2.5.5",
+    "gunicorn==23.0.0",
     "just-bin==1.42.4; sys_platform != 'win32'",
     "mkdocs==1.6.1",
     "mkdocs-material==9.6.20",
@@ -50,6 +52,7 @@ dev = [
     "pytest-asyncio==1.1.0",
     "pytest-cov==7.0.0",
     "ruff~=0.13.2",
+    "uvicorn==0.37.0",
     "typing_extensions==4.15.0",
     "zstandard==0.25.0",
 ]
