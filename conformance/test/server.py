@@ -444,7 +444,7 @@ async def serve_granian(
     # so we need to determine it ourselves. If we see race conditions because of it,
     # we can set max-servers=1 in the runner.
     port = _find_free_port()
-    args = [f"--port={port}"]
+    args = [f"--port={port}", "--loop=uvloop"]
     if certfile:
         args.append(f"--ssl-certificate={certfile}")
     if keyfile:
@@ -473,7 +473,7 @@ async def serve_granian(
     try:
         for _ in range(100):
             line = await stdout.readline()
-            if b"Listening at:" in line:
+            if b"Started worker-1 runtime-1" in line:
                 break
         port_future.set_result(port)
         await proc.wait()
@@ -510,13 +510,20 @@ async def serve_gunicorn(
     )
     stdout = proc.stdout
     assert stdout is not None  # noqa: S101
+    port = None
     try:
         for _ in range(100):
             line = await stdout.readline()
             match = _port_regex.match(line.decode("utf-8"))
             if match:
-                port_future.set_result(int(match.group(1)))
+                port = int(match.group(1))
                 break
+            if b"Booting worker with pid" in line:
+                break
+        if port is None:
+            msg = "Could not determine port from gunicorn output"
+            raise RuntimeError(msg)
+        port_future.set_result(port)
         await proc.wait()
     except asyncio.CancelledError:
         proc.terminate()
@@ -531,7 +538,7 @@ async def serve_hypercorn(
     cafile: str | None,
     port_future: asyncio.Future[int],
 ):
-    args = ["--bind=localhost:0"]
+    args = ["--bind=localhost:0", "--worker-class=uvloop"]
     if certfile:
         args.append(f"--certfile={certfile}")
     if keyfile:

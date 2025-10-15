@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -11,15 +12,17 @@ _server_py_path = str(_current_dir / "server.py")
 _config_path = str(_current_dir / "config.yaml")
 
 
-# Servers often run out of file descriptors on macOS due to low default ulimit.
+# Servers often run out of file descriptors due to low default ulimit.
 # We go ahead and raise it automatically so tests can pass without special
 # configuration.
 @pytest.fixture(autouse=True, scope="session")
 def macos_raise_ulimit():
-    if sys.platform == "darwin":
-        import resource  # noqa: PLC0415
+    if os.name != "posix":
+        return
 
-        resource.setrlimit(resource.RLIMIT_NOFILE, (16384, 16384))
+    import resource  # noqa: PLC0415
+
+    resource.setrlimit(resource.RLIMIT_NOFILE, (16384, 16384))
 
 
 @pytest.mark.parametrize("server", ["granian", "gunicorn", "hypercorn"])
