@@ -443,7 +443,7 @@ async def serve_granian(
     # so we need to determine it ourselves. If we see race conditions because of it,
     # we can set max-servers=1 in the runner.
     port = _find_free_port()
-    args = [f"--port={port}"]
+    args = [f"--port={port}", "--runtime-threads=20"]
     if certfile:
         args.append(f"--ssl-certificate={certfile}")
     if keyfile:
