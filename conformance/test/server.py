@@ -40,8 +40,6 @@ from gen.connectrpc.conformance.v1.service_pb2 import (
     UnaryResponseDefinition,
 )
 from google.protobuf.any_pb2 import Any
-from hypercorn.config import Config as HypercornConfig
-from hypercorn.logging import Logger
 
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
@@ -389,22 +387,6 @@ class TestServiceSync(ConformanceServiceSync):
             )
 
 
-class PortCapturingLogger(Logger):
-    """In-memory logger for Hypercorn, useful for testing."""
-
-    port = -1
-
-    def __init__(self, conf: HypercornConfig) -> None:
-        super().__init__(conf)
-
-    async def info(self, message: str, *args: Any, **kwargs: Any) -> None:
-        if "Running on" in message:
-            _, _, rest = message.partition("//127.0.0.1:")
-            port, _, _ = rest.partition(" ")
-            self.port = int(port)
-        await super().info(message, *args, **kwargs)
-
-
 read_max_bytes = os.getenv("READ_MAX_BYTES")
 if read_max_bytes is not None:
     read_max_bytes = int(read_max_bytes)
@@ -430,6 +412,23 @@ def _server_env(request: ServerCompatRequest) -> dict[str, str]:
 
 
 _port_regex = re.compile(r".*://[^:]+:(\d+).*")
+
+
+async def _tee_to_stderr(stream: asyncio.StreamReader) -> AsyncIterator[bytes]:
+    try:
+        while True:
+            line = await stream.readline()
+            if not line:
+                break
+            print(line.decode("utf-8"), end="", file=sys.stderr)  # noqa: T201
+            yield line
+    except asyncio.CancelledError:
+        pass
+
+
+async def _consume_log(stream: AsyncIterator[bytes]) -> None:
+    async for _ in stream:
+        pass
 
 
 async def serve_granian(
@@ -470,12 +469,13 @@ async def serve_granian(
     )
     stdout = proc.stdout
     assert stdout is not None  # noqa: S101
+    stdout = _tee_to_stderr(stdout)
     try:
-        for _ in range(100):
-            line = await stdout.readline()
+        async for line in stdout:
             if b"Started worker-1 runtime-1" in line:
                 break
         port_future.set_result(port)
+        await _consume_log(stdout)
         await proc.wait()
     except asyncio.CancelledError:
         proc.terminate()
@@ -510,21 +510,14 @@ async def serve_gunicorn(
     )
     stdout = proc.stdout
     assert stdout is not None  # noqa: S101
-    port = None
+    stdout = _tee_to_stderr(stdout)
     try:
-        for _ in range(100):
-            line = await stdout.readline()
+        async for line in stdout:
             match = _port_regex.match(line.decode("utf-8"))
             if match:
-                port = int(match.group(1))
+                port_future.set_result(int(match.group(1)))
                 break
-            if b"Booting worker with pid" in line:
-                break
-        if port is None:
-            msg = "Could not determine port from gunicorn output"
-            raise RuntimeError(msg)
-        port_future.set_result(port)
-        await proc.wait()
+        await _consume_log(stdout)
     except asyncio.CancelledError:
         proc.terminate()
         await proc.wait()
@@ -562,14 +555,14 @@ async def serve_hypercorn(
     )
     stdout = proc.stdout
     assert stdout is not None  # noqa: S101
+    stdout = _tee_to_stderr(stdout)
     try:
-        for _ in range(100):
-            line = await stdout.readline()
+        async for line in stdout:
             match = _port_regex.match(line.decode("utf-8"))
             if match:
                 port_future.set_result(int(match.group(1)))
                 break
-        await proc.wait()
+        await _consume_log(stdout)
     except asyncio.CancelledError:
         proc.terminate()
         await proc.wait()
@@ -603,14 +596,14 @@ async def serve_uvicorn(
     )
     stdout = proc.stdout
     assert stdout is not None  # noqa: S101
+    stdout = _tee_to_stderr(stdout)
     try:
-        for _ in range(100):
-            line = await stdout.readline()
+        async for line in stdout:
             match = _port_regex.match(line.decode("utf-8"))
             if match:
                 port_future.set_result(int(match.group(1)))
                 break
-        await proc.wait()
+        await _consume_log(stdout)
     except asyncio.CancelledError:
         proc.terminate()
         await proc.wait()
