@@ -444,7 +444,7 @@ async def serve_granian(
     # so we need to determine it ourselves. If we see race conditions because of it,
     # we can set max-servers=1 in the runner.
     port = _find_free_port()
-    args = [f"--port={port}", "--loop=uvloop"]
+    args = [f"--port={port}"]
     if certfile:
         args.append(f"--ssl-certificate={certfile}")
     if keyfile:
@@ -538,7 +538,7 @@ async def serve_hypercorn(
     cafile: str | None,
     port_future: asyncio.Future[int],
 ):
-    args = ["--bind=localhost:0", "--worker-class=uvloop"]
+    args = ["--bind=localhost:0"]
     if certfile:
         args.append(f"--certfile={certfile}")
     if keyfile:
@@ -695,6 +695,7 @@ async def main() -> None:
                 serve_task = asyncio.create_task(
                     serve_uvicorn(request, certfile, keyfile, cafile, port_future)
                 )
+        asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, serve_task.cancel)
         port = await port_future
         response = ServerCompatResponse()
         response.host = "127.0.0.1"
@@ -706,7 +707,6 @@ async def main() -> None:
         stdout.write(size_buf)
         stdout.write(response_buf)
         await stdout.drain()
-        asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, serve_task.cancel)
         await serve_task
 
 

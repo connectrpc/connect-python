@@ -25,6 +25,18 @@ def macos_raise_ulimit():
     resource.setrlimit(resource.RLIMIT_NOFILE, (16384, 16384))
 
 
+# There is a relatively low time limit for the server to respond with a resource error
+# for this test. In resource limited environments such as CI, it doesn't seem to be enough,
+# notably it is the first request that will take the longest to process as it also sets up
+# the request. We can consider raising this delay in the runner to see if it helps.
+#
+# https://github.com/connectrpc/conformance/blob/main/internal/app/connectconformance/testsuites/data/server_message_size.yaml#L46
+_known_flaky = [
+    "--known-flaky",
+    "Server Message Size/HTTPVersion:1/**/first-request-exceeds-server-limit",
+]
+
+
 @pytest.mark.parametrize("server", ["granian", "gunicorn", "hypercorn"])
 def test_server_sync(server: str) -> None:
     args = maybe_patch_args_with_debug(
@@ -54,6 +66,7 @@ def test_server_sync(server: str) -> None:
             "--mode",
             "server",
             *opts,
+            *_known_flaky,
             "--parallel",
             "1",
             "--",
@@ -87,6 +100,7 @@ def test_server_async(server: str) -> None:
             "--mode",
             "server",
             *opts,
+            *_known_flaky,
             "--parallel",
             "1",
             "--",
