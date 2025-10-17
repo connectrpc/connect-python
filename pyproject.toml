@@ -179,7 +179,7 @@ extend-ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"conformance/test/**" = ["ANN", "INP", "SLF", "SIM115", "D"]
+"conformance/test/**" = ["ANN", "INP", "SLF", "SIM115", "S101", "D"]
 "example/**" = [
     "ANN",
     "S",   # Keep examples simpler, e.g. allow normal random

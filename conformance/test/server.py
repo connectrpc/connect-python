@@ -442,6 +442,7 @@ async def serve_granian(
     # Granian seems to have a bug that it prints out 0 rather than the resolved port,
     # so we need to determine it ourselves. If we see race conditions because of it,
     # we can set max-servers=1 in the runner.
+    # ref: https://github.com/emmett-framework/granian/issues/711
     port = _find_free_port()
     args = [f"--port={port}", "--workers=8"]
     if certfile:
@@ -468,7 +469,7 @@ async def serve_granian(
         env=_server_env(request),
     )
     stdout = proc.stdout
-    assert stdout is not None  # noqa: S101
+    assert stdout is not None
     stdout = _tee_to_stderr(stdout)
     try:
         async for line in stdout:
@@ -509,7 +510,7 @@ async def serve_gunicorn(
         env=_server_env(request),
     )
     stdout = proc.stdout
-    assert stdout is not None  # noqa: S101
+    assert stdout is not None
     stdout = _tee_to_stderr(stdout)
     try:
         async for line in stdout:
@@ -554,7 +555,7 @@ async def serve_hypercorn(
         env=_server_env(request),
     )
     stdout = proc.stdout
-    assert stdout is not None  # noqa: S101
+    assert stdout is not None
     stdout = _tee_to_stderr(stdout)
     try:
         async for line in stdout:
@@ -595,7 +596,7 @@ async def serve_uvicorn(
         env=_server_env(request),
     )
     stdout = proc.stdout
-    assert stdout is not None  # noqa: S101
+    assert stdout is not None
     stdout = _tee_to_stderr(stdout)
     try:
         async for line in stdout:
