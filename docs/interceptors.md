@@ -212,7 +212,7 @@ An authentication interceptor checking bearer tokens and storing them to a conte
         def __init__(self, valid_tokens: list[str]):
             self._valid_tokens = valid_tokens
 
-        def on_start(self, ctx: RequestContext) -> Token["auth_token"]:
+        def on_start_sync(self, ctx: RequestContext) -> Token["auth_token"]:
             authorization = ctx.request_headers().get("authorization")
             if not authorization or not authorization.startswith("Bearer "):
                 raise ConnectError(Code.UNAUTHENTICATED)
@@ -221,7 +221,7 @@ An authentication interceptor checking bearer tokens and storing them to a conte
                 raise ConnectError(Code.PERMISSION_DENIED)
             return _auth_token.set(token)
 
-        def on_end(self, token: Token["auth_token"], ctx: RequestContext):
+        def on_end_sync(self, token: Token["auth_token"], ctx: RequestContext):
             _auth_token.reset(token)
     ```
 
@@ -253,7 +253,7 @@ the authorization header.
     _auth_token = ContextVar["auth_token"]("current_auth_token")
 
     class ClientAuthInterceptor:
-        def on_start(self, ctx: RequestContext):
+        def on_start_sync(self, ctx: RequestContext):
             auth_token = _auth_token.get(None)
             if auth_token:
                 ctx.request_headers()["authorization"] = f"Bearer {auth_token}"
