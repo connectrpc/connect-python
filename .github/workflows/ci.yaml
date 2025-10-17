@@ -53,7 +53,7 @@ jobs:
             resolution: "lowest-direct"
     env:
       # Shared env variables for all the tests
-      UV_RESOLUTION: '${{ matrix.resolution }}'
+      UV_RESOLUTION: "${{ matrix.resolution }}"
 
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -84,7 +84,7 @@ jobs:
       - name: run conformance tests
         # TODO: Debug stdin/stdout issues on Windows
         if: ${{ !startsWith(matrix.os, 'windows-') }}
-        run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
+        run: uv run pytest -rfEP ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
         working-directory: conformance
 
       - name: run tests with minimal dependencies
