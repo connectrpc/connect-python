@@ -473,7 +473,7 @@ async def serve_granian(
     stdout = _tee_to_stderr(stdout)
     try:
         async for line in stdout:
-            if b"Started worker-1 runtime-1" in line:
+            if b"Started worker-8 runtime-1" in line:
                 break
         port_future.set_result(port)
         await _consume_log(stdout)
