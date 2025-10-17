@@ -52,9 +52,6 @@ def test_server_sync(server: str) -> None:
         "**/bidi-stream/full-duplex/**",
     ]
     match server:
-        case "granian":
-            # granian seems to have issues with concurrency
-            opts += ["--parallel", "1"]
         case "gunicorn":
             # gunicorn doesn't support HTTP/2
             opts = ["--skip", "**/HTTPVersion:2/**"]
@@ -88,9 +85,6 @@ def test_server_async(server: str) -> None:
     )
     opts = []
     match server:
-        case "granian":
-            # granian seems to have issues with concurrency
-            opts = ["--parallel", "1"]
         case "uvicorn":
             # uvicorn doesn't support HTTP/2
             opts = ["--skip", "**/HTTPVersion:2/**"]
