@@ -361,32 +361,14 @@ Test interceptors as part of your full application stack. For example, testing t
 === "ASGI"
 
     ```python
-    from contextvars import ContextVar, Token
     import httpx
     import pytest
     from connectrpc.code import Code
     from connectrpc.errors import ConnectError
     from greet.v1.greet_connect import GreetServiceASGIApplication, GreetServiceClient
     from greet.v1.greet_pb2 import GreetRequest
+    from interceptors import ServerAuthInterceptor
     from server import Greeter
-
-    _auth_token = ContextVar["auth_token"]("current_auth_token")
-
-    class ServerAuthInterceptor:
-        def __init__(self, valid_tokens: list[str]):
-            self._valid_tokens = valid_tokens
-
-        async def on_start(self, ctx) -> Token["auth_token"]:
-            authorization = ctx.request_headers().get("authorization")
-            if not authorization or not authorization.startswith("Bearer "):
-                raise ConnectError(Code.UNAUTHENTICATED)
-            token = authorization[len("Bearer "):]
-            if token not in self._valid_tokens:
-                raise ConnectError(Code.PERMISSION_DENIED)
-            return _auth_token.set(token)
-
-        async def on_end(self, token: Token["auth_token"], ctx):
-            _auth_token.reset(token)
 
     @pytest.mark.asyncio
     async def test_server_auth_interceptor():
@@ -429,32 +411,14 @@ Test interceptors as part of your full application stack. For example, testing t
 === "WSGI"
 
     ```python
-    from contextvars import ContextVar, Token
     import httpx
     import pytest
     from connectrpc.code import Code
     from connectrpc.errors import ConnectError
     from greet.v1.greet_connect import GreetServiceWSGIApplication, GreetServiceClientSync
     from greet.v1.greet_pb2 import GreetRequest
+    from interceptors import ServerAuthInterceptor
     from server import GreeterSync
-
-    _auth_token = ContextVar["auth_token"]("current_auth_token")
-
-    class ServerAuthInterceptor:
-        def __init__(self, valid_tokens: list[str]):
-            self._valid_tokens = valid_tokens
-
-        def on_start_sync(self, ctx) -> Token["auth_token"]:
-            authorization = ctx.request_headers().get("authorization")
-            if not authorization or not authorization.startswith("Bearer "):
-                raise ConnectError(Code.UNAUTHENTICATED)
-            token = authorization[len("Bearer "):]
-            if token not in self._valid_tokens:
-                raise ConnectError(Code.PERMISSION_DENIED)
-            return _auth_token.set(token)
-
-        def on_end_sync(self, token: Token["auth_token"], ctx):
-            _auth_token.reset(token)
 
     def test_server_auth_interceptor():
         interceptor = ServerAuthInterceptor(["valid-token"])
