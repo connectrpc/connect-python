@@ -22,28 +22,73 @@ uv add --dev pytest pytest-asyncio httpx
 
 The recommended approach is **in-memory testing** using httpx's ASGI/WSGI transports (provided by httpx, not connect-python). This tests your full application stack (routing, serialization, error handling, interceptors) while remaining fast and isolated - no network overhead or port conflicts.
 
+Here's a minimal example without any test framework:
+
+=== "ASGI"
+
+    ```python
+    import httpx
+    from greet.v1.greet_connect import GreetServiceASGIApplication, GreetServiceClient
+    from greet.v1.greet_pb2 import GreetRequest
+    from server import Greeter  # Your service implementation
+
+    # Create ASGI app with your service
+    app = GreetServiceASGIApplication(Greeter())
+
+    # Connect client to service using in-memory transport
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test"  # URL is ignored for in-memory transport
+    ) as session:
+        client = GreetServiceClient("http://test", session=session)
+        response = await client.greet(GreetRequest(name="Alice"))
+
+    print(response.greeting)  # "Hello, Alice!"
+    ```
+
+=== "WSGI"
+
+    ```python
+    import httpx
+    from greet.v1.greet_connect import GreetServiceWSGIApplication, GreetServiceClientSync
+    from greet.v1.greet_pb2 import GreetRequest
+    from server import GreeterSync  # Your service implementation
+
+    # Create WSGI app with your service
+    app = GreetServiceWSGIApplication(GreeterSync())
+
+    # Connect client to service using in-memory transport
+    with httpx.Client(
+        transport=httpx.WSGITransport(app=app),
+        base_url="http://test"  # URL is ignored for in-memory transport
+    ) as session:
+        client = GreetServiceClientSync("http://test", session=session)
+        response = client.greet(GreetRequest(name="Alice"))
+
+    print(response.greeting)  # "Hello, Alice!"
+    ```
+
+This pattern works with any test framework (pytest, unittest) or none at all. The examples below show how to integrate with pytest, but the core testing approach remains the same.
+
 ## Testing servers
 
 ### In-memory testing
 
-Test services using httpx's ASGI/WSGI transport, which tests your full application stack while remaining fast and isolated:
+Testing the service we created in the [Getting Started](getting-started.md) guide looks like this:
 
 === "ASGI"
 
     ```python
     import httpx
     import pytest
-    from greet.v1.greet_connect import GreetService, GreetServiceASGIApplication, GreetServiceClient
-    from greet.v1.greet_pb2 import GreetRequest, GreetResponse
-
-    class TestGreetService(GreetService):
-        async def greet(self, request, ctx):
-            return GreetResponse(greeting=f"Hello, {request.name}!")
+    from greet.v1.greet_connect import GreetServiceASGIApplication, GreetServiceClient
+    from greet.v1.greet_pb2 import GreetRequest
+    from server import Greeter  # Import your actual service implementation
 
     @pytest.mark.asyncio
     async def test_greet():
-        # Create the ASGI application
-        app = GreetServiceASGIApplication(TestGreetService())
+        # Create the ASGI application with your service
+        app = GreetServiceASGIApplication(Greeter())
 
         # Test using httpx with ASGI transport
         async with httpx.AsyncClient(
@@ -60,16 +105,13 @@ Test services using httpx's ASGI/WSGI transport, which tests your full applicati
 
     ```python
     import httpx
-    from greet.v1.greet_connect import GreetServiceSync, GreetServiceWSGIApplication, GreetServiceClientSync
-    from greet.v1.greet_pb2 import GreetRequest, GreetResponse
-
-    class TestGreetServiceSync(GreetServiceSync):
-        def greet(self, request, ctx):
-            return GreetResponse(greeting=f"Hello, {request.name}!")
+    from greet.v1.greet_connect import GreetServiceWSGIApplication, GreetServiceClientSync
+    from greet.v1.greet_pb2 import GreetRequest
+    from server import GreeterSync  # Import your actual service implementation
 
     def test_greet():
-        # Create the WSGI application
-        app = GreetServiceWSGIApplication(TestGreetServiceSync())
+        # Create the WSGI application with your service
+        app = GreetServiceWSGIApplication(GreeterSync())
 
         # Test using httpx with WSGI transport
         with httpx.Client(
@@ -98,19 +140,16 @@ For cleaner tests, use pytest fixtures to set up clients and services:
 === "ASGI"
 
     ```python
+    import httpx
     import pytest
     import pytest_asyncio
-    import httpx
-    from greet.v1.greet_connect import GreetService, GreetServiceASGIApplication, GreetServiceClient
-    from greet.v1.greet_pb2 import GreetRequest, GreetResponse
-
-    class TestGreetService(GreetService):
-        async def greet(self, request, ctx):
-            return GreetResponse(greeting=f"Hello, {request.name}!")
+    from greet.v1.greet_connect import GreetServiceASGIApplication, GreetServiceClient
+    from greet.v1.greet_pb2 import GreetRequest
+    from server import Greeter
 
     @pytest_asyncio.fixture
     async def greet_client():
-        app = GreetServiceASGIApplication(TestGreetService())
+        app = GreetServiceASGIApplication(Greeter())
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app),
             base_url="http://test"
@@ -123,26 +162,23 @@ For cleaner tests, use pytest fixtures to set up clients and services:
         assert response.greeting == "Hello, Alice!"
 
     @pytest.mark.asyncio
-    async def test_greet_multiple_names(greet_client):
-        response = await greet_client.greet(GreetRequest(name="Bob"))
-        assert response.greeting == "Hello, Bob!"
+    async def test_greet_empty_name(greet_client):
+        response = await greet_client.greet(GreetRequest(name=""))
+        assert response.greeting == "Hello, !"
     ```
 
 === "WSGI"
 
     ```python
-    import pytest
     import httpx
-    from greet.v1.greet_connect import GreetServiceSync, GreetServiceWSGIApplication, GreetServiceClientSync
-    from greet.v1.greet_pb2 import GreetRequest, GreetResponse
-
-    class TestGreetServiceSync(GreetServiceSync):
-        def greet(self, request, ctx):
-            return GreetResponse(greeting=f"Hello, {request.name}!")
+    import pytest
+    from greet.v1.greet_connect import GreetServiceWSGIApplication, GreetServiceClientSync
+    from greet.v1.greet_pb2 import GreetRequest
+    from server import GreeterSync
 
     @pytest.fixture
     def greet_client():
-        app = GreetServiceWSGIApplication(TestGreetServiceSync())
+        app = GreetServiceWSGIApplication(GreeterSync())
         with httpx.Client(
             transport=httpx.WSGITransport(app=app),
             base_url="http://test"
@@ -153,9 +189,9 @@ For cleaner tests, use pytest fixtures to set up clients and services:
         response = greet_client.greet(GreetRequest(name="Alice"))
         assert response.greeting == "Hello, Alice!"
 
-    def test_greet_multiple_names(greet_client):
-        response = greet_client.greet(GreetRequest(name="Bob"))
-        assert response.greeting == "Hello, Bob!"
+    def test_greet_empty_name(greet_client):
+        response = greet_client.greet(GreetRequest(name=""))
+        assert response.greeting == "Hello, !"
     ```
 
 This pattern:
@@ -165,255 +201,16 @@ This pattern:
 - Follows pytest best practices
 - Matches the pattern used in connect-python's own test suite
 
-### Testing error handling
+With your test client setup, you can use any connect code for interacting with the service under test including [streaming](streaming.md), reading [headers and trailers](headers-and-trailers.md), or checking [errors](errors.md). For example, to test error handling:
 
-Test that your service returns appropriate errors:
+```python
+with pytest.raises(ConnectError) as exc_info:
+    await client.greet(GreetRequest(name=""))
 
-=== "ASGI"
+assert exc_info.value.code == Code.INVALID_ARGUMENT
+```
 
-    ```python
-    import pytest
-    import httpx
-    from connectrpc.code import Code
-    from connectrpc.errors import ConnectError
-    from greet.v1.greet_connect import GreetService, GreetServiceASGIApplication, GreetServiceClient
-    from greet.v1.greet_pb2 import GreetRequest, GreetResponse
-
-    class TestGreetService(GreetService):
-        async def greet(self, request, ctx):
-            if not request.name:
-                raise ConnectError(Code.INVALID_ARGUMENT, "name is required")
-            return GreetResponse(greeting=f"Hello, {request.name}!")
-
-    @pytest.mark.asyncio
-    async def test_greet_error():
-        app = GreetServiceASGIApplication(TestGreetService())
-
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            client = GreetServiceClient("http://test", session=session)
-
-            with pytest.raises(ConnectError) as exc_info:
-                await client.greet(GreetRequest(name=""))
-
-        assert exc_info.value.code == Code.INVALID_ARGUMENT
-        assert "name is required" in exc_info.value.message
-    ```
-
-=== "WSGI"
-
-    ```python
-    import pytest
-    import httpx
-    from connectrpc.code import Code
-    from connectrpc.errors import ConnectError
-    from greet.v1.greet_connect import GreetServiceSync, GreetServiceWSGIApplication, GreetServiceClientSync
-    from greet.v1.greet_pb2 import GreetRequest, GreetResponse
-
-    class TestGreetServiceSync(GreetServiceSync):
-        def greet(self, request, ctx):
-            if not request.name:
-                raise ConnectError(Code.INVALID_ARGUMENT, "name is required")
-            return GreetResponse(greeting=f"Hello, {request.name}!")
-
-    def test_greet_error():
-        app = GreetServiceWSGIApplication(TestGreetServiceSync())
-
-        with httpx.Client(
-            transport=httpx.WSGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            client = GreetServiceClientSync("http://test", session=session)
-
-            with pytest.raises(ConnectError) as exc_info:
-                client.greet(GreetRequest(name=""))
-
-        assert exc_info.value.code == Code.INVALID_ARGUMENT
-        assert "name is required" in exc_info.value.message
-    ```
-
-### Testing streaming services
-
-For server streaming (assumes your service has a `greet_stream` method defined in your proto):
-
-=== "ASGI"
-
-    ```python
-    @pytest.mark.asyncio
-    async def test_server_streaming():
-        class StreamingGreetService(GreetService):
-            async def greet_stream(self, request, ctx):
-                for i in range(3):
-                    yield GreetResponse(greeting=f"Hello {request.name} #{i + 1}!")
-
-        app = GreetServiceASGIApplication(StreamingGreetService())
-
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            client = GreetServiceClient("http://test", session=session)
-
-            responses = []
-            async for response in client.greet_stream(GreetRequest(name="Alice")):
-                responses.append(response)
-
-        assert len(responses) == 3
-        assert responses[0].greeting == "Hello Alice #1!"
-    ```
-
-=== "WSGI"
-
-    ```python
-    def test_server_streaming():
-        class StreamingGreetServiceSync(GreetServiceSync):
-            def greet_stream(self, request, ctx):
-                for i in range(3):
-                    yield GreetResponse(greeting=f"Hello {request.name} #{i + 1}!")
-
-        app = GreetServiceWSGIApplication(StreamingGreetServiceSync())
-
-        with httpx.Client(
-            transport=httpx.WSGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            client = GreetServiceClientSync("http://test", session=session)
-
-            responses = []
-            for response in client.greet_stream(GreetRequest(name="Alice")):
-                responses.append(response)
-
-        assert len(responses) == 3
-        assert responses[0].greeting == "Hello Alice #1!"
-    ```
-
-For client streaming (assumes your service has a `greet_many` method defined in your proto):
-
-=== "ASGI"
-
-    ```python
-    @pytest.mark.asyncio
-    async def test_client_streaming():
-        class ClientStreamingService(GreetService):
-            async def greet_many(self, request_stream, ctx):
-                names = []
-                async for req in request_stream:
-                    names.append(req.name)
-                return GreetResponse(greeting=f"Hello, {', '.join(names)}!")
-
-        app = GreetServiceASGIApplication(ClientStreamingService())
-
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            client = GreetServiceClient("http://test", session=session)
-
-            async def request_stream():
-                yield GreetRequest(name="Alice")
-                yield GreetRequest(name="Bob")
-
-            response = await client.greet_many(request_stream())
-
-        assert "Alice" in response.greeting
-        assert "Bob" in response.greeting
-    ```
-
-=== "WSGI"
-
-    ```python
-    def test_client_streaming():
-        class ClientStreamingServiceSync(GreetServiceSync):
-            def greet_many(self, request_stream, ctx):
-                names = []
-                for req in request_stream:
-                    names.append(req.name)
-                return GreetResponse(greeting=f"Hello, {', '.join(names)}!")
-
-        app = GreetServiceWSGIApplication(ClientStreamingServiceSync())
-
-        with httpx.Client(
-            transport=httpx.WSGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            client = GreetServiceClientSync("http://test", session=session)
-
-            def request_stream():
-                yield GreetRequest(name="Alice")
-                yield GreetRequest(name="Bob")
-
-            response = client.greet_many(request_stream())
-
-        assert "Alice" in response.greeting
-        assert "Bob" in response.greeting
-    ```
-
-### Testing with context (headers and trailers)
-
-Test code that uses request headers:
-
-=== "ASGI"
-
-    ```python
-    class AuthGreetService(GreetService):
-        async def greet(self, request, ctx):
-            auth = ctx.request_headers().get("authorization")
-            if not auth or not auth.startswith("Bearer "):
-                raise ConnectError(Code.UNAUTHENTICATED, "Missing token")
-
-            ctx.response_headers()["greet-version"] = "v1"
-            return GreetResponse(greeting=f"Hello, {request.name}!")
-
-    @pytest.mark.asyncio
-    async def test_greet_with_headers():
-        app = GreetServiceASGIApplication(AuthGreetService())
-
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            client = GreetServiceClient("http://test", session=session)
-
-            response = await client.greet(
-                GreetRequest(name="Alice"),
-                headers={"authorization": "Bearer token123"}
-            )
-
-        assert response.greeting == "Hello, Alice!"
-    ```
-
-=== "WSGI"
-
-    ```python
-    class AuthGreetServiceSync(GreetServiceSync):
-        def greet(self, request, ctx):
-            auth = ctx.request_headers().get("authorization")
-            if not auth or not auth.startswith("Bearer "):
-                raise ConnectError(Code.UNAUTHENTICATED, "Missing token")
-
-            ctx.response_headers()["greet-version"] = "v1"
-            return GreetResponse(greeting=f"Hello, {request.name}!")
-
-    def test_greet_with_headers():
-        app = GreetServiceWSGIApplication(AuthGreetServiceSync())
-
-        with httpx.Client(
-            transport=httpx.WSGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            client = GreetServiceClientSync("http://test", session=session)
-
-            response = client.greet(
-                GreetRequest(name="Alice"),
-                headers={"authorization": "Bearer token123"}
-            )
-
-        assert response.greeting == "Hello, Alice!"
-    ```
-
-> **Note:** For accessing response headers and trailers from clients, see [Headers and trailers](headers-and-trailers.md).
+See the [Errors](errors.md) guide for more details on error handling.
 
 
 ## Testing clients
@@ -514,29 +311,38 @@ For testing client code that calls Connect services, use the same in-memory test
 
 ## Testing interceptors
 
-Test interceptors as part of your full application stack:
+Test interceptors as part of your full application stack. For example, testing an authentication interceptor:
 
 === "ASGI"
 
     ```python
-    class LoggingInterceptor:
-        def __init__(self):
-            self.requests = []
+    import httpx
+    import pytest
+    from connectrpc.code import Code
+    from connectrpc.errors import ConnectError
+    from greet.v1.greet_connect import GreetServiceASGIApplication, GreetServiceClient
+    from greet.v1.greet_pb2 import GreetRequest
+    from server import Greeter
+
+    class AuthInterceptor:
+        def __init__(self, valid_token: str):
+            self.valid_token = valid_token
+            self.authenticated_calls = 0
 
         async def on_start(self, ctx):
-            method_name = ctx.method().name
-            self.requests.append(method_name)
-            return method_name
+            auth = ctx.request_headers().get("authorization")
+            if not auth or auth != f"Bearer {self.valid_token}":
+                raise ConnectError(Code.UNAUTHENTICATED, "Invalid token")
+            self.authenticated_calls += 1
 
         async def on_end(self, token, ctx):
-            # token is the value returned from on_start
             pass
 
     @pytest.mark.asyncio
-    async def test_service_with_interceptor():
-        interceptor = LoggingInterceptor()
+    async def test_auth_interceptor():
+        interceptor = AuthInterceptor("secret-token")
         app = GreetServiceASGIApplication(
-            TestGreetService(),
+            Greeter(),
             interceptors=[interceptor]
         )
 
@@ -545,32 +351,53 @@ Test interceptors as part of your full application stack:
             base_url="http://test"
         ) as session:
             client = GreetServiceClient("http://test", session=session)
-            await client.greet(GreetRequest(name="Alice"))
 
-        # Verify interceptor was called
-        assert "Greet" in interceptor.requests
+            # Valid token succeeds
+            response = await client.greet(
+                GreetRequest(name="Alice"),
+                headers={"authorization": "Bearer secret-token"}
+            )
+            assert response.greeting == "Hello, Alice!"
+            assert interceptor.authenticated_calls == 1
+
+            # Invalid token fails
+            with pytest.raises(ConnectError) as exc_info:
+                await client.greet(
+                    GreetRequest(name="Bob"),
+                    headers={"authorization": "Bearer wrong-token"}
+                )
+            assert exc_info.value.code == Code.UNAUTHENTICATED
     ```
 
 === "WSGI"
 
     ```python
-    class LoggingInterceptorSync:
-        def __init__(self):
-            self.requests = []
+    import httpx
+    import pytest
+    from connectrpc.code import Code
+    from connectrpc.errors import ConnectError
+    from greet.v1.greet_connect import GreetServiceWSGIApplication, GreetServiceClientSync
+    from greet.v1.greet_pb2 import GreetRequest
+    from server import GreeterSync
+
+    class AuthInterceptorSync:
+        def __init__(self, valid_token: str):
+            self.valid_token = valid_token
+            self.authenticated_calls = 0
 
         def on_start(self, ctx):
-            method_name = ctx.method().name
-            self.requests.append(method_name)
-            return method_name
+            auth = ctx.request_headers().get("authorization")
+            if not auth or auth != f"Bearer {self.valid_token}":
+                raise ConnectError(Code.UNAUTHENTICATED, "Invalid token")
+            self.authenticated_calls += 1
 
         def on_end(self, token, ctx):
-            # token is the value returned from on_start
             pass
 
-    def test_service_with_interceptor():
-        interceptor = LoggingInterceptorSync()
+    def test_auth_interceptor():
+        interceptor = AuthInterceptorSync("secret-token")
         app = GreetServiceWSGIApplication(
-            TestGreetServiceSync(),
+            GreeterSync(),
             interceptors=[interceptor]
         )
 
@@ -579,17 +406,29 @@ Test interceptors as part of your full application stack:
             base_url="http://test"
         ) as session:
             client = GreetServiceClientSync("http://test", session=session)
-            client.greet(GreetRequest(name="Alice"))
 
-        # Verify interceptor was called
-        assert "Greet" in interceptor.requests
+            # Valid token succeeds
+            response = client.greet(
+                GreetRequest(name="Alice"),
+                headers={"authorization": "Bearer secret-token"}
+            )
+            assert response.greeting == "Hello, Alice!"
+            assert interceptor.authenticated_calls == 1
+
+            # Invalid token fails
+            with pytest.raises(ConnectError) as exc_info:
+                client.greet(
+                    GreetRequest(name="Bob"),
+                    headers={"authorization": "Bearer wrong-token"}
+                )
+            assert exc_info.value.code == Code.UNAUTHENTICATED
     ```
+
+See the [Interceptors](interceptors.md) guide for more details on implementing interceptors.
 
 ## Test organization
 
-### Project structure
-
-Organize your tests in a `test/` directory at the root of your project:
+Organize your tests in a `tests/` directory at the root of your project:
 
 ```
 my-project/
@@ -597,118 +436,15 @@ my-project/
 │   └── v1/
 │       ├── greet_connect.py
 │       └── greet_pb2.py
-├── test/
+├── server.py
+├── tests/
 │   ├── __init__.py
-│   ├── conftest.py          # Shared fixtures
-│   ├── test_greet.py        # Service tests
-│   └── test_integration.py  # Integration tests
+│   ├── test_greet.py
+│   └── test_integration.py
 └── pyproject.toml
 ```
 
-### Shared fixtures with conftest.py
-
-Use `conftest.py` to share fixtures across multiple test files:
-
-=== "ASGI"
-
-    ```python
-    # test/conftest.py
-    import pytest
-    import pytest_asyncio
-    import httpx
-    from greet.v1.greet_connect import GreetService, GreetServiceASGIApplication, GreetServiceClient
-    from greet.v1.greet_pb2 import GreetResponse
-
-    class TestGreetService(GreetService):
-        async def greet(self, request, ctx):
-            return GreetResponse(greeting=f"Hello, {request.name}!")
-
-    @pytest_asyncio.fixture
-    async def greet_client():
-        """Shared client fixture available to all tests."""
-        app = GreetServiceASGIApplication(TestGreetService())
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            yield GreetServiceClient("http://test", session=session)
-    ```
-
-    Then use it in any test file:
-
-    ```python
-    # test/test_greet.py
-    import pytest
-    from greet.v1.greet_pb2 import GreetRequest
-
-    @pytest.mark.asyncio
-    async def test_greet(greet_client):
-        """Test basic greeting."""
-        response = await greet_client.greet(GreetRequest(name="Alice"))
-        assert response.greeting == "Hello, Alice!"
-    ```
-
-=== "WSGI"
-
-    ```python
-    # test/conftest.py
-    import pytest
-    import httpx
-    from greet.v1.greet_connect import GreetServiceSync, GreetServiceWSGIApplication, GreetServiceClientSync
-    from greet.v1.greet_pb2 import GreetResponse
-
-    class TestGreetServiceSync(GreetServiceSync):
-        def greet(self, request, ctx):
-            return GreetResponse(greeting=f"Hello, {request.name}!")
-
-    @pytest.fixture
-    def greet_client():
-        """Shared client fixture available to all tests."""
-        app = GreetServiceWSGIApplication(TestGreetServiceSync())
-        with httpx.Client(
-            transport=httpx.WSGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            yield GreetServiceClientSync("http://test", session=session)
-    ```
-
-    Then use it in any test file:
-
-    ```python
-    # test/test_greet.py
-    from greet.v1.greet_pb2 import GreetRequest
-
-    def test_greet(greet_client):
-        """Test basic greeting."""
-        response = greet_client.greet(GreetRequest(name="Alice"))
-        assert response.greeting == "Hello, Alice!"
-    ```
-
-### Running tests
-
-Run all tests:
-
-```bash
-pytest
-```
-
-Run tests in a specific file:
-
-```bash
-pytest test/test_greet.py
-```
-
-Run a specific test:
-
-```bash
-pytest test/test_greet.py::test_greet
-```
-
-Run with verbose output:
-
-```bash
-pytest -v
-```
+For test framework-specific patterns like shared fixtures or test discovery, consult your test framework's documentation ([pytest](https://docs.pytest.org/), [unittest](https://docs.python.org/3/library/unittest.html)).
 
 ## Practical examples
 
@@ -796,128 +532,4 @@ Use fixtures to mock external services:
         response = greet_client_with_db.greet(GreetRequest(name="Alice"))
         assert response.greeting == "Hello, Alice!"
         mock_db.get_greeting_template.assert_called_once()
-    ```
-
-### Testing authentication flows
-
-Test services that require authentication:
-
-=== "ASGI"
-
-    ```python
-    import pytest
-    import pytest_asyncio
-    import httpx
-    from connectrpc.code import Code
-    from connectrpc.errors import ConnectError
-    from greet.v1.greet_connect import GreetService, GreetServiceASGIApplication, GreetServiceClient
-    from greet.v1.greet_pb2 import GreetRequest, GreetResponse
-
-    class AuthGreetService(GreetService):
-        async def greet(self, request, ctx):
-            # Check for authorization header
-            auth = ctx.request_headers().get("authorization")
-            if not auth or not auth.startswith("Bearer "):
-                raise ConnectError(Code.UNAUTHENTICATED, "Missing or invalid token")
-
-            # Validate token (simplified)
-            token = auth[7:]  # Remove "Bearer " prefix
-            if token != "valid-token":
-                raise ConnectError(Code.UNAUTHENTICATED, "Invalid token")
-
-            return GreetResponse(greeting=f"Hello, {request.name}!")
-
-    @pytest_asyncio.fixture
-    async def auth_greet_client():
-        app = GreetServiceASGIApplication(AuthGreetService())
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            yield GreetServiceClient("http://test", session=session)
-
-    @pytest.mark.asyncio
-    async def test_greet_with_valid_token(auth_greet_client):
-        response = await auth_greet_client.greet(
-            GreetRequest(name="Alice"),
-            headers={"authorization": "Bearer valid-token"}
-        )
-        assert response.greeting == "Hello, Alice!"
-
-    @pytest.mark.asyncio
-    async def test_greet_without_token(auth_greet_client):
-        with pytest.raises(ConnectError) as exc_info:
-            await auth_greet_client.greet(GreetRequest(name="Alice"))
-
-        assert exc_info.value.code == Code.UNAUTHENTICATED
-        assert "Missing or invalid token" in exc_info.value.message
-
-    @pytest.mark.asyncio
-    async def test_greet_with_invalid_token(auth_greet_client):
-        with pytest.raises(ConnectError) as exc_info:
-            await auth_greet_client.greet(
-                GreetRequest(name="Alice"),
-                headers={"authorization": "Bearer invalid-token"}
-            )
-
-        assert exc_info.value.code == Code.UNAUTHENTICATED
-        assert "Invalid token" in exc_info.value.message
-    ```
-
-=== "WSGI"
-
-    ```python
-    import pytest
-    import httpx
-    from connectrpc.code import Code
-    from connectrpc.errors import ConnectError
-    from greet.v1.greet_connect import GreetServiceSync, GreetServiceWSGIApplication, GreetServiceClientSync
-    from greet.v1.greet_pb2 import GreetRequest, GreetResponse
-
-    class AuthGreetServiceSync(GreetServiceSync):
-        def greet(self, request, ctx):
-            # Check for authorization header
-            auth = ctx.request_headers().get("authorization")
-            if not auth or not auth.startswith("Bearer "):
-                raise ConnectError(Code.UNAUTHENTICATED, "Missing or invalid token")
-
-            # Validate token (simplified)
-            token = auth[7:]  # Remove "Bearer " prefix
-            if token != "valid-token":
-                raise ConnectError(Code.UNAUTHENTICATED, "Invalid token")
-
-            return GreetResponse(greeting=f"Hello, {request.name}!")
-
-    @pytest.fixture
-    def auth_greet_client():
-        app = GreetServiceWSGIApplication(AuthGreetServiceSync())
-        with httpx.Client(
-            transport=httpx.WSGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            yield GreetServiceClientSync("http://test", session=session)
-
-    def test_greet_with_valid_token(auth_greet_client):
-        response = auth_greet_client.greet(
-            GreetRequest(name="Alice"),
-            headers={"authorization": "Bearer valid-token"}
-        )
-        assert response.greeting == "Hello, Alice!"
-
-    def test_greet_without_token(auth_greet_client):
-        with pytest.raises(ConnectError) as exc_info:
-            auth_greet_client.greet(GreetRequest(name="Alice"))
-
-        assert exc_info.value.code == Code.UNAUTHENTICATED
-        assert "Missing or invalid token" in exc_info.value.message
-
-    def test_greet_with_invalid_token(auth_greet_client):
-        with pytest.raises(ConnectError) as exc_info:
-            auth_greet_client.greet(
-                GreetRequest(name="Alice"),
-                headers={"authorization": "Bearer invalid-token"}
-            )
-
-        assert exc_info.value.code == Code.UNAUTHENTICATED
-        assert "Invalid token" in exc_info.value.message
     ```
