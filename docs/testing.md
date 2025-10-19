@@ -356,11 +356,12 @@ For testing client code that calls Connect services, use the same in-memory test
 
 ## Testing interceptors
 
-Test interceptors as part of your full application stack. For example, testing an authentication interceptor:
+Test interceptors as part of your full application stack. For example, testing the `ServerAuthInterceptor` from the [Interceptors](interceptors.md#metadata-interceptors) guide:
 
 === "ASGI"
 
     ```python
+    from contextvars import ContextVar, Token
     import httpx
     import pytest
     from connectrpc.code import Code
@@ -369,23 +370,27 @@ Test interceptors as part of your full application stack. For example, testing a
     from greet.v1.greet_pb2 import GreetRequest
     from server import Greeter
 
-    class AuthInterceptor:
-        def __init__(self, valid_token: str):
-            self.valid_token = valid_token
-            self.authenticated_calls = 0
+    _auth_token = ContextVar["auth_token"]("current_auth_token")
 
-        async def on_start(self, ctx):
-            auth = ctx.request_headers().get("authorization")
-            if not auth or auth != f"Bearer {self.valid_token}":
-                raise ConnectError(Code.UNAUTHENTICATED, "Invalid token")
-            self.authenticated_calls += 1
+    class ServerAuthInterceptor:
+        def __init__(self, valid_tokens: list[str]):
+            self._valid_tokens = valid_tokens
 
-        async def on_end(self, token, ctx):
-            pass
+        async def on_start(self, ctx) -> Token["auth_token"]:
+            authorization = ctx.request_headers().get("authorization")
+            if not authorization or not authorization.startswith("Bearer "):
+                raise ConnectError(Code.UNAUTHENTICATED)
+            token = authorization[len("Bearer "):]
+            if token not in self._valid_tokens:
+                raise ConnectError(Code.PERMISSION_DENIED)
+            return _auth_token.set(token)
+
+        async def on_end(self, token: Token["auth_token"], ctx):
+            _auth_token.reset(token)
 
     @pytest.mark.asyncio
-    async def test_auth_interceptor():
-        interceptor = AuthInterceptor("secret-token")
+    async def test_server_auth_interceptor():
+        interceptor = ServerAuthInterceptor(["valid-token"])
         app = GreetServiceASGIApplication(
             Greeter(),
             interceptors=[interceptor]
@@ -400,23 +405,31 @@ Test interceptors as part of your full application stack. For example, testing a
             # Valid token succeeds
             response = await client.greet(
                 GreetRequest(name="Alice"),
-                headers={"authorization": "Bearer secret-token"}
+                headers={"authorization": "Bearer valid-token"}
             )
             assert response.greeting == "Hello, Alice!"
-            assert interceptor.authenticated_calls == 1
 
-            # Invalid token fails
+            # Invalid token format fails with UNAUTHENTICATED
+            with pytest.raises(ConnectError) as exc_info:
+                await client.greet(
+                    GreetRequest(name="Bob"),
+                    headers={"authorization": "invalid"}
+                )
+            assert exc_info.value.code == Code.UNAUTHENTICATED
+
+            # Wrong token fails with PERMISSION_DENIED
             with pytest.raises(ConnectError) as exc_info:
                 await client.greet(
                     GreetRequest(name="Bob"),
                     headers={"authorization": "Bearer wrong-token"}
                 )
-            assert exc_info.value.code == Code.UNAUTHENTICATED
+            assert exc_info.value.code == Code.PERMISSION_DENIED
     ```
 
 === "WSGI"
 
     ```python
+    from contextvars import ContextVar, Token
     import httpx
     import pytest
     from connectrpc.code import Code
@@ -425,22 +438,26 @@ Test interceptors as part of your full application stack. For example, testing a
     from greet.v1.greet_pb2 import GreetRequest
     from server import GreeterSync
 
-    class AuthInterceptorSync:
-        def __init__(self, valid_token: str):
-            self.valid_token = valid_token
-            self.authenticated_calls = 0
+    _auth_token = ContextVar["auth_token"]("current_auth_token")
 
-        def on_start(self, ctx):
-            auth = ctx.request_headers().get("authorization")
-            if not auth or auth != f"Bearer {self.valid_token}":
-                raise ConnectError(Code.UNAUTHENTICATED, "Invalid token")
-            self.authenticated_calls += 1
+    class ServerAuthInterceptor:
+        def __init__(self, valid_tokens: list[str]):
+            self._valid_tokens = valid_tokens
 
-        def on_end(self, token, ctx):
-            pass
+        def on_start_sync(self, ctx) -> Token["auth_token"]:
+            authorization = ctx.request_headers().get("authorization")
+            if not authorization or not authorization.startswith("Bearer "):
+                raise ConnectError(Code.UNAUTHENTICATED)
+            token = authorization[len("Bearer "):]
+            if token not in self._valid_tokens:
+                raise ConnectError(Code.PERMISSION_DENIED)
+            return _auth_token.set(token)
 
-    def test_auth_interceptor():
-        interceptor = AuthInterceptorSync("secret-token")
+        def on_end_sync(self, token: Token["auth_token"], ctx):
+            _auth_token.reset(token)
+
+    def test_server_auth_interceptor():
+        interceptor = ServerAuthInterceptor(["valid-token"])
         app = GreetServiceWSGIApplication(
             GreeterSync(),
             interceptors=[interceptor]
@@ -455,18 +472,25 @@ Test interceptors as part of your full application stack. For example, testing a
             # Valid token succeeds
             response = client.greet(
                 GreetRequest(name="Alice"),
-                headers={"authorization": "Bearer secret-token"}
+                headers={"authorization": "Bearer valid-token"}
             )
             assert response.greeting == "Hello, Alice!"
-            assert interceptor.authenticated_calls == 1
 
-            # Invalid token fails
+            # Invalid token format fails with UNAUTHENTICATED
+            with pytest.raises(ConnectError) as exc_info:
+                client.greet(
+                    GreetRequest(name="Bob"),
+                    headers={"authorization": "invalid"}
+                )
+            assert exc_info.value.code == Code.UNAUTHENTICATED
+
+            # Wrong token fails with PERMISSION_DENIED
             with pytest.raises(ConnectError) as exc_info:
                 client.greet(
                     GreetRequest(name="Bob"),
                     headers={"authorization": "Bearer wrong-token"}
                 )
-            assert exc_info.value.code == Code.UNAUTHENTICATED
+            assert exc_info.value.code == Code.PERMISSION_DENIED
     ```
 
 See the [Interceptors](interceptors.md) guide for more details on implementing interceptors.
