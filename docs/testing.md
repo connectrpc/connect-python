@@ -68,11 +68,11 @@ Here's a minimal example without any test framework:
     print(response.greeting)  # "Hello, Alice!"
     ```
 
-This pattern works with any test framework (pytest, unittest) or none at all. The examples below show how to integrate with pytest, but the core testing approach remains the same.
+This pattern works with any test framework (pytest, unittest) or none at all. The examples below show how to integrate with both pytest and unittest.
 
 ## Testing servers
 
-### In-memory testing
+### Using pytest
 
 Testing the service we created in the [Getting Started](getting-started.md) guide looks like this:
 
@@ -122,6 +122,56 @@ Testing the service we created in the [Getting Started](getting-started.md) guid
             response = client.greet(GreetRequest(name="Alice"))
 
         assert response.greeting == "Hello, Alice!"
+    ```
+
+### Using unittest
+
+The same in-memory testing approach works with unittest:
+
+=== "ASGI"
+
+    ```python
+    import asyncio
+    import httpx
+    import unittest
+    from greet.v1.greet_connect import GreetServiceASGIApplication, GreetServiceClient
+    from greet.v1.greet_pb2 import GreetRequest
+    from server import Greeter
+
+    class TestGreet(unittest.TestCase):
+        def test_greet(self):
+            async def run_test():
+                app = GreetServiceASGIApplication(Greeter())
+                async with httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=app),
+                    base_url="http://test"
+                ) as session:
+                    client = GreetServiceClient("http://test", session=session)
+                    response = await client.greet(GreetRequest(name="Alice"))
+                    self.assertEqual(response.greeting, "Hello, Alice!")
+
+            asyncio.run(run_test())
+    ```
+
+=== "WSGI"
+
+    ```python
+    import httpx
+    import unittest
+    from greet.v1.greet_connect import GreetServiceWSGIApplication, GreetServiceClientSync
+    from greet.v1.greet_pb2 import GreetRequest
+    from server import GreeterSync
+
+    class TestGreet(unittest.TestCase):
+        def test_greet(self):
+            app = GreetServiceWSGIApplication(GreeterSync())
+            with httpx.Client(
+                transport=httpx.WSGITransport(app=app),
+                base_url="http://test"
+            ) as session:
+                client = GreetServiceClientSync("http://test", session=session)
+                response = client.greet(GreetRequest(name="Alice"))
+                self.assertEqual(response.greeting, "Hello, Alice!")
     ```
 
 This approach:
@@ -425,111 +475,3 @@ Test interceptors as part of your full application stack. For example, testing a
     ```
 
 See the [Interceptors](interceptors.md) guide for more details on implementing interceptors.
-
-## Test organization
-
-Organize your tests in a `tests/` directory at the root of your project:
-
-```
-my-project/
-├── greet/
-│   └── v1/
-│       ├── greet_connect.py
-│       └── greet_pb2.py
-├── server.py
-├── tests/
-│   ├── __init__.py
-│   ├── test_greet.py
-│   └── test_integration.py
-└── pyproject.toml
-```
-
-For test framework-specific patterns like shared fixtures or test discovery, consult your test framework's documentation ([pytest](https://docs.pytest.org/), [unittest](https://docs.python.org/3/library/unittest.html)).
-
-## Practical examples
-
-### Testing with mock external dependencies
-
-Use fixtures to mock external services:
-
-=== "ASGI"
-
-    ```python
-    import pytest
-    import pytest_asyncio
-    import httpx
-    from unittest.mock import AsyncMock
-    from greet.v1.greet_connect import GreetService, GreetServiceASGIApplication, GreetServiceClient
-    from greet.v1.greet_pb2 import GreetRequest, GreetResponse
-
-    class DatabaseGreetService(GreetService):
-        def __init__(self, db):
-            self.db = db
-
-        async def greet(self, request, ctx):
-            # Fetch greeting from database
-            greeting_template = await self.db.get_greeting_template()
-            return GreetResponse(greeting=greeting_template.format(name=request.name))
-
-    @pytest.fixture
-    def mock_db():
-        """Mock database for testing."""
-        db = AsyncMock()
-        db.get_greeting_template.return_value = "Hello, {name}!"
-        return db
-
-    @pytest_asyncio.fixture
-    async def greet_client_with_db(mock_db):
-        app = GreetServiceASGIApplication(DatabaseGreetService(mock_db))
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            yield GreetServiceClient("http://test", session=session)
-
-    @pytest.mark.asyncio
-    async def test_greet_with_database(greet_client_with_db, mock_db):
-        response = await greet_client_with_db.greet(GreetRequest(name="Alice"))
-        assert response.greeting == "Hello, Alice!"
-        mock_db.get_greeting_template.assert_called_once()
-    ```
-
-=== "WSGI"
-
-    ```python
-    import pytest
-    import httpx
-    from unittest.mock import Mock
-    from greet.v1.greet_connect import GreetServiceSync, GreetServiceWSGIApplication, GreetServiceClientSync
-    from greet.v1.greet_pb2 import GreetRequest, GreetResponse
-
-    class DatabaseGreetServiceSync(GreetServiceSync):
-        def __init__(self, db):
-            self.db = db
-
-        def greet(self, request, ctx):
-            # Fetch greeting from database
-            greeting_template = self.db.get_greeting_template()
-            return GreetResponse(greeting=greeting_template.format(name=request.name))
-
-    @pytest.fixture
-    def mock_db():
-        """Mock database for testing."""
-        db = Mock()
-        db.get_greeting_template.return_value = "Hello, {name}!"
-        return db
-
-    @pytest.fixture
-    def greet_client_with_db(mock_db):
-        app = GreetServiceWSGIApplication(DatabaseGreetServiceSync(mock_db))
-        with httpx.Client(
-            transport=httpx.WSGITransport(app=app),
-            base_url="http://test"
-        ) as session:
-            yield GreetServiceClientSync("http://test", session=session)
-
-    def test_greet_with_database(greet_client_with_db, mock_db):
-        response = greet_client_with_db.greet(GreetRequest(name="Alice"))
-        assert response.greeting == "Hello, Alice!"
-        mock_db.get_greeting_template.assert_called_once()
-    ```
