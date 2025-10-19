@@ -2,21 +2,16 @@
 
 This guide covers testing connect-python services and clients.
 
-> **Note:** The examples in this guide use a fictional `GreetService` for demonstration purposes. In your actual project, replace these with your own service definitions.
-
 ## Setup
 
-Install the required testing dependencies:
+Install httpx for testing connect-python services and clients:
 
 ```bash
-pip install pytest pytest-asyncio httpx
+pip install httpx
+# or: uv add --dev httpx
 ```
 
-Or if using uv:
-
-```bash
-uv add --dev pytest pytest-asyncio httpx
-```
+For pytest examples in this guide, you'll also need pytest (and pytest-asyncio for async tests). unittest requires no additional dependencies.
 
 ## Recommended approach: In-memory testing
 
