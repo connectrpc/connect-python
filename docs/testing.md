@@ -31,8 +31,8 @@ Test services using httpx's ASGI/WSGI transport, which tests your full applicati
 === "ASGI"
 
     ```python
-    import pytest
     import httpx
+    import pytest
     from greet.v1.greet_connect import GreetService, GreetServiceASGIApplication, GreetServiceClient
     from greet.v1.greet_pb2 import GreetRequest, GreetResponse
 
