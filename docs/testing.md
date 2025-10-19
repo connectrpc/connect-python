@@ -1,4 +1,4 @@
-# Testing Guide
+# Testing
 
 This guide covers testing connect-python services and clients.
 
