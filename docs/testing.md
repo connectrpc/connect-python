@@ -4,14 +4,7 @@ This guide covers testing connect-python services and clients.
 
 ## Setup
 
-Install httpx for testing connect-python services and clients:
-
-```bash
-pip install httpx
-# or: uv add --dev httpx
-```
-
-For pytest examples in this guide, you'll also need pytest (and pytest-asyncio for async tests). unittest requires no additional dependencies.
+For pytest examples in this guide, you'll need pytest and pytest-asyncio. unittest requires no additional dependencies.
 
 ## Recommended approach: In-memory testing
 
