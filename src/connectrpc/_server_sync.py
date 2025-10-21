@@ -115,6 +115,22 @@ def prepare_response_headers(
     return headers
 
 
+def _read_body_with_content_length(
+    environ: WSGIEnvironment, content_length: int
+) -> bytes:
+    bytes_read = 0
+    chunks = []
+    input_stream: BytesIO = environ["wsgi.input"]
+    while bytes_read < content_length:
+        to_read = content_length - bytes_read
+        chunk = input_stream.read(to_read)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        bytes_read += len(chunk)
+    return b"".join(chunks)
+
+
 def _read_body(environ: WSGIEnvironment) -> Iterator[bytes]:
     input_stream: BytesIO = environ["wsgi.input"]
     while True:
@@ -257,7 +273,7 @@ class ConnectWSGIApplication(ABC):
             content_length = environ.get("CONTENT_LENGTH")
             content_length = 0 if not content_length else int(content_length)
             if content_length > 0:
-                req_body = environ["wsgi.input"].read(content_length)
+                req_body = _read_body_with_content_length(environ, content_length)
             else:
                 req_body = b"".join(_read_body(environ))
 
