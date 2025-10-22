@@ -118,9 +118,16 @@ def prepare_response_headers(
 def _read_body_with_content_length(
     environ: WSGIEnvironment, content_length: int
 ) -> bytes:
-    bytes_read = 0
-    chunks = []
     input_stream: BytesIO = environ["wsgi.input"]
+
+    # Many app servers buffer the entire request before executing the app
+    # so do an optimistic read before looping.
+    chunk = input_stream.read(content_length)
+    if len(chunk) == content_length:
+        return chunk
+
+    bytes_read = len(chunk)
+    chunks = [chunk]
     while bytes_read < content_length:
         to_read = content_length - bytes_read
         chunk = input_stream.read(to_read)
@@ -128,6 +135,11 @@ def _read_body_with_content_length(
             break
         chunks.append(chunk)
         bytes_read += len(chunk)
+    if bytes_read < content_length:
+        raise ConnectError(
+            Code.INVALID_ARGUMENT,
+            f"request truncated, expected {content_length} bytes but only received {bytes_read} bytes",
+        )
     return b"".join(chunks)
 
 
