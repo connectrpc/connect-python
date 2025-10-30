@@ -87,13 +87,23 @@ def test_server_sync(server: str) -> None:
         pytest.fail(f"\n{result.stdout}\n{result.stderr}")
 
 
-@pytest.mark.parametrize("server", ["granian", "hypercorn", "uvicorn"])
+@pytest.mark.parametrize("server", ["daphne", "granian", "hypercorn", "uvicorn"])
 def test_server_async(server: str) -> None:
     args = maybe_patch_args_with_debug(
         [sys.executable, _server_py_path, "--mode", "async", "--server", server]
     )
     opts = []
     match server:
+        case "daphne":
+            opts = [
+                # daphne doesn't support h2c
+                "--skip",
+                "**/HTTPVersion:2/**/TLS:false/**",
+                # daphne seems to block on the request body so can't do full duplex even with h2,
+                # it only works with websockets
+                "--skip",
+                "**/full-duplex/**",
+            ]
         case "granian" | "hypercorn":
             # granian and hypercorn seem to have issues with concurrency
             opts = ["--parallel", "1"]
