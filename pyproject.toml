@@ -39,6 +39,7 @@ dev = [
     "asgiref==3.9.1",
     "brotli==1.1.0",
     "connect-python-example",
+    "daphne==4.2.1",
     "httpx[http2]==0.28.1",
     "hypercorn==0.17.3",
     "granian==2.5.5",
@@ -53,6 +54,8 @@ dev = [
     "pytest-cov==7.0.0",
     "ruff~=0.13.2",
     "uvicorn==0.37.0",
+    # Needed to enable HTTP/2 in daphne
+    "Twisted[tls,http2]==25.5.0",
     "typing_extensions==4.15.0",
     "zstandard==0.25.0",
 ]

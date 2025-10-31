@@ -10,7 +10,7 @@ import time
 from collections.abc import AsyncIterator, Iterator
 from contextlib import ExitStack, closing
 from tempfile import NamedTemporaryFile
-from typing import TYPE_CHECKING, Literal, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar, get_args
 
 from _util import create_standard_streams
 from gen.connectrpc.conformance.v1.config_pb2 import Code as ConformanceCode
@@ -415,20 +415,62 @@ _port_regex = re.compile(r".*://[^:]+:(\d+).*")
 
 
 async def _tee_to_stderr(stream: asyncio.StreamReader) -> AsyncIterator[bytes]:
-    try:
-        while True:
-            line = await stream.readline()
-            if not line:
-                break
-            print(line.decode("utf-8"), end="", file=sys.stderr)  # noqa: T201
-            yield line
-    except asyncio.CancelledError:
-        pass
+    while True:
+        line = await stream.readline()
+        if not line:
+            break
+        print(line.decode("utf-8"), end="", file=sys.stderr)  # noqa: T201
+        yield line
 
 
 async def _consume_log(stream: AsyncIterator[bytes]) -> None:
     async for _ in stream:
         pass
+
+
+async def serve_daphne(
+    request: ServerCompatRequest,
+    certfile: str | None,
+    keyfile: str | None,
+    cafile: str | None,
+    port_future: asyncio.Future[int],
+):
+    args = []
+    ssl_endpoint_parts = []
+    if certfile:
+        ssl_endpoint_parts.append(f"certKey={certfile}")
+    if keyfile:
+        ssl_endpoint_parts.append(f"privateKey={keyfile}")
+    if cafile:
+        ssl_endpoint_parts.append(f"extraCertChain={cafile}")
+    if ssl_endpoint_parts:
+        args.append("-e")
+        args.append(f"ssl:port=0:{':'.join(ssl_endpoint_parts)}")
+    else:
+        args.append("-p=0")
+
+    args.append("server:asgi_app")
+
+    proc = await asyncio.create_subprocess_exec(
+        "daphne",
+        *args,
+        stderr=asyncio.subprocess.STDOUT,
+        stdout=asyncio.subprocess.PIPE,
+        env=_server_env(request),
+    )
+    stdout = proc.stdout
+    assert stdout is not None
+    stdout = _tee_to_stderr(stdout)
+    try:
+        async for line in stdout:
+            if b"Listening on TCP address" in line:
+                port = line.decode("utf-8").strip().rsplit(":", 1)[1]
+                port_future.set_result(int(port))
+                break
+        await _consume_log(stdout)
+    except asyncio.CancelledError:
+        proc.terminate()
+        await proc.wait()
 
 
 async def serve_granian(
@@ -465,7 +507,6 @@ async def serve_granian(
         *args,
         stderr=asyncio.subprocess.STDOUT,
         stdout=asyncio.subprocess.PIPE,
-        limit=1024,
         env=_server_env(request),
     )
     stdout = proc.stdout
@@ -506,7 +547,6 @@ async def serve_gunicorn(
         *args,
         stderr=asyncio.subprocess.STDOUT,
         stdout=asyncio.subprocess.PIPE,
-        limit=1024,
         env=_server_env(request),
     )
     stdout = proc.stdout
@@ -551,7 +591,6 @@ async def serve_hypercorn(
         *args,
         stderr=asyncio.subprocess.STDOUT,
         stdout=asyncio.subprocess.PIPE,
-        limit=1024,
         env=_server_env(request),
     )
     stdout = proc.stdout
@@ -592,7 +631,6 @@ async def serve_uvicorn(
         *args,
         stderr=asyncio.subprocess.STDOUT,
         stdout=asyncio.subprocess.PIPE,
-        limit=1024,
         env=_server_env(request),
     )
     stdout = proc.stdout
@@ -617,17 +655,18 @@ def _find_free_port():
         return s.getsockname()[1]
 
 
+Server = Literal["daphne", "granian", "gunicorn", "hypercorn", "uvicorn"]
+
+
 class Args(argparse.Namespace):
     mode: Literal["sync", "async"]
-    server: Literal["granian", "hypercorn", "uvicorn"]
+    server: Server
 
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Conformance server")
     parser.add_argument("--mode", choices=["sync", "async"])
-    parser.add_argument(
-        "--server", choices=["granian", "gunicorn", "hypercorn", "uvicorn"]
-    )
+    parser.add_argument("--server", choices=get_args(Server))
     args = parser.parse_args(namespace=Args())
 
     stdin, stdout = await create_standard_streams()
@@ -663,6 +702,13 @@ async def main() -> None:
     with cleanup:
         port_future: asyncio.Future[int] = asyncio.get_event_loop().create_future()
         match args.server:
+            case "daphne":
+                if args.mode == "sync":
+                    msg = "daphne does not support sync mode"
+                    raise ValueError(msg)
+                serve_task = asyncio.create_task(
+                    serve_daphne(request, certfile, keyfile, cafile, port_future)
+                )
             case "granian":
                 serve_task = asyncio.create_task(
                     serve_granian(
