@@ -10,7 +10,7 @@ import time
 from collections.abc import AsyncIterator, Iterator
 from contextlib import ExitStack, closing
 from tempfile import NamedTemporaryFile
-from typing import TYPE_CHECKING, Literal, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar, get_args
 
 from _util import create_standard_streams
 from gen.connectrpc.conformance.v1.config_pb2 import Code as ConformanceCode
@@ -655,17 +655,18 @@ def _find_free_port():
         return s.getsockname()[1]
 
 
+Server = Literal["daphne", "granian", "gunicorn", "hypercorn", "uvicorn"]
+
+
 class Args(argparse.Namespace):
     mode: Literal["sync", "async"]
-    server: Literal["daphne", "granian", "hypercorn", "uvicorn"]
+    server: Server
 
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Conformance server")
     parser.add_argument("--mode", choices=["sync", "async"])
-    parser.add_argument(
-        "--server", choices=["daphne", "granian", "gunicorn", "hypercorn", "uvicorn"]
-    )
+    parser.add_argument("--server", choices=get_args(Server))
     args = parser.parse_args(namespace=Args())
 
     stdin, stdout = await create_standard_streams()
