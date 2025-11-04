@@ -2,9 +2,9 @@ import threading
 import time
 from http import HTTPStatus
 from typing import NoReturn
-from wsgiref.simple_server import WSGIServer, make_server
 
 import pytest
+import uvicorn
 from httpx import (
     ASGITransport,
     AsyncClient,
@@ -320,31 +320,41 @@ async def test_async_client_errors(
 
 # To exercise timeouts, can't use mock transports
 @pytest.fixture(scope="module")
-def sync_timeout_server():
-    class SleepingHaberdasherSync(HaberdasherSync):
+def timeout_server():
+    class SleepingHaberdasher(Haberdasher):
         def make_hat(self, request, ctx) -> NoReturn:
             time.sleep(10)
             raise AssertionError("Should be timedout already")
 
-    app = HaberdasherWSGIApplication(SleepingHaberdasherSync())
+    app = HaberdasherASGIApplication(SleepingHaberdasher())
+    config = uvicorn.Config(
+        app, port=0, log_level="critical", timeout_graceful_shutdown=0
+    )
+    server = uvicorn.Server(config)
+    # Since we want to target the server from sync clients as well as async,
+    # it's best to use a sync fixture with the server on a background thread.
+    thread = threading.Thread(target=server.run)
+    thread.daemon = True
+    thread.start()
 
-    with make_server("", 0, app) as httpd:
-        thread = threading.Thread(target=httpd.serve_forever)
-        thread.daemon = True
-        thread.start()
-        try:
-            yield httpd
-        finally:
-            # Don't wait for sleeping server to shutdown cleanly for this
-            # test, we don't care anyways.
-            pass
+    for _ in range(50):
+        if server.started:
+            break
+        time.sleep(0.1)
+    assert server.started
+
+    port = server.servers[0].sockets[0].getsockname()[1]
+
+    yield f"http://localhost:{port}"
+
+    server.should_exit = True
 
 
 @pytest.mark.parametrize(
-    ("client_timeout_ms", "call_timeout_ms"), [(1, None), (None, 1)]
+    ("client_timeout_ms", "call_timeout_ms"), [(50, None), (None, 50)]
 )
 def test_sync_client_timeout(
-    client_timeout_ms, call_timeout_ms, sync_timeout_server: WSGIServer
+    client_timeout_ms, call_timeout_ms, timeout_server: str
 ) -> None:
     recorded_timeout_header = ""
 
@@ -365,9 +375,7 @@ def test_sync_client_timeout(
             event_hooks={"request": [modify_timeout_header]},
         ) as session,
         HaberdasherClientSync(
-            f"http://localhost:{sync_timeout_server.server_port}",
-            timeout_ms=client_timeout_ms,
-            session=session,
+            timeout_server, timeout_ms=client_timeout_ms, session=session
         ) as client,
         pytest.raises(ConnectError) as exc_info,
     ):
@@ -375,15 +383,15 @@ def test_sync_client_timeout(
 
     assert exc_info.value.code == Code.DEADLINE_EXCEEDED
     assert exc_info.value.message == "Request timed out"
-    assert recorded_timeout_header == "1"
+    assert recorded_timeout_header == "50"
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("client_timeout_ms", "call_timeout_ms"), [(1, None), (None, 1)]
+    ("client_timeout_ms", "call_timeout_ms"), [(50, None), (None, 50)]
 )
 async def test_async_client_timeout(
-    client_timeout_ms, call_timeout_ms, sync_timeout_server: WSGIServer
+    client_timeout_ms, call_timeout_ms, timeout_server: str
 ) -> None:
     recorded_timeout_header = ""
 
@@ -398,9 +406,7 @@ async def test_async_client_timeout(
             timeout=Timeout(None), event_hooks={"request": [modify_timeout_header]}
         ) as session,
         HaberdasherClient(
-            f"http://localhost:{sync_timeout_server.server_port}",
-            timeout_ms=client_timeout_ms,
-            session=session,
+            timeout_server, timeout_ms=client_timeout_ms, session=session
         ) as client,
     ):
         with pytest.raises(ConnectError) as exc_info:
@@ -408,4 +414,4 @@ async def test_async_client_timeout(
 
     assert exc_info.value.code == Code.DEADLINE_EXCEEDED
     assert exc_info.value.message == "Request timed out"
-    assert recorded_timeout_header == "1"
+    assert recorded_timeout_header == "50"
