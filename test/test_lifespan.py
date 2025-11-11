@@ -4,7 +4,10 @@ from io import StringIO
 
 import pytest
 import uvicorn
+from httpx import ASGITransport, AsyncClient
 from uvicorn.config import LOGGING_CONFIG
+
+from connectrpc.errors import ConnectError
 
 from .haberdasher_connect import (
     Haberdasher,
@@ -160,3 +163,37 @@ async def test_lifespan_shutdown_error() -> None:
     server.should_exit = True
     await uvicorn_task
     assert "Haberdasher failed to shut down" in logs.getvalue()
+
+
+@pytest.mark.asyncio
+async def test_lifespan_not_supported() -> None:
+    class CountingHaberdasher(Haberdasher):
+        def __init__(self, counter: Counter) -> None:
+            self._counter = counter
+
+        async def make_hat(self, request, ctx):
+            self._counter["requests"] += 1
+            return Hat(size=request.inches, color="blue")
+
+    final_count = None
+
+    async def counting_haberdasher():
+        counter = Counter()
+        try:
+            haberdasher = CountingHaberdasher(counter)
+            yield haberdasher
+        finally:
+            nonlocal final_count
+            final_count = counter["requests"]
+
+    app = HaberdasherASGIApplication(counting_haberdasher())
+    transport = ASGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    async with HaberdasherClient(
+        "http://localhost", session=AsyncClient(transport=transport)
+    ) as client:
+        with pytest.raises(ConnectError) as e:
+            await client.make_hat(Size(inches=10))
+    assert (
+        "ASGI server does not support lifespan but async generator passed for service."
+        in str(e.value)
+    )
