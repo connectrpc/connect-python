@@ -1,7 +1,7 @@
 import base64
 import functools
 import inspect
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from asyncio import CancelledError, sleep
 from collections.abc import (
     AsyncGenerator,
@@ -73,7 +73,7 @@ Endpoint = (
 )
 
 
-class ConnectASGIApplication(Generic[_SVC]):
+class ConnectASGIApplication(ABC, Generic[_SVC]):
     """An ASGI application for the Connect protocol."""
 
     _resolved_endpoints: Mapping[str, Endpoint] | None
