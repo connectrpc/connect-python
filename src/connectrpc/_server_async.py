@@ -128,8 +128,7 @@ class ConnectASGIApplication(Generic[_SVC]):
                                 return None
                         else:
                             service = cast("_SVC", self._service)
-                        if (state := scope.get("state")) is not None:
-                            state["endpoints"] = self._resolve_endpoints(service)
+                        self._resolved_endpoints = self._resolve_endpoints(service)
                         await send({"type": "lifespan.startup.complete"})
                     case "lifespan.shutdown":
                         if service_iter is not None:
@@ -145,18 +144,15 @@ class ConnectASGIApplication(Generic[_SVC]):
                         await send({"type": "lifespan.shutdown.complete"})
                         return None
 
-        if state := scope.get("state"):
-            endpoints: Mapping[str, Endpoint] = state["endpoints"]
-        else:
-            if not self._resolved_endpoints:
-                if inspect.isasyncgen(self._service):
-                    msg = "ASGI server does not support lifespan but async generator passed for service. Enable lifespan support."
-                    raise RuntimeError(msg)
+        if not self._resolved_endpoints:
+            if inspect.isasyncgen(self._service):
+                msg = "ASGI server does not support lifespan but async generator passed for service. Enable lifespan support."
+                raise RuntimeError(msg)
 
-                self._resolved_endpoints = self._resolve_endpoints(
-                    cast("_SVC", self._service)
-                )
-            endpoints = self._resolved_endpoints
+            self._resolved_endpoints = self._resolve_endpoints(
+                cast("_SVC", self._service)
+            )
+        endpoints = self._resolved_endpoints
 
         ctx: RequestContext | None = None
         try:
