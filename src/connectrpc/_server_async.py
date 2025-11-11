@@ -1,11 +1,19 @@
 import base64
 import functools
+import inspect
 from abc import ABC, abstractmethod
 from asyncio import CancelledError, sleep
-from collections.abc import AsyncIterator, Iterable, Mapping, Sequence
+from collections.abc import (
+    AsyncGenerator,
+    AsyncIterator,
+    Callable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 from dataclasses import replace
 from http import HTTPStatus
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar, cast
 from urllib.parse import parse_qs
 
 from . import _compression, _server_shared
@@ -48,6 +56,7 @@ else:
     Scope = "asgiref.typing.Scope"
 
 
+_SVC = TypeVar("_SVC")
 _REQ = TypeVar("_REQ")
 _RES = TypeVar("_RES")
 
@@ -64,8 +73,10 @@ Endpoint = (
 )
 
 
-class ConnectASGIApplication(ABC):
+class ConnectASGIApplication(ABC, Generic[_SVC]):
     """An ASGI application for the Connect protocol."""
+
+    _resolved_endpoints: Mapping[str, Endpoint] | None
 
     @property
     @abstractmethod
@@ -74,35 +85,84 @@ class ConnectASGIApplication(ABC):
     def __init__(
         self,
         *,
-        endpoints: Mapping[str, Endpoint],
+        service: _SVC | AsyncGenerator[_SVC],
+        endpoints: Callable[[_SVC], Mapping[str, Endpoint]],
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
     ) -> None:
         """Initialize the ASGI application."""
         super().__init__()
-        if interceptors:
-            interceptors = resolve_interceptors(interceptors)
-            endpoints = {
-                path: _apply_interceptors(endpoint, interceptors)
-                for path, endpoint in endpoints.items()
-            }
+        self._service = service
         self._endpoints = endpoints
+        self._interceptors = interceptors
+        self._resolved_endpoints = None
         self._read_max_bytes = read_max_bytes
 
     async def __call__(
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
-        assert scope["type"] == "http"  # noqa: S101 - only for type narrowing, in practice always true
+        if scope["type"] == "websocket":
+            msg = "connect does not support websockets"
+            raise RuntimeError(msg)
+
+        if scope["type"] == "lifespan":
+            service_iter = None
+            while True:
+                msg = await receive()
+                match msg["type"]:
+                    case "lifespan.startup":
+                        # Need to cast since type checking doesn't seem to narrow well with isasyncgen
+                        if inspect.isasyncgen(self._service):
+                            service_iter = cast(
+                                "AsyncGenerator[_SVC, None]", self._service
+                            )
+                            try:
+                                service = await anext(service_iter)
+                            except Exception as e:
+                                await send(
+                                    {
+                                        "type": "lifespan.startup.failed",
+                                        "message": str(e),
+                                    }
+                                )
+                                return None
+                        else:
+                            service = cast("_SVC", self._service)
+                        self._resolved_endpoints = self._resolve_endpoints(service)
+                        await send({"type": "lifespan.startup.complete"})
+                    case "lifespan.shutdown":
+                        if service_iter is not None:
+                            try:
+                                await service_iter.aclose()
+                            except Exception as e:
+                                await send(
+                                    {
+                                        "type": "lifespan.shutdown.failed",
+                                        "message": str(e),
+                                    }
+                                )
+                                return None
+                        await send({"type": "lifespan.shutdown.complete"})
+                        return None
+
+        if not self._resolved_endpoints:
+            if inspect.isasyncgen(self._service):
+                msg = "ASGI server does not support lifespan but async generator passed for service. Enable lifespan support."
+                raise RuntimeError(msg)
+
+            self._resolved_endpoints = self._resolve_endpoints(
+                cast("_SVC", self._service)
+            )
+        endpoints = self._resolved_endpoints
 
         ctx: RequestContext | None = None
         try:
             path = scope["path"]
-            endpoint = self._endpoints.get(path)
+            endpoint = endpoints.get(path)
             if not endpoint and scope["root_path"]:
                 # The application was mounted at some root so try stripping the prefix.
                 path = path.removeprefix(scope["root_path"])
-                endpoint = self._endpoints.get(path)
-
+                endpoint = endpoints.get(path)
             if not endpoint:
                 raise HTTPException(HTTPStatus.NOT_FOUND, [])
 
@@ -380,6 +440,17 @@ class ConnectASGIApplication(ABC):
             }
         )
         await send({"type": "http.response.body", "body": body, "more_body": False})
+
+    def _resolve_endpoints(self, service: _SVC) -> Mapping[str, Endpoint]:
+        resolved_endpoints = self._endpoints(service)
+        if self._interceptors:
+            resolved_endpoints = {
+                path: _apply_interceptors(
+                    endpoint, resolve_interceptors(self._interceptors)
+                )
+                for path, endpoint in resolved_endpoints.items()
+            }
+        return resolved_endpoints
 
 
 async def _send_stream_response_headers(

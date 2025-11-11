@@ -36,9 +36,9 @@ func TestConnectTemplate(t *testing.T) {
 				},
 			},
 			contains: []string{
-				"from collections.abc import AsyncIterator, Iterable, Iterator, Mapping",
+				"from collections.abc import AsyncGenerator, AsyncIterator, Iterable, Iterator, Mapping",
 				"class TestService(Protocol):",
-				"class TestServiceASGIApplication(ConnectASGIApplication):",
+				"class TestServiceASGIApplication(ConnectASGIApplication[TestService]):",
 				"def TestMethod",
 			},
 		},

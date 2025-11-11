@@ -106,7 +106,7 @@ func TestGenerateConnectFile(t *testing.T) {
 				}
 
 				content := got.GetContent()
-				if !strings.Contains(content, "from collections.abc import AsyncIterator, Iterable, Iterator, Mapping") {
+				if !strings.Contains(content, "from collections.abc import AsyncGenerator, AsyncIterator, Iterable, Iterator, Mapping") {
 					t.Error("Generated code missing required imports")
 				}
 				if !strings.Contains(content, "class "+strings.Split(tt.input.GetService()[0].GetName(), ".")[0]) {
