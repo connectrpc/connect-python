@@ -141,6 +141,7 @@ class ConnectASGIApplication(Generic[_SVC]):
                                         "message": str(e),
                                     }
                                 )
+                                return None
                         await send({"type": "lifespan.shutdown.complete"})
                         return None
 
