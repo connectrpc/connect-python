@@ -17,16 +17,17 @@ from .haberdasher_connect import (
 from .haberdasher_pb2 import Hat, Size
 
 
+class CountingHaberdasher(Haberdasher):
+    def __init__(self, counter: Counter) -> None:
+        self._counter = counter
+
+    async def make_hat(self, request, ctx):
+        self._counter["requests"] += 1
+        return Hat(size=request.inches, color="blue")
+
+
 @pytest.mark.asyncio
 async def test_lifespan() -> None:
-    class CountingHaberdasher(Haberdasher):
-        def __init__(self, counter: Counter) -> None:
-            self._counter = counter
-
-        async def make_hat(self, request, ctx):
-            self._counter["requests"] += 1
-            return Hat(size=request.inches, color="blue")
-
     final_count = None
 
     async def counting_haberdasher():
@@ -69,14 +70,6 @@ async def test_lifespan() -> None:
 
 @pytest.mark.asyncio
 async def test_lifespan_startup_error() -> None:
-    class CountingHaberdasher(Haberdasher):
-        def __init__(self, counter: Counter) -> None:
-            self._counter = counter
-
-        async def make_hat(self, request, ctx):
-            self._counter["requests"] += 1
-            return Hat(size=request.inches, color="blue")
-
     final_count = None
 
     async def counting_haberdasher():
@@ -112,14 +105,6 @@ async def test_lifespan_startup_error() -> None:
 
 @pytest.mark.asyncio
 async def test_lifespan_shutdown_error() -> None:
-    class CountingHaberdasher(Haberdasher):
-        def __init__(self, counter: Counter) -> None:
-            self._counter = counter
-
-        async def make_hat(self, request, ctx):
-            self._counter["requests"] += 1
-            return Hat(size=request.inches, color="blue")
-
     async def counting_haberdasher():
         counter = Counter()
         try:
@@ -167,14 +152,6 @@ async def test_lifespan_shutdown_error() -> None:
 
 @pytest.mark.asyncio
 async def test_lifespan_not_supported() -> None:
-    class CountingHaberdasher(Haberdasher):
-        def __init__(self, counter: Counter) -> None:
-            self._counter = counter
-
-        async def make_hat(self, request, ctx):
-            self._counter["requests"] += 1
-            return Hat(size=request.inches, color="blue")
-
     final_count = None
 
     async def counting_haberdasher():
