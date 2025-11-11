@@ -85,7 +85,7 @@ class ConnectASGIApplication(Generic[_SVC]):
     def __init__(
         self,
         *,
-        service: _SVC | AsyncGenerator[_SVC, None],
+        service: _SVC | AsyncGenerator[_SVC],
         endpoints: Callable[[_SVC], Mapping[str, Endpoint]],
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,

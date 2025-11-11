@@ -75,7 +75,7 @@ class ConformanceService(Protocol):
 class ConformanceServiceASGIApplication(ConnectASGIApplication[ConformanceService]):
     def __init__(
         self,
-        service: ConformanceService | AsyncGenerator[ConformanceService, None],
+        service: ConformanceService | AsyncGenerator[ConformanceService],
         *,
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,

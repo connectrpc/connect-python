@@ -57,7 +57,7 @@ class Haberdasher(Protocol):
 class HaberdasherASGIApplication(ConnectASGIApplication[Haberdasher]):
     def __init__(
         self,
-        service: Haberdasher | AsyncGenerator[Haberdasher, None],
+        service: Haberdasher | AsyncGenerator[Haberdasher],
         *,
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,

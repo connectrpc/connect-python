@@ -42,7 +42,7 @@ class ElizaService(Protocol):
 class ElizaServiceASGIApplication(ConnectASGIApplication[ElizaService]):
     def __init__(
         self,
-        service: ElizaService | AsyncGenerator[ElizaService, None],
+        service: ElizaService | AsyncGenerator[ElizaService],
         *,
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
