@@ -46,9 +46,7 @@ def test_server_sync(server: str) -> None:
         [sys.executable, _server_py_path, "--mode", "sync", "--server", server]
     )
     opts = [
-        # While Hypercorn and Granian supports HTTP/2 and WSGI, they both have simple wrappers
-        # that reads the entire request body before running the application, which does not work for
-        # full duplex.
+        # TODO: Enable full-duplex in pyvoy
         "--skip",
         "**/bidi-stream/full-duplex/**",
     ]
