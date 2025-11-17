@@ -84,7 +84,7 @@ jobs:
       - name: run conformance tests
         # TODO: Debug stdin/stdout issues on Windows
         if: ${{ !startsWith(matrix.os, 'windows-') }}
-        run: uv run pytest -rfEP ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
+        run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
         working-directory: conformance
 
       - name: run tests with minimal dependencies

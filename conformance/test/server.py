@@ -608,6 +608,50 @@ async def serve_hypercorn(
         await proc.wait()
 
 
+async def serve_pyvoy(
+    request: ServerCompatRequest,
+    mode: Literal["sync", "async"],
+    certfile: str | None,
+    keyfile: str | None,
+    cafile: str | None,
+    port_future: asyncio.Future[int],
+):
+    args = ["--port=0"]
+    if certfile:
+        args.append(f"--tls-cert={certfile}")
+    if keyfile:
+        args.append(f"--tls-key={keyfile}")
+    if cafile:
+        args.append(f"--tls-ca-cert={cafile}")
+
+    if mode == "sync":
+        args.append("--interface=wsgi")
+        args.append("server:wsgi_app")
+    else:
+        args.append("server:asgi_app")
+
+    proc = await asyncio.create_subprocess_exec(
+        "pyvoy",
+        *args,
+        stderr=asyncio.subprocess.STDOUT,
+        stdout=asyncio.subprocess.PIPE,
+        env=_server_env(request),
+    )
+    stdout = proc.stdout
+    assert stdout is not None
+    stdout = _tee_to_stderr(stdout)
+    try:
+        async for line in stdout:
+            if b"listening on" in line:
+                port = int(line.strip().split(b"127.0.0.1:")[1])
+                port_future.set_result(port)
+                break
+        await _consume_log(stdout)
+    except asyncio.CancelledError:
+        proc.terminate()
+        await proc.wait()
+
+
 async def serve_uvicorn(
     request: ServerCompatRequest,
     certfile: str | None,
@@ -655,7 +699,7 @@ def _find_free_port():
         return s.getsockname()[1]
 
 
-Server = Literal["daphne", "granian", "gunicorn", "hypercorn", "uvicorn"]
+Server = Literal["daphne", "granian", "gunicorn", "hypercorn", "pyvoy", "uvicorn"]
 
 
 class Args(argparse.Namespace):
@@ -728,6 +772,12 @@ async def main() -> None:
                         request, args.mode, certfile, keyfile, cafile, port_future
                     )
                 )
+            case "pyvoy":
+                serve_task = asyncio.create_task(
+                    serve_pyvoy(
+                        request, args.mode, certfile, keyfile, cafile, port_future
+                    )
+                )
             case "uvicorn":
                 if args.mode == "sync":
                     msg = "uvicorn does not support sync mode"
@@ -735,7 +785,9 @@ async def main() -> None:
                 serve_task = asyncio.create_task(
                     serve_uvicorn(request, certfile, keyfile, cafile, port_future)
                 )
+
         asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, serve_task.cancel)
+
         port = await port_future
         response = ServerCompatResponse()
         response.host = "127.0.0.1"

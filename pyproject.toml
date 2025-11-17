@@ -42,7 +42,7 @@ dev = [
     "daphne==4.2.1",
     "httpx[http2]==0.28.1",
     "hypercorn==0.17.3",
-    "granian==2.5.5",
+    "granian==2.5.7",
     "gunicorn==23.0.0",
     "just-bin==1.42.4; sys_platform != 'win32'",
     "mkdocs==1.6.1",
@@ -52,6 +52,8 @@ dev = [
     "pytest==8.4.2",
     "pytest-asyncio==1.2.0",
     "pytest-cov==7.0.0",
+    "pytest-timeout==2.4.0",
+    "pyvoy==0.1.1; sys_platform != 'win32'",
     "ruff~=0.13.2",
     "uvicorn==0.37.0",
     # Needed to enable HTTP/2 in daphne
@@ -72,6 +74,7 @@ module-name = "connectrpc"
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
+timeout = 1800       # 30 min
 
 [tool.ruff.format]
 skip-magic-trailing-comma = true
