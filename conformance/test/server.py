@@ -531,7 +531,12 @@ async def serve_gunicorn(
     cafile: str | None,
     port_future: asyncio.Future[int],
 ):
-    args = ["--bind=127.0.0.1:0", "--threads=40", "--reuse-port", "--keepalive=30"]
+    args = [
+        "--bind=127.0.0.1:0",
+        "--workers=8",
+        "--worker-class=gevent",
+        "--reuse-port",
+    ]
     if certfile:
         args.append(f"--certfile={certfile}")
     if keyfile:
