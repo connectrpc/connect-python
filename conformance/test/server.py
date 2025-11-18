@@ -533,7 +533,7 @@ async def serve_gunicorn(
 ):
     args = [
         "--bind=127.0.0.1:0",
-        "--workers=8",
+        "--workers=4",
         "--worker-class=gevent",
         "--reuse-port",
     ]
