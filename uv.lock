@@ -459,7 +459,7 @@ dev = [
     { name = "pytest-asyncio", specifier = "==1.2.0" },
     { name = "pytest-cov", specifier = "==7.0.0" },
     { name = "pytest-timeout", specifier = "==2.4.0" },
-    { name = "pyvoy", marker = "sys_platform != 'win32'", specifier = "==0.1.1" },
+    { name = "pyvoy", marker = "sys_platform != 'win32'", specifier = "==0.1.2" },
     { name = "ruff", specifier = "~=0.13.2" },
     { name = "twisted", extras = ["tls", "http2"], specifier = "==25.5.0" },
     { name = "typing-extensions", specifier = "==4.15.0" },
@@ -1465,7 +1465,7 @@ wheels = [
 
 [[package]]
 name = "pyvoy"
-version = "0.1.1"
+version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "find-libpython" },
@@ -1473,21 +1473,21 @@ dependencies = [
     { name = "uvloop" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1e/ee/29423d825b9cdbf53cb3d24e9215015d9813add7d428f4cb6c2a5938bec5/pyvoy-0.1.1-cp310-cp310-macosx_15_0_arm64.whl", hash = "sha256:bb49d21db16e4e0f8891a98fea5cb0265994e1fed1d969bb66af20bf92613536", size = 32563489, upload-time = "2025-11-14T10:16:47.156Z" },
-    { url = "https://files.pythonhosted.org/packages/31/a1/42cfc60d6493675a7c8892130ef168d68b0384848ad99f1045834c0877d2/pyvoy-0.1.1-cp310-cp310-manylinux_2_31_aarch64.whl", hash = "sha256:ac1ef45c47b821b161d39d69fd9940859d2bde332ef7b346a02d49e235aadf83", size = 28525979, upload-time = "2025-11-14T10:16:49.826Z" },
-    { url = "https://files.pythonhosted.org/packages/f4/1e/33b305a187ca7d8540c16d6f028133bb7f88106c14e10b445d4b96d67eae/pyvoy-0.1.1-cp310-cp310-manylinux_2_31_x86_64.whl", hash = "sha256:f2c76d8cf5b82467da25922acbab4185ae9dcd9f90636cd05ec8c8d2ed8e30dd", size = 30173067, upload-time = "2025-11-14T10:16:52.486Z" },
-    { url = "https://files.pythonhosted.org/packages/d8/92/30fb684bebaabb2562358dc5ba5f5446a5c0fc3f4ea30192694b7a18847f/pyvoy-0.1.1-cp311-cp311-macosx_15_0_arm64.whl", hash = "sha256:bd4257f36aed121c6bae661e98d8c0cc36de17ddfe768885d1a317170c34127a", size = 32563899, upload-time = "2025-11-14T10:16:54.995Z" },
-    { url = "https://files.pythonhosted.org/packages/db/ec/f1fdc9a0653752eaa6579ad94a92f1681c0a806b3b253bf2d670856b6bd7/pyvoy-0.1.1-cp311-cp311-manylinux_2_31_aarch64.whl", hash = "sha256:797fc8be156911b7c6f67c144907ac861caf8c92b3163529f0a4769fae0d1fc8", size = 28524990, upload-time = "2025-11-14T10:16:57.761Z" },
-    { url = "https://files.pythonhosted.org/packages/4b/ea/e586a7363b22bbdacca6ef45ae5f790fe1b80ef9845efbf9f6cdc39617e9/pyvoy-0.1.1-cp311-cp311-manylinux_2_31_x86_64.whl", hash = "sha256:7e6bc1a00af4e3b8f6488f80dfdbe1ffae6fbf36d10c2f976d8422e10ebbd269", size = 30171869, upload-time = "2025-11-14T10:17:00.336Z" },
-    { url = "https://files.pythonhosted.org/packages/cc/b9/8c0a4ecea4e8f92718df413f8dac8c33b164b4128983294168176fbf7078/pyvoy-0.1.1-cp312-cp312-macosx_15_0_arm64.whl", hash = "sha256:6e714b70ef9c6e5375a3bfd0fac4bba4235df08ac90654ec5ba8a29faee629c6", size = 32559840, upload-time = "2025-11-14T10:17:03.369Z" },
-    { url = "https://files.pythonhosted.org/packages/e7/ab/2a954859148fb09088af111947135d42922473dafc909c512a96f6b89896/pyvoy-0.1.1-cp312-cp312-manylinux_2_31_aarch64.whl", hash = "sha256:31950bc4e33f1918f57a88b6c42b99cac88ac098699b9c9384a24fdf44621668", size = 28521334, upload-time = "2025-11-14T10:17:06.635Z" },
-    { url = "https://files.pythonhosted.org/packages/eb/17/5562985594785bf63e3a14e51665ce24831e8a1b32791cd9edc8bb928926/pyvoy-0.1.1-cp312-cp312-manylinux_2_31_x86_64.whl", hash = "sha256:ea4705a57fb54b07a73fd061094fcba20c56c644e67789d82c939c72d1f50a62", size = 30168042, upload-time = "2025-11-14T10:17:11.458Z" },
-    { url = "https://files.pythonhosted.org/packages/07/9a/2e5a0d02b1b1d53fc8e1abbc43890145017503b71af9423048f298139d3f/pyvoy-0.1.1-cp313-cp313-macosx_15_0_arm64.whl", hash = "sha256:846a5cb4b5fb23d358d6e4694c358046a73966e1df5d16bddd5304a034e23ced", size = 32559880, upload-time = "2025-11-14T10:17:16.761Z" },
-    { url = "https://files.pythonhosted.org/packages/52/60/f93e7fdaf31a81ddc5a7d586c6e5fd17315e7392b2affce352282dfa69e6/pyvoy-0.1.1-cp313-cp313-manylinux_2_31_aarch64.whl", hash = "sha256:71a42e9903204a9b626ad5ff9baabc556673092d299c26508f9bb6707f1cf4d0", size = 28519383, upload-time = "2025-11-14T10:17:21.127Z" },
-    { url = "https://files.pythonhosted.org/packages/77/61/8bcfb263f703f02f2698d6b50c53e63d9e87f65beae1ad21c918a16adf82/pyvoy-0.1.1-cp313-cp313-manylinux_2_31_x86_64.whl", hash = "sha256:316e26e732e4718b9345c9e27914ffb0a72ea25a894bcff9c1690a4b244b905a", size = 30167090, upload-time = "2025-11-14T10:17:23.584Z" },
-    { url = "https://files.pythonhosted.org/packages/03/92/b44d292d55d26512cc7af2e403b0615bd55837709ed30bca5e6f266ca5c9/pyvoy-0.1.1-cp314-cp314-macosx_15_0_arm64.whl", hash = "sha256:768af0d632edbafc8cf200541f3c805ac4604c74b01cb7c367698684b9850b71", size = 32560382, upload-time = "2025-11-14T10:17:26.194Z" },
-    { url = "https://files.pythonhosted.org/packages/c2/cf/0cee6a14ecfc1751cc1569e5f3471cde2688b95ee2ee5dd1e86a58aa8262/pyvoy-0.1.1-cp314-cp314-manylinux_2_31_aarch64.whl", hash = "sha256:f4309ef1b8add370f6c4762033a32ad18baffbba913a448885af6b712049161c", size = 28518147, upload-time = "2025-11-14T10:17:28.733Z" },
-    { url = "https://files.pythonhosted.org/packages/f4/8f/1873c4323f94ff88edc80e1a15f633168926e95a407f075da14afc835c77/pyvoy-0.1.1-cp314-cp314-manylinux_2_31_x86_64.whl", hash = "sha256:d23b0c0067123b623ca50af1e7d10ebf770bf794d3552c1b329e299cd375cc27", size = 30166324, upload-time = "2025-11-14T10:17:31.859Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/af/bfb318526b6d86c1cb1c8437b5ec5d751467397a0c233ec8d03ccaee43a4/pyvoy-0.1.2-cp310-cp310-macosx_15_0_arm64.whl", hash = "sha256:8d449ee02cf1fe1c0f5858ac3c81e39d9ffb5033a03f07ecec4948295f6fae89", size = 32565596, upload-time = "2025-11-18T06:48:22.18Z" },
+    { url = "https://files.pythonhosted.org/packages/19/ea/060de57934ee2ce0ea23db830cf400c4786056505103def9d9d1255ce59c/pyvoy-0.1.2-cp310-cp310-manylinux_2_31_aarch64.whl", hash = "sha256:d12939bdd01f45f64c9757eafcc6dbbffee0b5cd5d69a41982237763ff4c8908", size = 28528062, upload-time = "2025-11-18T06:48:25.739Z" },
+    { url = "https://files.pythonhosted.org/packages/c8/f1/d962f4d77ab40e75ad069d8c861f94a32c988732de19db6737e7155d6811/pyvoy-0.1.2-cp310-cp310-manylinux_2_31_x86_64.whl", hash = "sha256:cc7eb5dea99f267bb1796bd63d3439ebcebf9df4acdf133dfaf4b66257907003", size = 30174575, upload-time = "2025-11-18T06:48:28.593Z" },
+    { url = "https://files.pythonhosted.org/packages/df/89/03aa01547af96dd7aa9be359a572b924e1f688c074ef45e553dbc0f2db3d/pyvoy-0.1.2-cp311-cp311-macosx_15_0_arm64.whl", hash = "sha256:8b0fef26ca9d380c3ea52c5236df29e8f98600a10fe56ae7c6377b92da68456d", size = 32565143, upload-time = "2025-11-18T06:48:31.15Z" },
+    { url = "https://files.pythonhosted.org/packages/7b/e4/be897bfe763bbff972e77780d1f203edc2c9a3410a38aeb811eb9ba064cc/pyvoy-0.1.2-cp311-cp311-manylinux_2_31_aarch64.whl", hash = "sha256:d099e4124aa90c1ef4b24c53e8024f948c29d5a99d924740e0181ab14e8022c5", size = 28528042, upload-time = "2025-11-18T06:48:33.665Z" },
+    { url = "https://files.pythonhosted.org/packages/22/50/b99b6b4e6f5cf6b69449b7f305fcb83dc92da63143bbbff6bcdda81f0633/pyvoy-0.1.2-cp311-cp311-manylinux_2_31_x86_64.whl", hash = "sha256:8489b03ae6b0dc833d09997ec960dfff6afbfee891c60a42d21342dbe8016dde", size = 30174054, upload-time = "2025-11-18T06:48:36.578Z" },
+    { url = "https://files.pythonhosted.org/packages/ce/b3/48e54808f68efd4641aad5dec361b2119754f7ad8c95ae18a7f1027c4005/pyvoy-0.1.2-cp312-cp312-macosx_15_0_arm64.whl", hash = "sha256:82f6db5874a104b4dc058f5998ab4b7b8dd5d2158b3fe1812447141df3bcf0af", size = 32562089, upload-time = "2025-11-18T06:48:39.23Z" },
+    { url = "https://files.pythonhosted.org/packages/72/f9/ddb769f361a7644aec083cadc180d6d963fdf3e0838a993c4c5a67573a4e/pyvoy-0.1.2-cp312-cp312-manylinux_2_31_aarch64.whl", hash = "sha256:773c9c13a3b0d13b7bddc3b3f6c93fd5298e792269bec6a21a3801b940c418af", size = 28526360, upload-time = "2025-11-18T06:48:42.018Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/cf/f52e33f141da7c026c0dfc922178b0a902f5e5486cffd5da1ba23796feaf/pyvoy-0.1.2-cp312-cp312-manylinux_2_31_x86_64.whl", hash = "sha256:3437e4bcbc3f9c230ed974f0506e1d507c61385ba49def114eff52f12ce088d3", size = 30172731, upload-time = "2025-11-18T06:48:44.878Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/d5/d16ff5de8f1372f2ba0170ffcace1a79482dcfdfdd64f625d3e959cb3699/pyvoy-0.1.2-cp313-cp313-macosx_15_0_arm64.whl", hash = "sha256:04c2654124c8097dc0a904c8cd1896ef072c23e1e40997501c39a29074b9f16f", size = 32562083, upload-time = "2025-11-18T06:48:47.786Z" },
+    { url = "https://files.pythonhosted.org/packages/f5/d3/cc2b423945ccf79ea9a6550aada535d655f32939bcbb69a594ad43e6f791/pyvoy-0.1.2-cp313-cp313-manylinux_2_31_aarch64.whl", hash = "sha256:3cf86b31e007e8a2483c92ede7bc9c959600eebbfd1ac1254ddabce119333360", size = 28523951, upload-time = "2025-11-18T06:48:50.761Z" },
+    { url = "https://files.pythonhosted.org/packages/97/e3/7a24e69471f3a400f39f82e5195af765ef124339b9d7a98620c27658312c/pyvoy-0.1.2-cp313-cp313-manylinux_2_31_x86_64.whl", hash = "sha256:1caa920cee4b8a79ca3bb4e4788b0cfc7005dab396b2d892819c7e50f918d670", size = 30172138, upload-time = "2025-11-18T06:48:53.525Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/c0/731370402d774b41b786638d15a3378a5c1e2fe482032b7b40df6c90dadf/pyvoy-0.1.2-cp314-cp314-macosx_15_0_arm64.whl", hash = "sha256:57bff2093d4d2958c9f2b50f67cc2e6ae9d53adc6de3d0a7a2c9d3d36f6f5b53", size = 32561464, upload-time = "2025-11-18T06:48:56.297Z" },
+    { url = "https://files.pythonhosted.org/packages/58/67/1777827471efa575ae9586dc3b7ab4b331a15dbccf3d40f2c05311700574/pyvoy-0.1.2-cp314-cp314-manylinux_2_31_aarch64.whl", hash = "sha256:aef91cc81a7a584d937e12b2fa2baae451913a642c44eb8d771008da233b8e40", size = 28523669, upload-time = "2025-11-18T06:48:59.363Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/3a/2b8a0300e6bba250f724186f5eacd11e34afe69a358a91333ed4b274b4e6/pyvoy-0.1.2-cp314-cp314-manylinux_2_31_x86_64.whl", hash = "sha256:17606c3d7c5b9adffb7b4833772c1656924414685ea26747751c3a666b2ef15f", size = 30171296, upload-time = "2025-11-18T06:49:02.275Z" },
 ]
 
 [[package]]
