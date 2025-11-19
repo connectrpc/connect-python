@@ -45,11 +45,7 @@ def test_server_sync(server: str) -> None:
     args = maybe_patch_args_with_debug(
         [sys.executable, _server_py_path, "--mode", "sync", "--server", server]
     )
-    opts = [
-        # TODO: Enable full-duplex in pyvoy
-        "--skip",
-        "**/bidi-stream/full-duplex/**",
-    ]
+    opts = []
     match server:
         case "gunicorn":
             # gunicorn doesn't support HTTP/2
