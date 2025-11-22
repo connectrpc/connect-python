@@ -77,6 +77,18 @@ The project includes protobuf code generation for examples and tests:
 uv run just generate
 ```
 
+## Releasing
+
+To release a new version, we need to first update the version numbers
+in pyproject.toml and then cut a tag to trigger the release workflow.
+
+```bash
+uv run just bump minor # or patch
+```
+
+Make a PR to apply the commit as usual, then push a tag, for example
+by [drafting a release](https://github.com/connectrpc/connect-python/releases/new).
+
 ## Documentation
 
 ### Building Documentation
