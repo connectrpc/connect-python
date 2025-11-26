@@ -6,8 +6,8 @@ use a Python application server to run a service.
 ## Application Servers
 
 Connect services are standard ASGI or WSGI applications that can be run with an off-the-shelf Python
-application server. This means generally, any experience in running a Python application can be applied
-to running Connect as-is.
+application server. Generally, any experience in running a Python application can be applied to running
+Connect as-is.
 
 ### HTTP/1.1
 
@@ -41,18 +41,28 @@ When in doubt, if you do not use bidirectional streaming, we recommend one of th
 Connect services are standard ASGI and WSGI applications so any CORS middleware can be used to
 enable it.
 
-For example, with an ASGI application using Starlette:
+For example, with an ASGI application using the [asgi-cors](https://pypi.org/project/asgi-cors/)
+middleware:
 
 ```python
-from starlette.middleware.cors import CORSMiddleware
-from starlette.applications import Starlette
+from asgi_cors import asgi_cors
 
-app = Starlette()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
+from greet.v1.greet_connect import GreetServiceASGIApplication
+from server import Greeter
+
+app = GreetServiceASGIApplication(Greeter())
+
+# app is a standard ASGI application - any middleware works as-is
+app = asgi_cors(
+    app,
+    hosts=["https://acme.com"],
+    # POST is used for all APIs except for idempotent unary RPCs that may support GET
+    methods=["GET", "POST"],
+    headers=[
+        "content-type",
+        "connect-protocol-version",
+        "connect-timeout-ms",
+        "x-user-agent",
+    ],
 )
-# Mount your Connect application
 ```
