@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import json
 import struct
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from ._client_shared import handle_response_trailers
 from ._compression import Compression, IdentityCompression
 from ._protocol import ConnectWireError
+from ._response_metadata import handle_response_trailers
 from .code import Code
 from .errors import ConnectError
 
@@ -95,7 +96,7 @@ class EnvelopeReader(Generic[_RES]):
             self._next_message_length = int.from_bytes(self._buffer[1:5], "big")
 
 
-class EnvelopeWriter(Generic[_T]):
+class EnvelopeWriter(ABC, Generic[_T]):
     def __init__(self, codec: Codec[_T, Any], compression: Compression | None) -> None:
         self._codec = codec
         self._compression = compression
@@ -111,16 +112,7 @@ class EnvelopeWriter(Generic[_T]):
         # I/O multiple times for small prefix / length elements.
         return struct.pack(">BI", self._prefix, len(data)) + data
 
-    def end(self, trailers: Headers, error: ConnectWireError | None) -> bytes:
-        end_message = {}
-        if trailers:
-            metadata: dict[str, list[str]] = {}
-            for key, value in trailers.allitems():
-                metadata.setdefault(key, []).append(value)
-            end_message["metadata"] = metadata
-        if error:
-            end_message["error"] = error.to_dict()
-        data = json.dumps(end_message).encode()
-        if self._compression:
-            data = self._compression.compress(data)
-        return struct.pack(">BI", self._prefix | 0b10, len(data)) + data
+    @abstractmethod
+    def end(
+        self, user_trailers: Headers, error: ConnectWireError | None
+    ) -> bytes | Headers: ...

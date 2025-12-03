@@ -4,6 +4,7 @@ features:
     - HTTP_VERSION_2
   protocols:
     - PROTOCOL_CONNECT
+    - PROTOCOL_GRPC
   codecs:
     - CODEC_PROTO
     - CODEC_JSON
@@ -21,7 +22,7 @@ features:
   supports_h2c: true
   supports_tls: true
   supports_tls_client_certs: true
-  supports_trailers: false
+  supports_trailers: true
   supports_half_duplex_bidi_over_http1: true
   supports_connect_get: true
   # This currently only tests the server

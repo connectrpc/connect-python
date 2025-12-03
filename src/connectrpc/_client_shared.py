@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import base64
-import contextlib
-from contextvars import ContextVar, Token
 from http import HTTPStatus
 from typing import TYPE_CHECKING, TypeVar
 
 from . import _compression
 from ._codec import CODEC_NAME_JSON, CODEC_NAME_JSON_CHARSET_UTF8, Codec
 from ._compression import Compression, get_available_compressions, get_compression
-from ._protocol import (
+from ._protocol import ConnectWireError
+from ._protocol_connect import (
     CONNECT_PROTOCOL_VERSION,
     CONNECT_STREAMING_CONTENT_TYPE_PREFIX,
     CONNECT_STREAMING_HEADER_ACCEPT_COMPRESSION,
@@ -17,7 +16,6 @@ from ._protocol import (
     CONNECT_UNARY_CONTENT_TYPE_PREFIX,
     CONNECT_UNARY_HEADER_ACCEPT_COMPRESSION,
     CONNECT_UNARY_HEADER_COMPRESSION,
-    ConnectWireError,
     codec_name_from_content_type,
 )
 from ._version import __version__
@@ -26,8 +24,7 @@ from .errors import ConnectError
 from .request import Headers, RequestContext
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping, Sequence
-    from types import TracebackType
+    from collections.abc import Iterable, Mapping
 
     from httpx import Headers as HttpxHeaders
 
@@ -123,9 +120,6 @@ def prepare_get_params(
     return params
 
 
-_current_response = ContextVar["ResponseMetadata"]("connectrpc_current_response")
-
-
 def validate_response_content_encoding(
     encoding: str | None,
 ) -> _compression.Compression:
@@ -197,89 +191,3 @@ def validate_stream_response_content_type(
             Code.INTERNAL,
             f"invalid content-type: '{response_content_type}'; expecting '{CONNECT_STREAMING_CONTENT_TYPE_PREFIX}{request_codec_name}'",
         )
-
-
-def handle_response_headers(headers: HttpxHeaders) -> None:
-    response = _current_response.get(None)
-    if not response:
-        return
-
-    response_headers: Headers = Headers()
-    response_trailers: Headers = Headers()
-    for key, value in headers.multi_items():
-        if key.startswith("trailer-"):
-            normalized_key = key[len("trailer-") :]
-            obj = response_trailers
-        else:
-            normalized_key = key
-            obj = response_headers
-        obj.add(normalized_key, value)
-    if response_headers:
-        response._headers = response_headers  # noqa: SLF001
-    if response_trailers:
-        response._trailers = response_trailers  # noqa: SLF001
-
-
-def handle_response_trailers(trailers: Mapping[str, Sequence[str]]) -> None:
-    response = _current_response.get(None)
-    if not response:
-        return
-    response_trailers = response.trailers()
-    for key, values in trailers.items():
-        for value in values:
-            response_trailers.add(key, value)
-    if response_trailers:
-        response._trailers = response_trailers  # noqa: SLF001
-
-
-class ResponseMetadata:
-    """
-    Response metadata separate from the message payload.
-
-    Commonly, RPC client invocations only need the message payload and do not need to
-    directly read other data such as headers or trailers. In cases where they are needed,
-    initialize this class in a context manager to access the response headers and trailers
-    for the invocation made within the context.
-
-    Example:
-
-        with ResponseMetadata() as resp_data:
-            resp = client.MakeHat(Size(inches=10))
-            do_something_with_response_payload(resp)
-            check_response_headers(resp_data.headers())
-            check_response_trailers(resp_data.trailers())
-    """
-
-    _headers: Headers | None = None
-    _trailers: Headers | None = None
-    _token: Token[ResponseMetadata] | None = None
-
-    def __enter__(self) -> ResponseMetadata:
-        self._token = _current_response.set(self)
-        return self
-
-    def __exit__(
-        self,
-        _exc_type: type[BaseException] | None,
-        _exc_value: BaseException | None,
-        _traceback: TracebackType | None,
-    ) -> None:
-        if self._token:
-            # Normal usage with context manager will always work but it is
-            # theoretically possible for user to move to another thread
-            # and this fails, it is fine to ignore it.
-            with contextlib.suppress(Exception):
-                _current_response.reset(self._token)
-        self._token = None
-
-    def headers(self) -> Headers:
-        """Returns the response headers."""
-        if self._headers is None:
-            return Headers()
-        return self._headers
-
-    def trailers(self) -> Headers:
-        """Returns the response trailers."""
-        if self._trailers is None:
-            return Headers()
-        return self._trailers

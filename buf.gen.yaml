@@ -2,15 +2,6 @@ version: v2
 plugins:
   # NOTE: v26.0 is the earliest version supporting protobuf==5.
   - remote: buf.build/protocolbuffers/python:v26.0
-    out: .
+    out: src/connectrpc/_gen
   - remote: buf.build/protocolbuffers/pyi:v26.0
-    out: .
-  - remote: buf.build/grpc/python:v1.76.0
-    out: .
-  - local:
-      - go
-      - run
-      - -C
-      - ../protoc-gen-connect-python
-      - .
-    out: .
+    out: src/connectrpc/_gen

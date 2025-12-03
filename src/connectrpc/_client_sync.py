@@ -8,7 +8,7 @@ from httpx import USE_CLIENT_DEFAULT, Timeout
 
 from . import _client_shared
 from ._codec import Codec, get_proto_binary_codec, get_proto_json_codec
-from ._envelope import EnvelopeReader, EnvelopeWriter
+from ._envelope import EnvelopeReader
 from ._interceptor_sync import (
     BidiStreamInterceptorSync,
     ClientStreamInterceptorSync,
@@ -17,7 +17,12 @@ from ._interceptor_sync import (
     UnaryInterceptorSync,
     resolve_interceptors,
 )
-from ._protocol import CONNECT_STREAMING_HEADER_COMPRESSION, ConnectWireError
+from ._protocol import ConnectWireError
+from ._protocol_connect import (
+    CONNECT_STREAMING_HEADER_COMPRESSION,
+    ConnectEnvelopeWriter,
+)
+from ._response_metadata import handle_response_headers
 from .code import Code
 from .errors import ConnectError
 
@@ -290,7 +295,7 @@ class ConnectClientSync:
                 resp.status_code,
                 resp.headers.get("content-type", ""),
             )
-            _client_shared.handle_response_headers(resp.headers)
+            handle_response_headers(resp.headers)
 
             if resp.status_code == 200:
                 if (
@@ -352,7 +357,7 @@ class ConnectClientSync:
                 _client_shared.validate_stream_response_content_type(
                     self._codec.name(), resp.headers.get("content-type", "")
                 )
-                _client_shared.handle_response_headers(resp.headers)
+                handle_response_headers(resp.headers)
 
                 if resp.status_code == 200:
                     reader = EnvelopeReader(
@@ -397,7 +402,7 @@ def _convert_connect_timeout(timeout_ms: float | None) -> Timeout:
 def _streaming_request_content(
     msgs: Iterator[Any], codec: Codec, compression: Compression | None
 ) -> Iterator[bytes]:
-    writer = EnvelopeWriter(codec, compression)
+    writer = ConnectEnvelopeWriter(codec, compression)
     for msg in msgs:
         yield writer.write(msg)
 

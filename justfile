@@ -45,6 +45,10 @@ docs:
 docs-serve: docs
     uv run python -m http.server 8000
 
+# Generate gRPC status
+generate-status:
+    go run github.com/bufbuild/buf/cmd/buf@{{BUF_VERSION}} generate
+
 # Generate conformance files
 [working-directory: 'conformance']
 generate-conformance:
@@ -65,7 +69,7 @@ generate-test:
     go run github.com/bufbuild/buf/cmd/buf@{{BUF_VERSION}} generate
 
 # Run all generation targets, and format the generated code
-generate: generate-conformance generate-example generate-test format
+generate: generate-conformance generate-example generate-status generate-test format
 
 # Used in CI to verify that `just generate` doesn't produce a diff
 checkgenerate: generate
