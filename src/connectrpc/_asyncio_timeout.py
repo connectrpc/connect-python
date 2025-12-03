@@ -2,11 +2,15 @@
 # SPDX-License-Identifier: PSF-2.0
 
 # Backport of asyncio.timeout for Python 3.10
+from __future__ import annotations
 
 import enum
 import sys
 from asyncio import events, exceptions, tasks
-from types import TracebackType
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from types import TracebackType
 
 _HAX_EXCEPTION_GROUP = sys.version_info >= (3, 11)
 
@@ -80,7 +84,7 @@ class Timeout:
         info_str = " ".join(info)
         return f"<Timeout [{self._state.value}]{info_str}>"
 
-    async def __aenter__(self) -> "Timeout":
+    async def __aenter__(self) -> Timeout:
         if self._state is not _State.CREATED:
             msg = "Timeout has already been entered"
             raise RuntimeError(msg)

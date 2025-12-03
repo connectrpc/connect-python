@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 import argparse
 import asyncio
 import ssl
 import sys
 import time
 import traceback
-from collections.abc import AsyncIterator, Iterator
 from tempfile import NamedTemporaryFile
-from typing import Literal, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar
 
 import httpx
 from _util import create_standard_streams
@@ -29,13 +30,17 @@ from gen.connectrpc.conformance.v1.service_pb2 import (
     UnaryRequest,
     UnimplementedRequest,
 )
-from google.protobuf.any_pb2 import Any
 from google.protobuf.message import Message
 
 from connectrpc.client import ResponseMetadata
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
 from connectrpc.request import Headers
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Iterator
+
+    from google.protobuf.any_pb2 import Any
 
 
 def _convert_code(error: Code) -> ConformanceCode:

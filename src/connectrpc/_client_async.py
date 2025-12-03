@@ -1,8 +1,8 @@
+from __future__ import annotations
+
 import asyncio
 import functools
 from asyncio import CancelledError, sleep, wait_for
-from collections.abc import AsyncIterator, Iterable, Mapping
-from types import TracebackType
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 import httpx
@@ -11,7 +11,6 @@ from httpx import USE_CLIENT_DEFAULT, Timeout
 from . import _client_shared
 from ._asyncio_timeout import timeout as asyncio_timeout
 from ._codec import Codec, get_proto_binary_codec, get_proto_json_codec
-from ._compression import Compression
 from ._envelope import EnvelopeReader, EnvelopeWriter
 from ._interceptor_async import (
     BidiStreamInterceptor,
@@ -24,8 +23,6 @@ from ._interceptor_async import (
 from ._protocol import CONNECT_STREAMING_HEADER_COMPRESSION, ConnectWireError
 from .code import Code
 from .errors import ConnectError
-from .method import MethodInfo
-from .request import Headers, RequestContext
 
 try:
     from asyncio import (
@@ -36,6 +33,12 @@ except ImportError:
 
 if TYPE_CHECKING:
     import sys
+    from collections.abc import AsyncIterator, Iterable, Mapping
+    from types import TracebackType
+
+    from ._compression import Compression
+    from .method import MethodInfo
+    from .request import Headers, RequestContext
 
     if sys.version_info >= (3, 11):
         from typing import Self

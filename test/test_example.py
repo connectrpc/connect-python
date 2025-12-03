@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import threading
 from wsgiref.simple_server import WSGIServer, make_server
 

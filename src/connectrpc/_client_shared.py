@@ -1,12 +1,10 @@
+from __future__ import annotations
+
 import base64
 import contextlib
-from collections.abc import Iterable, Mapping, Sequence
 from contextvars import ContextVar, Token
 from http import HTTPStatus
-from types import TracebackType
-from typing import TypeVar
-
-from httpx import Headers as HttpxHeaders
+from typing import TYPE_CHECKING, TypeVar
 
 from . import _compression
 from ._codec import CODEC_NAME_JSON, CODEC_NAME_JSON_CHARSET_UTF8, Codec
@@ -25,8 +23,15 @@ from ._protocol import (
 from ._version import __version__
 from .code import Code
 from .errors import ConnectError
-from .method import MethodInfo
 from .request import Headers, RequestContext
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping, Sequence
+    from types import TracebackType
+
+    from httpx import Headers as HttpxHeaders
+
+    from .method import MethodInfo
 
 _DEFAULT_CONNECT_USER_AGENT = f"connectrpc/{__version__}"
 
@@ -247,9 +252,9 @@ class ResponseMetadata:
 
     _headers: Headers | None = None
     _trailers: Headers | None = None
-    _token: Token["ResponseMetadata"] | None = None
+    _token: Token[ResponseMetadata] | None = None
 
-    def __enter__(self) -> "ResponseMetadata":
+    def __enter__(self) -> ResponseMetadata:
         self._token = _current_response.set(self)
         return self
 

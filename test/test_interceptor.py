@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import itertools
+from typing import TYPE_CHECKING
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient, Client, WSGITransport
-
-from connectrpc.request import RequestContext
 
 from .haberdasher_connect import (
     Haberdasher,
@@ -15,6 +16,9 @@ from .haberdasher_connect import (
     HaberdasherWSGIApplication,
 )
 from .haberdasher_pb2 import Hat, Size
+
+if TYPE_CHECKING:
+    from connectrpc.request import RequestContext
 
 
 class RequestInterceptor:

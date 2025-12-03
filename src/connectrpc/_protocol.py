@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 import json
 from base64 import b64decode, b64encode
-from collections.abc import Sequence
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
-import httpx
 from google.protobuf.any_pb2 import Any
 
 from .code import Code
 from .errors import ConnectError
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    import httpx
 
 CONNECT_HEADER_PROTOCOL_VERSION = "connect-protocol-version"
 CONNECT_PROTOCOL_VERSION = "1"
@@ -31,7 +36,7 @@ class ExtendedHTTPStatus:
     reason: str
 
     @staticmethod
-    def from_http_status(status: HTTPStatus) -> "ExtendedHTTPStatus":
+    def from_http_status(status: HTTPStatus) -> ExtendedHTTPStatus:
         return ExtendedHTTPStatus(code=status.value, reason=status.phrase)
 
 
@@ -87,13 +92,13 @@ class ConnectWireError:
     details: Sequence[Any]
 
     @staticmethod
-    def from_exception(exc: Exception) -> "ConnectWireError":
+    def from_exception(exc: Exception) -> ConnectWireError:
         if isinstance(exc, ConnectError):
             return ConnectWireError(exc.code, exc.message, exc.details)
         return ConnectWireError(Code.UNKNOWN, str(exc), details=())
 
     @staticmethod
-    def from_response(response: httpx.Response) -> "ConnectWireError":
+    def from_response(response: httpx.Response) -> ConnectWireError:
         try:
             data = response.json()
         except Exception:
@@ -107,7 +112,7 @@ class ConnectWireError:
     @staticmethod
     def from_dict(
         data: dict, http_status: int, unexpected_code: Code
-    ) -> "ConnectWireError":
+    ) -> ConnectWireError:
         code_str = data.get("code")
         if code_str:
             try:
@@ -136,7 +141,7 @@ class ConnectWireError:
         return ConnectWireError(code, message, details)
 
     @staticmethod
-    def from_http_status(status_code: int) -> "ConnectWireError":
+    def from_http_status(status_code: int) -> ConnectWireError:
         code = _http_status_code_to_error.get(status_code, Code.UNKNOWN)
         try:
             http_status = HTTPStatus(status_code)

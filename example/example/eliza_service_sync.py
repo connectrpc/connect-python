@@ -1,7 +1,8 @@
-import time
-from collections.abc import Iterator
+from __future__ import annotations
 
-from connectrpc.request import RequestContext
+import time
+from typing import TYPE_CHECKING
+
 from flask import Flask
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
@@ -16,6 +17,11 @@ from example.eliza_pb2 import (
 
 from . import _eliza
 from .eliza_connect import ElizaServiceSync, ElizaServiceWSGIApplication
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from connectrpc.request import RequestContext
 
 
 class DemoElizaServiceSync(ElizaServiceSync):

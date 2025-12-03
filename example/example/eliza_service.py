@@ -1,8 +1,8 @@
+from __future__ import annotations
+
 import asyncio
-from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, cast
 
-from connectrpc.request import RequestContext
 from starlette.applications import Starlette
 from starlette.responses import PlainTextResponse
 from starlette.routing import Mount, Route
@@ -19,6 +19,9 @@ from example.eliza_pb2 import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from connectrpc.request import RequestContext
     from starlette.types import ASGIApp
 
 

@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import gzip
-from collections.abc import KeysView
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from collections.abc import KeysView
 
 
 class Compression(Protocol):

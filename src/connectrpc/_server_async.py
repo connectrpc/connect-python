@@ -1,16 +1,10 @@
+from __future__ import annotations
+
 import base64
 import functools
 import inspect
 from abc import ABC, abstractmethod
 from asyncio import CancelledError, sleep
-from collections.abc import (
-    AsyncGenerator,
-    AsyncIterator,
-    Callable,
-    Iterable,
-    Mapping,
-    Sequence,
-)
 from dataclasses import replace
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Generic, TypeVar, cast
@@ -48,6 +42,15 @@ from .request import Headers, RequestContext
 
 if TYPE_CHECKING:
     # We don't use asgiref code so only import from it for type checking
+    from collections.abc import (
+        AsyncGenerator,
+        AsyncIterator,
+        Callable,
+        Iterable,
+        Mapping,
+        Sequence,
+    )
+
     from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, HTTPScope, Scope
 else:
     ASGIReceiveCallable = "asgiref.typing.ASGIReceiveCallable"

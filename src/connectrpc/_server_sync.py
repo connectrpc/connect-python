@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import base64
 import functools
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import replace
 from http import HTTPStatus
 from typing import TYPE_CHECKING, TypeVar
@@ -40,6 +41,7 @@ from .request import Headers, RequestContext
 
 if TYPE_CHECKING:
     import sys
+    from collections.abc import Iterable, Iterator, Mapping, Sequence
     from io import BytesIO
 
     if sys.version_info >= (3, 11):

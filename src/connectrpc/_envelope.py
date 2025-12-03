@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 import json
 import struct
-from collections.abc import Iterator
-from typing import Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from ._client_shared import handle_response_trailers
-from ._codec import Codec
 from ._compression import Compression, IdentityCompression
 from ._protocol import ConnectWireError
 from .code import Code
 from .errors import ConnectError
-from .request import Headers
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from ._codec import Codec
+    from .request import Headers
 
 _RES = TypeVar("_RES")
 _T = TypeVar("_T")

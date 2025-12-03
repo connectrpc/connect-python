@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 __all__ = ["Headers", "RequestContext"]
 
 
 import time
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from ._headers import Headers
-from .method import MethodInfo
+
+if TYPE_CHECKING:
+    from .method import MethodInfo
 
 REQ = TypeVar("REQ")
 RES = TypeVar("RES")
