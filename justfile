@@ -75,4 +75,3 @@ bump *args:
     uv run bump-my-version bump {{args}}
     uv lock
     cd protoc-gen-connect-python && uv lock
-    git commit -am "Bump version"
