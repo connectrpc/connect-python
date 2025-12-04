@@ -77,6 +77,10 @@ The project includes protobuf code generation for examples and tests:
 uv run just generate
 ```
 
+## Releasing
+
+To release a new version, follow the guide in [RELEASE.md](./RELEASE.md).
+
 ## Documentation
 
 ### Building Documentation

@@ -69,4 +69,9 @@ generate: generate-conformance generate-example generate-test format
 
 # Used in CI to verify that `just generate` doesn't produce a diff
 checkgenerate: generate
-	test -z "$(git status --porcelain | tee /dev/stderr)"
+    test -z "$(git status --porcelain | tee /dev/stderr)"
+
+bump *args:
+    uv run bump-my-version bump {{args}}
+    uv lock
+    cd protoc-gen-connect-python && uv lock
