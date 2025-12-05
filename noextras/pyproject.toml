@@ -4,9 +4,12 @@ version = "0.1.0"
 dependencies = [
   "connect-python",
   "connect-python-example",
-  "pytest==8.4.2",
-  "pytest-asyncio==1.2.0",
-  "pytest-cov==7.0.0",
+
+
+  # Versions locked in constraint-dependencies
+  "pytest",
+  "pytest-asyncio",
+  "pytest-cov",
 ]
 
 [tool.ruff]

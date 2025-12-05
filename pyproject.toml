@@ -50,9 +50,6 @@ dev = [
     "mkdocs-material==9.6.20",
     "mkdocstrings[python]==0.30.1",
     "pyright[nodejs]==1.1.405",
-    "pytest==8.4.2",
-    "pytest-asyncio==1.2.0",
-    "pytest-cov==7.0.0",
     "pytest-timeout==2.4.0",
     "pyvoy==0.1.2; sys_platform != 'win32'",
     "ruff~=0.13.2",
@@ -61,6 +58,11 @@ dev = [
     "Twisted[tls,http2]==25.5.0",
     "typing_extensions==4.15.0",
     "zstandard==0.25.0",
+
+    # Versions locked in constraint-dependencies
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
 ]
 
 [build-system]
@@ -69,6 +71,11 @@ build-backend = "uv_build"
 
 [tool.uv]
 resolution = "lowest-direct"
+constraint-dependencies = [
+    "pytest==8.4.2",
+    "pytest-asyncio==1.2.0",
+    "pytest-cov==7.0.0",
+]
 
 [tool.uv.build-backend]
 module-name = "connectrpc"
