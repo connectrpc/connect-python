@@ -5,7 +5,6 @@ dependencies = [
   "connect-python",
   "connect-python-example",
 
-
   # Versions locked in constraint-dependencies
   "pytest",
   "pytest-asyncio",
