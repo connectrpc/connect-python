@@ -7,7 +7,7 @@ BUF_VERSION := "v1.57.0"
 
 # Format Python files
 format:
-    uv run ruff check --fix .
+    uv run ruff check --fix --unsafe-fixes --exit-zero .
     uv run ruff format .
 
 # Lint Python files

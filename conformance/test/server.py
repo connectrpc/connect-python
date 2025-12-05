@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import asyncio
 import os
@@ -7,7 +9,6 @@ import socket
 import ssl
 import sys
 import time
-from collections.abc import AsyncIterator, Iterator
 from contextlib import ExitStack, closing
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Literal, TypeVar, get_args
@@ -43,14 +44,17 @@ from google.protobuf.any_pb2 import Any
 
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
-from connectrpc.request import RequestContext
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Iterator
+
     from google.protobuf.message import Message
+
+    from connectrpc.request import RequestContext
 
 
 # TODO: Use google.protobuf.any.pack on upgrade to protobuf==6.
-def pack(msg: "Message") -> Any:
+def pack(msg: Message) -> Any:
     any_msg = Any()
     any_msg.Pack(msg)
     return any_msg

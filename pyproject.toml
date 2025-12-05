@@ -185,6 +185,8 @@ extend-ignore = [
     "PLR",
 ]
 
+typing-extensions = false
+
 [tool.ruff.lint.per-file-ignores]
 "conformance/test/**" = ["ANN", "INP", "SLF", "SIM115", "S101", "D"]
 "example/**" = [
@@ -207,6 +209,7 @@ extend-ignore = [
 ]
 
 [tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
 split-on-trailing-comma = false
 
 [tool.ruff]

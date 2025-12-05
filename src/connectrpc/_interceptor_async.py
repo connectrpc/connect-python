@@ -1,7 +1,11 @@
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Sequence
-from typing import Generic, Protocol, TypeVar, runtime_checkable
+from __future__ import annotations
 
-from .request import RequestContext
+from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, runtime_checkable
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Sequence
+
+    from .request import RequestContext
 
 REQ = TypeVar("REQ")
 RES = TypeVar("RES")

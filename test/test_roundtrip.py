@@ -1,4 +1,6 @@
-from collections.abc import AsyncIterator, Iterator
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import pytest
 from httpx import ASGITransport, AsyncClient, Client, WSGITransport
@@ -15,6 +17,9 @@ from .haberdasher_connect import (
     HaberdasherWSGIApplication,
 )
 from .haberdasher_pb2 import Hat, Size
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Iterator
 
 
 @pytest.mark.parametrize("proto_json", [False, True])

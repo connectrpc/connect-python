@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Protocol, TypeVar
 
 from google.protobuf.json_format import MessageToJson

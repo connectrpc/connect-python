@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 __all__ = ["ConnectError"]
 
 
-from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING
 
 from google.protobuf.any_pb2 import Any
-from google.protobuf.message import Message
 
-from .code import Code
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
+    from google.protobuf.message import Message
+
+    from .code import Code
 
 
 class ConnectError(Exception):
