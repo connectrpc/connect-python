@@ -11,7 +11,8 @@ This document outlines how to create a release of connect-python.
 
 Note the new version X.Y.Z in the updated files.
 
-3. Open a PR titled "Prepare for vX.Y.Z" ([Example PR #661](https://github.com/connectrpc/connect-go/pull/661)) and a description tagging all current maintainers. Once it's reviewed and CI passes, merge it.
+3. Open a PR titled "Prepare for vX.Y.Z" ([Example PR #60](https://github.com/connectrpc/connect-python/pull/60)) and assign all current maintainers as reviewers. Once it's approved by at
+   least one other maintainer and CI passes, merge it.
 
    _Make sure no new commits are merged until the release is complete._
 
