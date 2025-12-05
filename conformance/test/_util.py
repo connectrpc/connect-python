@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import sys
 
-VERSION_CONFORMANCE = "0bed9ca203aeda4e344edc442a4b2ede91726db5"
+VERSION_CONFORMANCE = "v1.0.5"
 
 
 async def create_standard_streams():
