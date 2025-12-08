@@ -16,7 +16,7 @@ Note the new version X.Y.Z in the updated files.
 
    _Make sure no new commits are merged until the release is complete._
 
-4. Review all commits in the new release and for each PR check an appropriate label is used and edit the title to be meaningful to end users. This will help auto-generated release notes match the final notes as closely as possible.
+4. Review all commits in the new release and for each PR check an appropriate label is used and edit the title to be meaningful to end users.
 
 5. Using the Github UI, create a new release.
 
@@ -26,7 +26,7 @@ Note the new version X.Y.Z in the updated files.
    - Click “set as latest release”.
    - Set the last version as the “Previous tag”.
    - Click “Generate release notes” to autogenerate release notes.
-   - Edit the release notes. A summary and other sub categories may be added if required but should, in most cases, be left as ### Enhancements and ### Bugfixes. Feel free to collect multiple small changes to docs or Github config into one line, but try to tag every contributor. Make especially sure to credit new external contributors!
+   - Edit the release notes. A summary and other categories should be added, in most cases, with the two categories ### Enhancements and ### Bugfixes. Feel free to collect multiple small changes to docs or Github config into one line, but try to tag every contributor. Make especially sure to credit new external contributors!
 
 6. Publish the release.
 
