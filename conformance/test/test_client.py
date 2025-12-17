@@ -12,8 +12,22 @@ _current_dir = Path(__file__).parent
 _client_py_path = str(_current_dir / "client.py")
 _config_path = str(_current_dir / "config.yaml")
 
+_skipped_tests = [
+    # Not implemented yet,
+    "--skip",
+    "**/Protocol:PROTOCOL_GRPC/**",
+    "--skip",
+    "gRPC Trailers/**",
+    "--skip",
+    "gRPC Unexpected Responses/**",
+    "--skip",
+    "gRPC Empty Responses/**",
+    "--skip",
+    "gRPC Proto Sub-Format Responses/**",
+]
 
 _skipped_tests_sync = [
+    *_skipped_tests,
     # Need to use async APIs for proper cancellation support in Python.
     "--skip",
     "Client Cancellation/**",
@@ -46,6 +60,7 @@ def test_client_sync() -> None:
 
 
 _skipped_tests_async = [
+    *_skipped_tests,
     # Cancellation currently not working for full duplex
     "--skip",
     "Client Cancellation/**/full-duplex/**",
