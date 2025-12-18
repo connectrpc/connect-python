@@ -202,13 +202,14 @@ class ConnectWSGIApplication(ABC):
             http_method = environ["REQUEST_METHOD"]
             headers = _process_headers(_normalize_wsgi_headers(environ))
 
-            protocol = negotiate_server_protocol(headers.get("content-type", ""))
+            content_type = headers.get("content-type", "")
+            protocol = negotiate_server_protocol(content_type)
             send_trailers: Callable[[list[tuple[str, str]]], None] | None = None
 
             if protocol.uses_trailers():
                 send_trailers = environ.get("wsgi.ext.http.send_trailers")
                 if not send_trailers:
-                    msg = f"WSGI server does not support WSGI trailers extension but protocol for content-type '{headers.get('content-type', '')}' requires trailers"
+                    msg = f"WSGI server does not support WSGI trailers extension but protocol for content-type '{content_type}' requires trailers"
                     raise RuntimeError(msg)
             ctx = protocol.create_request_context(endpoint.method, http_method, headers)
 

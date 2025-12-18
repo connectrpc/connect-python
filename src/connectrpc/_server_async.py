@@ -166,11 +166,12 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
             http_method = scope["method"]
             headers = _process_headers(scope.get("headers", ()))
 
-            protocol = negotiate_server_protocol(headers.get("content-type", ""))
+            content_type = headers.get("content-type", "")
+            protocol = negotiate_server_protocol(content_type)
             if protocol.uses_trailers() and "http.response.trailers" not in cast(
                 "dict", scope.get("extensions", {})
             ):
-                msg = f"ASGI server does not support ASGI trailers extension but protocol for content-type '{headers.get('content-type', '')}' requires trailers"
+                msg = f"ASGI server does not support ASGI trailers extension but protocol for content-type '{content_type}' requires trailers"
                 raise RuntimeError(msg)
 
             ctx = protocol.create_request_context(endpoint.method, http_method, headers)
