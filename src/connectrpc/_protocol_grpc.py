@@ -106,7 +106,7 @@ def _lookup_timeout_unit(unit: str) -> float:
         case "n":
             return 1 / 1000 / 1000
         case _:
-            msg = "protocol error: timeout has invalid unit '{unit}'"
+            msg = f"protocol error: timeout has invalid unit '{unit}'"
             raise ValueError(msg)
 
 
