@@ -1,22 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from http import HTTPStatus
 from typing import TYPE_CHECKING, Generic, TypeVar
-
-from ._protocol import (
-    CONNECT_HEADER_PROTOCOL_VERSION,
-    CONNECT_HEADER_TIMEOUT,
-    CONNECT_PROTOCOL_VERSION,
-    HTTPException,
-)
-from .code import Code
-from .errors import ConnectError
-from .method import IdempotencyLevel, MethodInfo
-from .request import Headers, RequestContext
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+
+    from .method import MethodInfo
+    from .request import RequestContext
 
 REQ = TypeVar("REQ")
 RES = TypeVar("RES")
@@ -145,46 +136,3 @@ class EndpointServerStreamSync(EndpointSync[REQ, RES]):
 @dataclass(kw_only=True, frozen=True, slots=True)
 class EndpointBidiStreamSync(EndpointSync[REQ, RES]):
     function: Callable[[Iterator[REQ], RequestContext[REQ, RES]], Iterator[RES]]
-
-
-def create_request_context(
-    method: MethodInfo[REQ, RES], http_method: str, headers: Headers
-) -> RequestContext[REQ, RES]:
-    if method.idempotency_level == IdempotencyLevel.NO_SIDE_EFFECTS:
-        if http_method not in ("GET", "POST"):
-            raise HTTPException(HTTPStatus.METHOD_NOT_ALLOWED, [("allow", "GET, POST")])
-    elif http_method != "POST":
-        raise HTTPException(HTTPStatus.METHOD_NOT_ALLOWED, [("allow", "POST")])
-
-    # We don't require connect-protocol-version header. connect-go provides an option
-    # to require it but it's almost never used in practice.
-    connect_protocol_version = headers.get(
-        CONNECT_HEADER_PROTOCOL_VERSION, CONNECT_PROTOCOL_VERSION
-    )
-    if connect_protocol_version != CONNECT_PROTOCOL_VERSION:
-        raise ConnectError(
-            Code.INVALID_ARGUMENT,
-            f"connect-protocol-version must be '1': got '{connect_protocol_version}'",
-        )
-
-    timeout_header = headers.get(CONNECT_HEADER_TIMEOUT)
-    if timeout_header:
-        if len(timeout_header) > 10:
-            raise ConnectError(
-                Code.INVALID_ARGUMENT,
-                f"Invalid timeout header: '{timeout_header} has >10 digits",
-            )
-        try:
-            timeout_ms = int(timeout_header)
-        except ValueError as e:
-            raise ConnectError(
-                Code.INVALID_ARGUMENT, f"Invalid timeout header: '{timeout_header}'"
-            ) from e
-    else:
-        timeout_ms = None
-    return RequestContext(
-        method=method,
-        http_method=http_method,
-        request_headers=headers,
-        timeout_ms=timeout_ms,
-    )

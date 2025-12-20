@@ -12,7 +12,7 @@ from urllib.parse import parse_qs
 
 from . import _compression, _server_shared
 from ._codec import Codec, get_codec
-from ._envelope import EnvelopeReader, EnvelopeWriter
+from ._envelope import EnvelopeReader
 from ._interceptor_async import (
     BidiStreamInterceptor,
     ClientStreamInterceptor,
@@ -21,15 +21,9 @@ from ._interceptor_async import (
     UnaryInterceptor,
     resolve_interceptors,
 )
-from ._protocol import (
-    CONNECT_STREAMING_CONTENT_TYPE_PREFIX,
-    CONNECT_STREAMING_HEADER_ACCEPT_COMPRESSION,
-    CONNECT_STREAMING_HEADER_COMPRESSION,
-    CONNECT_UNARY_CONTENT_TYPE_PREFIX,
-    ConnectWireError,
-    HTTPException,
-    codec_name_from_content_type,
-)
+from ._protocol import ConnectWireError, HTTPException, ServerProtocol
+from ._protocol_connect import CONNECT_UNARY_CONTENT_TYPE_PREFIX, ConnectServerProtocol
+from ._protocol_server import negotiate_server_protocol
 from ._server_shared import (
     EndpointBidiStream,
     EndpointClientStream,
@@ -172,9 +166,15 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
             http_method = scope["method"]
             headers = _process_headers(scope.get("headers", ()))
 
-            ctx = _server_shared.create_request_context(
-                endpoint.method, http_method, headers
-            )
+            content_type = headers.get("content-type", "")
+            protocol = negotiate_server_protocol(content_type)
+            if protocol.uses_trailers() and "http.response.trailers" not in cast(
+                "dict", scope.get("extensions", {})
+            ):
+                msg = f"ASGI server does not support ASGI trailers extension but protocol for content-type '{content_type}' requires trailers"
+                raise RuntimeError(msg)
+
+            ctx = protocol.create_request_context(endpoint.method, http_method, headers)
 
             is_unary = isinstance(endpoint, EndpointUnary)
 
@@ -184,7 +184,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                 codec_name = query_params.get("encoding", ("",))[0]
             else:
                 query_params = _UNSET_QUERY_PARAMS
-                codec_name = codec_name_from_content_type(
+                codec_name = protocol.codec_name_from_content_type(
                     headers.get("content-type", ""), stream=not is_unary
                 )
             codec = get_codec(codec_name.lower())
@@ -194,8 +194,8 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                     [("Accept-Post", "application/json, application/proto")],
                 )
 
-            if is_unary:
-                return await self._handle_unary(
+            if is_unary and isinstance(protocol, ConnectServerProtocol):
+                return await self._handle_unary_connect(
                     http_method,
                     headers,
                     codec,
@@ -209,9 +209,11 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
             return await self._handle_error(e, ctx, send)
 
         # Streams have their own error handling so move out of the try block.
-        return await self._handle_stream(receive, send, endpoint, codec, headers, ctx)
+        return await self._handle_stream(
+            receive, send, protocol, endpoint, codec, headers, ctx
+        )
 
-    async def _handle_unary(
+    async def _handle_unary_connect(
         self,
         http_method: str,
         headers: Headers,
@@ -338,30 +340,25 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
         self,
         receive: ASGIReceiveCallable,
         send: ASGISendCallable,
-        endpoint: EndpointBidiStream[_REQ, _RES]
-        | EndpointClientStream[_REQ, _RES]
-        | EndpointServerStream[_REQ, _RES],
+        protocol: ServerProtocol,
+        endpoint: Endpoint[_REQ, _RES],
         codec: Codec,
         headers: Headers,
         ctx: _server_shared.RequestContext,
     ) -> None:
-        req_compression_name = headers.get(
-            CONNECT_STREAMING_HEADER_COMPRESSION, "identity"
+        req_compression, resp_compression = protocol.negotiate_stream_compression(
+            headers
         )
-        req_compression = (
-            _compression.get_compression(req_compression_name)
-            or _compression.IdentityCompression()
-        )
-        accept_compression = headers.get(
-            CONNECT_STREAMING_HEADER_ACCEPT_COMPRESSION, ""
-        )
-        response_compression = _compression.negotiate_compression(accept_compression)
 
-        writer = EnvelopeWriter(codec, response_compression)
+        writer = protocol.create_envelope_writer(codec, resp_compression)
 
         error: Exception | None = None
         sent_headers = False
         try:
+            if not req_compression:
+                raise ConnectError(
+                    Code.UNIMPLEMENTED, "Unrecognized request compression"
+                )
             request_stream = _request_stream(
                 receive,
                 endpoint.method.input,
@@ -371,6 +368,10 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
             )
 
             match endpoint:
+                case EndpointUnary():
+                    request = await _consume_single_request(request_stream)
+                    response = await endpoint.function(request, ctx)
+                    response_stream = _yield_single_response(response)
                 case EndpointClientStream():
                     response = await endpoint.function(request_stream, ctx)
                     response_stream = _yield_single_response(response)
@@ -385,7 +386,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                 # response headers.
                 if not sent_headers:
                     await _send_stream_response_headers(
-                        send, codec, response_compression.name(), ctx
+                        send, protocol, codec, resp_compression.name(), ctx
                     )
                     sent_headers = True
 
@@ -398,21 +399,36 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
         except Exception as e:
             error = e
         finally:
+            end_message = writer.end(
+                ctx.response_trailers(),
+                ConnectWireError.from_exception(error) if error else None,
+            )
             if not sent_headers:
                 # Exception before any response message is returned
                 await _send_stream_response_headers(
-                    send, codec, response_compression.name(), ctx
+                    send, protocol, codec, resp_compression.name(), ctx
                 )
-            await send(
-                {
-                    "type": "http.response.body",
-                    "body": writer.end(
-                        ctx.response_trailers(),
-                        ConnectWireError.from_exception(error) if error else None,
-                    ),
-                    "more_body": False,
-                }
-            )
+            if isinstance(end_message, bytes):
+                await send(
+                    {
+                        "type": "http.response.body",
+                        "body": end_message,
+                        "more_body": False,
+                    }
+                )
+            else:
+                await send(
+                    {"type": "http.response.body", "body": b"", "more_body": False}
+                )
+                await send(
+                    {
+                        "type": "http.response.trailers",
+                        "headers": [
+                            (k.encode(), v.encode()) for k, v in end_message.allitems()
+                        ],
+                        "more_trailers": False,
+                    }
+                )
 
     async def _handle_error(
         self, exc: Exception, ctx: RequestContext | None, send: ASGISendCallable
@@ -457,14 +473,15 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
 
 
 async def _send_stream_response_headers(
-    send: ASGISendCallable, codec: Codec, compression_name: str, ctx: RequestContext
+    send: ASGISendCallable,
+    protocol: ServerProtocol,
+    codec: Codec,
+    compression_name: str,
+    ctx: RequestContext,
 ) -> None:
     response_headers = [
-        (
-            b"content-type",
-            f"{CONNECT_STREAMING_CONTENT_TYPE_PREFIX}{codec.name()}".encode(),
-        ),
-        (CONNECT_STREAMING_HEADER_COMPRESSION.encode(), compression_name.encode()),
+        (b"content-type", protocol.content_type(codec).encode()),
+        (protocol.compression_header_name().encode(), compression_name.encode()),
     ]
     response_headers.extend(
         (key.encode(), value.encode())
@@ -475,7 +492,7 @@ async def _send_stream_response_headers(
             "type": "http.response.start",
             "status": 200,
             "headers": response_headers,
-            "trailers": False,
+            "trailers": protocol.uses_trailers(),
         }
     )
 

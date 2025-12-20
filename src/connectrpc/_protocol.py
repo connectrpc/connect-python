@@ -4,10 +4,11 @@ import json
 from base64 import b64decode, b64encode
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Protocol, TypeVar, cast
 
 from google.protobuf.any_pb2 import Any
 
+from ._compression import Compression
 from .code import Code
 from .errors import ConnectError
 
@@ -16,17 +17,15 @@ if TYPE_CHECKING:
 
     import httpx
 
-CONNECT_HEADER_PROTOCOL_VERSION = "connect-protocol-version"
-CONNECT_PROTOCOL_VERSION = "1"
-CONNECT_UNARY_CONTENT_TYPE_PREFIX = "application/"
-CONNECT_STREAMING_CONTENT_TYPE_PREFIX = "application/connect+"
+    from ._codec import Codec
+    from ._compression import Compression
+    from ._envelope import EnvelopeWriter
+    from .method import MethodInfo
+    from .request import Headers, RequestContext
 
-CONNECT_UNARY_HEADER_COMPRESSION = "content-encoding"
-CONNECT_UNARY_HEADER_ACCEPT_COMPRESSION = "accept-encoding"
-CONNECT_STREAMING_HEADER_COMPRESSION = "connect-content-encoding"
-CONNECT_STREAMING_HEADER_ACCEPT_COMPRESSION = "connect-accept-encoding"
-
-CONNECT_HEADER_TIMEOUT = "connect-timeout-ms"
+REQ = TypeVar("REQ")
+RES = TypeVar("RES")
+T = TypeVar("T")
 
 
 # Define a custom class for HTTP Status to allow adding 499 status code
@@ -179,22 +178,45 @@ class ConnectWireError:
         return json.dumps(self.to_dict()).encode("utf-8")
 
 
+class ServerProtocol(Protocol):
+    def create_request_context(
+        self, method: MethodInfo[REQ, RES], http_method: str, headers: Headers
+    ) -> RequestContext[REQ, RES]:
+        """Creates a RequestContext from the HTTP method and headers."""
+        ...
+
+    def create_envelope_writer(
+        self, codec: Codec[T, Any], compression: Compression | None
+    ) -> EnvelopeWriter[T]:
+        """Creates the EnvelopeWriter to write response messages."""
+        ...
+
+    def uses_trailers(self) -> bool:
+        """Returns whether the protocol uses trailers for status reporting."""
+        ...
+
+    def content_type(self, codec: Codec) -> str:
+        """Returns the content type for the given codec."""
+        ...
+
+    def compression_header_name(self) -> str:
+        """Returns the compression header name and value."""
+        ...
+
+    def codec_name_from_content_type(self, content_type: str, *, stream: bool) -> str:
+        """Extracts the codec name from the content type."""
+        ...
+
+    def negotiate_stream_compression(
+        self, headers: Headers
+    ) -> tuple[Compression | None, Compression]:
+        """Negotiates request and response compression based on headers."""
+        ...
+
+
 class HTTPException(Exception):
     """An HTTP exception returned directly before starting the connect protocol."""
 
     def __init__(self, status: HTTPStatus, headers: list[tuple[str, str]]) -> None:
         self.status = status
         self.headers = headers
-
-
-def codec_name_from_content_type(content_type: str, *, stream: bool) -> str:
-    prefix = (
-        CONNECT_STREAMING_CONTENT_TYPE_PREFIX
-        if stream
-        else CONNECT_UNARY_CONTENT_TYPE_PREFIX
-    )
-    if content_type.startswith(prefix):
-        return content_type[len(prefix) :]
-    # Follow connect-go behavior for malformed content type. If the content type misses the prefix,
-    # it will still be coincidentally handled.
-    return content_type

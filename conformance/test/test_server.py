@@ -41,9 +41,6 @@ _known_flaky = [
 
 @pytest.mark.parametrize("server", ["gunicorn", "pyvoy"])
 def test_server_sync(server: str) -> None:
-    if server == "pyvoy" and sys.platform == "win32":
-        pytest.skip("pyvoy not supported on Windows")
-
     args = maybe_patch_args_with_debug(
         [sys.executable, _server_py_path, "--mode", "sync", "--server", server]
     )
@@ -77,9 +74,6 @@ def test_server_sync(server: str) -> None:
 
 @pytest.mark.parametrize("server", ["daphne", "pyvoy", "uvicorn"])
 def test_server_async(server: str) -> None:
-    if server == "pyvoy" and sys.platform == "win32":
-        pytest.skip("pyvoy not supported on Windows")
-
     args = maybe_patch_args_with_debug(
         [sys.executable, _server_py_path, "--mode", "async", "--server", server]
     )
@@ -94,6 +88,13 @@ def test_server_async(server: str) -> None:
                 # it only works with websockets
                 "--skip",
                 "**/full-duplex/**",
+                # daphne doesn't support trailers
+                "--skip",
+                "**/Protocol:PROTOCOL_GRPC/**",
+                "--skip",
+                "gRPC Proto Sub-Format Requests/**",
+                "--skip",
+                "gRPC Unexpected Requests/**",
             ]
         case "uvicorn":
             # uvicorn doesn't support HTTP/2
