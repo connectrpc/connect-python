@@ -8,7 +8,7 @@ from . import _compression
 from ._codec import CODEC_NAME_JSON, CODEC_NAME_JSON_CHARSET_UTF8, Codec
 from ._compression import (
     Compression,
-    get_accept_encoding_compressions,
+    get_accept_encoding,
     get_available_compressions,
     get_compression,
 )
@@ -93,9 +93,7 @@ def create_request_context(
     if accept_compression is not None:
         headers[accept_compression_header] = ", ".join(accept_compression)
     else:
-        headers[accept_compression_header] = ", ".join(
-            get_accept_encoding_compressions()
-        )
+        headers[accept_compression_header] = get_accept_encoding()
     if send_compression is not None:
         headers[compression_header] = send_compression.name()
     else:

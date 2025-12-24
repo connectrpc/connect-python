@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from connectrpc._compression import get_accept_encoding_compressions
+from connectrpc._compression import get_accept_encoding
 from example.eliza_connect import (
     ElizaService,
     ElizaServiceASGIApplication,
@@ -103,8 +103,5 @@ def test_accept_encoding_only_includes_available_compressions():
     When brotli and zstandard are not installed (as in the noextras environment),
     the Accept-Encoding header should not include 'br' or 'zstd'.
     """
-    available = get_accept_encoding_compressions()
-    assert "br" not in available, "brotli should not be advertised when not installed"
-    assert "zstd" not in available, "zstd should not be advertised when not installed"
-    assert "gzip" in available, "gzip should always be available"
-    assert "identity" not in available, "identity should not be in Accept-Encoding"
+    accept_encoding = get_accept_encoding()
+    assert accept_encoding == "gzip", f"Expected 'gzip' only, got '{accept_encoding}'"
