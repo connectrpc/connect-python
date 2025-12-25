@@ -93,7 +93,7 @@ _compressions["identity"] = _identity
 
 # Preferred compression names for Accept-Encoding header, in order of preference.
 # Excludes 'identity' since it's an implicit fallback.
-DEFAULT_ACCEPT_ENCODING_COMPRESSIONS = ["gzip", "br", "zstd"]
+DEFAULT_ACCEPT_ENCODING_COMPRESSIONS = ("gzip", "br", "zstd")
 
 
 def get_compression(name: str) -> Compression | None:
