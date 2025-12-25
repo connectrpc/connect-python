@@ -91,6 +91,10 @@ class IdentityCompression(Compression):
 _identity = IdentityCompression()
 _compressions["identity"] = _identity
 
+# Preferred compression names for Accept-Encoding header, in order of preference.
+# Excludes 'identity' since it's an implicit fallback.
+DEFAULT_ACCEPT_ENCODING_COMPRESSIONS = ("gzip", "br", "zstd")
+
 
 def get_compression(name: str) -> Compression | None:
     return _compressions.get(name.lower())
@@ -99,6 +103,17 @@ def get_compression(name: str) -> Compression | None:
 def get_available_compressions() -> KeysView:
     """Returns a list of available compression names."""
     return _compressions.keys()
+
+
+def get_accept_encoding() -> str:
+    """Returns Accept-Encoding header value with available compressions in preference order.
+
+    This excludes 'identity' since it's an implicit fallback, and returns
+    only compressions that are actually available (i.e., their dependencies are installed).
+    """
+    return ", ".join(
+        name for name in DEFAULT_ACCEPT_ENCODING_COMPRESSIONS if name in _compressions
+    )
 
 
 def negotiate_compression(accept_encoding: str) -> Compression:
