@@ -21,17 +21,17 @@ Services will automatically support GET requests using this option.
 It is still necessary to opt-in to HTTP GET on your client, as well. Generated clients include a
 `use_get` parameter for methods that are marked with `NO_SIDE_EFFECTS`.
 
-=== "Async"
+### Async
 
-    ```python
-    response = await client.say(SayRequest(sentence="Hello"), use_get=True)
-    ```
+```python
+response = await client.say(SayRequest(sentence="Hello"), use_get=True)
+```
 
-=== "Sync"
+### Sync
 
-    ```python
-    response = client.say(SayRequest(sentence="Hello"), use_get=True)
-    ```
+  ```python
+  response = client.say(SayRequest(sentence="Hello"), use_get=True)
+  ```
 
 For other clients, see their respective documentation pages:
 
