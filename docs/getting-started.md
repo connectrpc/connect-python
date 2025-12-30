@@ -19,19 +19,19 @@ and how to call your new API.
 
 First, we'll setup the python environment and dependencies.
 
-=== "ASGI"
+### ASGI
 
-    ```bash
-    uv init
-    uv add connect-python uvicorn
-    ```
+```bash
+uv init
+uv add connect-python uvicorn
+```
 
-=== "WSGI"
+### WSGI
 
-    ```bash
-    uv init
-    uv add connect-python gunicorn
-    ```
+```bash
+uv init
+uv add connect-python gunicorn
+```
 
 ## Define a service
 
@@ -136,51 +136,51 @@ In the generated code, this is represented as the `greet_connect.GreetService` a
 interfaces for async ASGI and sync WSGI servers respectively. Since the interface is so small, we can do everything
 in one Python file. `touch server.py` and add:
 
-=== "ASGI"
+### ASGI
 
-    ```python
-    from greet.v1.greet_connect import GreetService, GreetServiceASGIApplication
-    from greet.v1.greet_pb2 import GreetResponse
+```python
+from greet.v1.greet_connect import GreetService, GreetServiceASGIApplication
+from greet.v1.greet_pb2 import GreetResponse
 
-    class Greeter(GreetService):
-        async def greet(self, request, ctx):
-            print("Request headers: ", ctx.request_headers())
-            response = GreetResponse(greeting=f"Hello, {request.name}!")
-            ctx.response_headers()["greet-version"] = "v1"
-            return response
+class Greeter(GreetService):
+    async def greet(self, request, ctx):
+        print("Request headers: ", ctx.request_headers())
+        response = GreetResponse(greeting=f"Hello, {request.name}!")
+        ctx.response_headers()["greet-version"] = "v1"
+        return response
 
-    app = GreetServiceASGIApplication(Greeter())
-    ```
+app = GreetServiceASGIApplication(Greeter())
+```
 
-=== "WSGI"
+### WSGI
 
-    ```python
-    from greet.v1.greet_connect import GreetServiceSync, GreetServiceWSGIApplication
-    from greet.v1.greet_pb2 import GreetResponse
+```python
+from greet.v1.greet_connect import GreetServiceSync, GreetServiceWSGIApplication
+from greet.v1.greet_pb2 import GreetResponse
 
-    class Greeter(GreetServiceSync):
-        def greet(self, request, ctx):
-            print("Request headers: ", ctx.request_headers())
-            response = GreetResponse(greeting=f"Hello, {request.name}!")
-            ctx.response_headers()["greet-version"] = "v1"
-            return response
+class Greeter(GreetServiceSync):
+    def greet(self, request, ctx):
+        print("Request headers: ", ctx.request_headers())
+        response = GreetResponse(greeting=f"Hello, {request.name}!")
+        ctx.response_headers()["greet-version"] = "v1"
+        return response
 
-    app = GreetServiceWSGIApplication(Greeter())
-    ```
+app = GreetServiceWSGIApplication(Greeter())
+```
 
 In a separate terminal window, you can now start your server:
 
-=== "ASGI"
+### ASGI
 
-    ```bash
-    uv run uvicorn server:app
-    ```
+```bash
+uv run uvicorn server:app
+```
 
-=== "WSGI"
+### WSGI
 
-    ```bash
-    uv run gunicorn server:app
-    ```
+```bash
+uv run gunicorn server:app
+```
 
 ## Make requests
 
@@ -204,37 +204,37 @@ This responds:
 
 We can also make requests using Connect's generated client. `touch client.py` and add:
 
-=== "Async"
+### Async
 
-    ```python
-    import asyncio
+```python
+import asyncio
 
-    from greet.v1.greet_connect import GreetServiceClient
-    from greet.v1.greet_pb2 import GreetRequest
+from greet.v1.greet_connect import GreetServiceClient
+from greet.v1.greet_pb2 import GreetRequest
 
-    async def main():
-        client = GreetServiceClient("http://localhost:8000")
-        res = await client.greet(GreetRequest(name="Jane"))
-        print(res.greeting)
+async def main():
+    client = GreetServiceClient("http://localhost:8000")
+    res = await client.greet(GreetRequest(name="Jane"))
+    print(res.greeting)
 
-    if __name__ == "__main__":
-        asyncio.run(main())
-    ```
+if __name__ == "__main__":
+    asyncio.run(main())
+```
 
-=== "Sync"
+### Sync
 
-    ```python
-    from greet.v1.greet_connect import GreetServiceClientSync
-    from greet.v1.greet_pb2 import GreetRequest
+```python
+from greet.v1.greet_connect import GreetServiceClientSync
+from greet.v1.greet_pb2 import GreetRequest
 
-    def main():
-        client = GreetServiceClientSync("http://localhost:8000")
-        res = client.greet(GreetRequest(name="Jane"))
-        print(res.greeting)
+def main():
+    client = GreetServiceClientSync("http://localhost:8000")
+    res = client.greet(GreetRequest(name="Jane"))
+    print(res.greeting)
 
-    if __name__ == "__main__":
-        main()
-    ```
+if __name__ == "__main__":
+    main()
+```
 
 With your server still running in a separate terminal window, you can now run your client:
 
