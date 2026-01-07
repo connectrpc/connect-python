@@ -397,6 +397,7 @@ class ConnectClient:
                             for message in reader.feed(chunk):
                                 # Check for cancellation each message. While this seems heavyweight,
                                 # conformance tests require it.
+                                await asyncio.sleep(0)
                                 if (
                                     task := asyncio.current_task()
                                 ) and not task.cancelled():
