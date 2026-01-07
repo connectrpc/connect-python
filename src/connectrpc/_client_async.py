@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
-from asyncio import CancelledError, sleep, wait_for
+from asyncio import CancelledError, wait_for
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 import httpx
@@ -395,10 +395,10 @@ class ConnectClient:
                         )
                         async for chunk in resp.aiter_bytes():
                             for message in reader.feed(chunk):
-                                yield message
                                 # Check for cancellation each message. While this seems heavyweight,
                                 # conformance tests require it.
-                                await sleep(0)
+                                if not asyncio.current_task().cancelled():
+                                    yield message
                     else:
                         raise ConnectWireError.from_response(resp).to_exception()
                 finally:
