@@ -38,7 +38,6 @@ except ImportError:
     from ._asyncio_timeout import timeout as asyncio_timeout
 
 if TYPE_CHECKING:
-    import sys
     from collections.abc import AsyncIterator, Iterable, Mapping
     from types import TracebackType
 
