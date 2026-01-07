@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import multiprocessing
 import ssl
 import sys
 import time
@@ -543,32 +544,45 @@ async def _run_test(
 
 class Args(argparse.Namespace):
     mode: Literal["sync", "async"]
+    parallel: int
 
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Conformance client")
     parser.add_argument("--mode", choices=["sync", "async"])
+    parser.add_argument("--parallel", type=int, default=multiprocessing.cpu_count() * 4)
     args = parser.parse_args(namespace=Args())
 
     stdin, stdout = await create_standard_streams()
-    while True:
-        try:
-            size_buf = await stdin.readexactly(4)
-        except asyncio.IncompleteReadError:
-            return
-        size = int.from_bytes(size_buf, byteorder="big")
-        # Allow to raise even on EOF since we always should have a message
-        request_buf = await stdin.readexactly(size)
-        request = ClientCompatRequest()
-        request.ParseFromString(request_buf)
+    sema = asyncio.Semaphore(args.parallel)
+    stdout_lock = asyncio.Lock()
+    tasks: list[asyncio.Task] = []
+    try:
+        while True:
+            try:
+                size_buf = await stdin.readexactly(4)
+            except asyncio.IncompleteReadError:
+                return
+            size = int.from_bytes(size_buf, byteorder="big")
+            # Allow to raise even on EOF since we always should have a message
+            request_buf = await stdin.readexactly(size)
+            request = ClientCompatRequest()
+            request.ParseFromString(request_buf)
 
-        response = await _run_test(args.mode, request)
+            async def task(request: ClientCompatRequest) -> None:
+                async with sema:
+                    response = await _run_test(args.mode, request)
 
-        response_buf = response.SerializeToString()
-        size_buf = len(response_buf).to_bytes(4, byteorder="big")
-        stdout.write(size_buf)
-        stdout.write(response_buf)
-        await stdout.drain()
+                    response_buf = response.SerializeToString()
+                    size_buf = len(response_buf).to_bytes(4, byteorder="big")
+                    async with stdout_lock:
+                        stdout.write(size_buf)
+                        stdout.write(response_buf)
+                        await stdout.drain()
+
+            tasks.append(asyncio.create_task(task(request)))
+    finally:
+        await asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":
