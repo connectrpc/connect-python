@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import sys
 from asyncio import CancelledError, sleep, wait_for
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
@@ -365,39 +366,46 @@ class ConnectClient:
                 request, self._codec, self._send_compression
             )
 
-            async with (
-                asyncio_timeout(timeout_s),
-                self._session.stream(
+            async with asyncio_timeout(timeout_s):
+                stream = self._session.stream(
                     method="POST",
                     url=url,
                     headers=request_headers,
                     content=request_data,
                     timeout=timeout,
-                ) as resp,
-            ):
-                compression = _client_shared.validate_response_content_encoding(
-                    resp.headers.get(CONNECT_STREAMING_HEADER_COMPRESSION, "")
                 )
-                _client_shared.validate_stream_response_content_type(
-                    self._codec.name(), resp.headers.get("content-type", "")
-                )
-                handle_response_headers(resp.headers)
-
-                if resp.status_code == 200:
-                    reader = EnvelopeReader(
-                        ctx.method().output,
-                        self._codec,
-                        compression,
-                        self._read_max_bytes,
+                resp = await stream.__aenter__()
+                try:
+                    compression = _client_shared.validate_response_content_encoding(
+                        resp.headers.get(CONNECT_STREAMING_HEADER_COMPRESSION, "")
                     )
-                    async for chunk in resp.aiter_bytes():
-                        for message in reader.feed(chunk):
-                            yield message
-                            # Check for cancellation each message. While this seems heavyweight,
-                            # conformance tests require it.
-                            await sleep(0)
-                else:
-                    raise ConnectWireError.from_response(resp).to_exception()
+                    _client_shared.validate_stream_response_content_type(
+                        self._codec.name(), resp.headers.get("content-type", "")
+                    )
+                    handle_response_headers(resp.headers)
+
+                    if resp.status_code == 200:
+                        reader = EnvelopeReader(
+                            ctx.method().output,
+                            self._codec,
+                            compression,
+                            self._read_max_bytes,
+                        )
+                        async for chunk in resp.aiter_bytes():
+                            for message in reader.feed(chunk):
+                                yield message
+                                # Check for cancellation each message. While this seems heavyweight,
+                                # conformance tests require it.
+                                await sleep(0)
+                    else:
+                        raise ConnectWireError.from_response(resp).to_exception()
+                finally:
+                    # We always need response cleanup to run even during cancellation, which is only
+                    # possible if shielding it with manual invocation. Besides potential cleanup issues,
+                    # a symptom of not doing this is the cancellation error getting replaced by one
+                    # during the httpx cleanup and not getting mapped to the correct connect error.
+                    exc_type, exc_val, exc_tb = sys.exc_info()
+                    await asyncio.shield(stream.__aexit__(exc_type, exc_val, exc_tb))
         except (httpx.TimeoutException, TimeoutError, asyncio.TimeoutError) as e:
             raise ConnectError(Code.DEADLINE_EXCEEDED, "Request timed out") from e
         except ConnectError:
