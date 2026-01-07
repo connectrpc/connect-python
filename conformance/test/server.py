@@ -540,6 +540,7 @@ async def serve_gunicorn(
         "--workers=4",
         "--worker-class=gevent",
         "--reuse-port",
+        "--keep-alive=120",
     ]
     if certfile:
         args.append(f"--certfile={certfile}")
