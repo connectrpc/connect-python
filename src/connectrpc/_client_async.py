@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import functools
-import sys
 from asyncio import CancelledError, sleep, wait_for
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
@@ -38,6 +37,7 @@ except ImportError:
     from ._asyncio_timeout import timeout as asyncio_timeout
 
 if TYPE_CHECKING:
+    import sys
     from collections.abc import AsyncIterator, Iterable, Mapping
     from types import TracebackType
 
@@ -366,15 +366,18 @@ class ConnectClient:
             )
 
             async with asyncio_timeout(timeout_s):
-                stream = self._session.stream(
-                    method="POST",
-                    url=url,
-                    headers=request_headers,
-                    content=request_data,
-                    timeout=timeout,
-                )
-                resp = await stream.__aenter__()
+                resp = None
                 try:
+                    # Use build_request + send to avoid AsyncContextManager which
+                    # has issues in cleanup during cancellation.
+                    httpx_request = self._session.build_request(
+                        method="POST",
+                        url=url,
+                        headers=request_headers,
+                        content=request_data,
+                        timeout=timeout,
+                    )
+                    resp = await self._session.send(httpx_request, stream=True)
                     compression = _client_shared.validate_response_content_encoding(
                         resp.headers.get(CONNECT_STREAMING_HEADER_COMPRESSION, "")
                     )
@@ -399,12 +402,8 @@ class ConnectClient:
                     else:
                         raise ConnectWireError.from_response(resp).to_exception()
                 finally:
-                    # We always need response cleanup to run even during cancellation, which is only
-                    # possible if shielding it with manual invocation. Besides potential cleanup issues,
-                    # a symptom of not doing this is the cancellation error getting replaced by one
-                    # during the httpx cleanup and not getting mapped to the correct connect error.
-                    exc_type, exc_val, exc_tb = sys.exc_info()
-                    await asyncio.shield(stream.__aexit__(exc_type, exc_val, exc_tb))
+                    if resp is not None:
+                        await asyncio.shield(resp.aclose())
         except (httpx.TimeoutException, TimeoutError, asyncio.TimeoutError) as e:
             raise ConnectError(Code.DEADLINE_EXCEEDED, "Request timed out") from e
         except ConnectError:
