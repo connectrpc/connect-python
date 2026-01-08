@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import functools
 from asyncio import CancelledError, wait_for
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar, cast
 
 import httpx
 from httpx import USE_CLIENT_DEFAULT, Timeout
@@ -38,7 +38,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     import sys
-    from collections.abc import AsyncIterator, Iterable, Mapping
+    from collections.abc import AsyncIterator, Callable, Iterable, Mapping
     from types import TracebackType
 
     from ._compression import Compression
@@ -439,7 +439,7 @@ def _task_cancelled() -> bool:
     cancelling = getattr(task, "cancelling", None)
     if callable(cancelling):
         try:
-            return cancelling() > 0
+            return cast("Callable[[], int]", cancelling)() > 0
         except Exception:
             return False
     return False
