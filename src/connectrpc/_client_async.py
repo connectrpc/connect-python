@@ -333,7 +333,15 @@ class ConnectClient:
         task = asyncio.create_task(_do_request())
         task.add_done_callback(_consume_task_result)
         try:
-            item = await result_queue.get()
+            try:
+                if timeout_s is None:
+                    item = await result_queue.get()
+                else:
+                    item = await asyncio.wait_for(result_queue.get(), timeout_s)
+            except asyncio.TimeoutError:
+                if not task.done():
+                    task.cancel()
+                raise
             if isinstance(item, BaseException):
                 raise item
             return cast("RES", item)
