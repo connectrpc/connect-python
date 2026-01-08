@@ -472,7 +472,6 @@ def _convert_connect_timeout(timeout_ms: float | None) -> Timeout:
 
 
 def _consume_task_result(task: asyncio.Task[Any]) -> None:
-    # Task completion can raise CancelledError (BaseException) in shutdown/cancel paths.
     with contextlib.suppress(BaseException):
         task.result()
 
