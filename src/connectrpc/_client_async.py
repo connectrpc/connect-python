@@ -325,6 +325,8 @@ class ConnectClient:
 
                 response = ctx.method().output()
                 self._codec.decode(resp.content, response)
+                if _task_cancelled():
+                    raise CancelledError
                 return response
             raise ConnectWireError.from_response(resp).to_exception()
         except (httpx.TimeoutException, TimeoutError, asyncio.TimeoutError) as e:
@@ -397,11 +399,9 @@ class ConnectClient:
                             for message in reader.feed(chunk):
                                 # Check for cancellation each message. While this seems heavyweight,
                                 # conformance tests require it.
-                                await asyncio.sleep(0)
-                                if (
-                                    task := asyncio.current_task()
-                                ) and not task.cancelled():
-                                    yield message
+                                if _task_cancelled():
+                                    raise CancelledError
+                                yield message
                     else:
                         raise ConnectWireError.from_response(resp).to_exception()
                 finally:
@@ -425,6 +425,24 @@ def _convert_connect_timeout(timeout_ms: float | None) -> Timeout:
     # We apply the timeout to the entire operation per connect's semantics so don't need
     # HTTP timeout
     return Timeout(None)
+
+
+def _task_cancelled() -> bool:
+    task = asyncio.current_task()
+    if task is None:
+        return False
+    if task.cancelled():
+        return True
+    # Only available in Python 3.11+. If httpx squashes cancellation, we can't
+    # know about the cancellation and can return messages even after cancellation.
+    # cancelling cannot be squashed and is the reliable way to detect this case.
+    cancelling = getattr(task, "cancelling", None)
+    if callable(cancelling):
+        try:
+            return cancelling() > 0
+        except Exception:
+            return False
+    return False
 
 
 async def _streaming_request_content(

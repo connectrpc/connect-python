@@ -71,6 +71,10 @@ def test_client_async() -> None:
     args = maybe_patch_args_with_debug(
         [sys.executable, _client_py_path, "--mode", "async"]
     )
+    flaky_tests = []
+    if sys.version_info < (3, 11):
+        # Python 3.11 is required to reliably detect cancellation.
+        flaky_tests = ["--known-flaky", "Client Cancellation/**"]
     result = subprocess.run(
         [
             "go",
@@ -81,8 +85,7 @@ def test_client_async() -> None:
             "--mode",
             "client",
             *_skipped_tests_async,
-            "--known-flaky",
-            "Client Cancellation/**",
+            *flaky_tests,
             "--",
             *args,
         ],
