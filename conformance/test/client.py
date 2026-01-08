@@ -241,9 +241,7 @@ async def _run_test(
                                         loop.call_soon_threadsafe(task.cancel)
                                         time.sleep(600)
                                     else:
-                                        loop.call_soon_threadsafe(
-                                            close_send_event.set
-                                        )
+                                        loop.call_soon_threadsafe(close_send_event.set)
 
                                 task = asyncio.create_task(
                                     asyncio.to_thread(
@@ -281,9 +279,7 @@ async def _run_test(
                                         loop.call_soon_threadsafe(task.cancel)
                                         time.sleep(600)
                                     else:
-                                        loop.call_soon_threadsafe(
-                                            close_send_event.set
-                                        )
+                                        loop.call_soon_threadsafe(close_send_event.set)
 
                                 task = asyncio.create_task(
                                     asyncio.to_thread(
