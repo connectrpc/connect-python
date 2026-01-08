@@ -276,6 +276,7 @@ class ConnectClient:
             timeout_s = None
             timeout = USE_CLIENT_DEFAULT
 
+        cancel_count = _task_cancel_count()
         try:
             request_data = self._codec.encode(request)
             if self._send_compression:
@@ -325,7 +326,7 @@ class ConnectClient:
 
                 response = ctx.method().output()
                 self._codec.decode(resp.content, response)
-                if _task_cancelled():
+                if _task_cancelled_since(cancel_count):
                     raise CancelledError
                 return response
             raise ConnectWireError.from_response(resp).to_exception()
@@ -362,6 +363,7 @@ class ConnectClient:
             timeout_s = None
             timeout = USE_CLIENT_DEFAULT
 
+        cancel_count = _task_cancel_count()
         try:
             request_data = _streaming_request_content(
                 request, self._codec, self._send_compression
@@ -399,7 +401,7 @@ class ConnectClient:
                             for message in reader.feed(chunk):
                                 # Check for cancellation each message. While this seems heavyweight,
                                 # conformance tests require it.
-                                if _task_cancelled():
+                                if _task_cancelled_since(cancel_count):
                                     raise CancelledError
                                 yield message
                     else:
@@ -427,22 +429,32 @@ def _convert_connect_timeout(timeout_ms: float | None) -> Timeout:
     return Timeout(None)
 
 
-def _task_cancelled() -> bool:
+# cancelling count always goes up, regardless of if CancelledError is squashed or not.
+# To detect the user cancelled the specific request task, we need to compare the cancel
+# count before the operation and after each message.
+def _task_cancel_count() -> int:
     task = asyncio.current_task()
     if task is None:
-        return False
-    if task.cancelled():
-        return True
+        return 0
     # Only available in Python 3.11+. If httpx squashes cancellation, we can't
     # know about the cancellation and can return messages even after cancellation.
     # cancelling cannot be squashed and is the reliable way to detect this case.
     cancelling = getattr(task, "cancelling", None)
     if callable(cancelling):
         try:
-            return cast("Callable[[], int]", cancelling)() > 0
+            return cast("Callable[[], int]", cancelling)()
         except Exception:
-            return False
-    return False
+            return 0
+    return 0
+
+
+def _task_cancelled_since(start_count: int) -> bool:
+    task = asyncio.current_task()
+    if task is None:
+        return False
+    if task.cancelled():
+        return True
+    return _task_cancel_count() > start_count
 
 
 async def _streaming_request_content(
