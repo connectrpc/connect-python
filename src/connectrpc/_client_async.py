@@ -10,7 +10,6 @@ import httpx
 from httpx import USE_CLIENT_DEFAULT, Timeout
 
 from . import _client_shared
-from ._asyncio_timeout import timeout as asyncio_timeout
 from ._codec import Codec, get_proto_binary_codec, get_proto_json_codec
 from ._envelope import EnvelopeReader
 from ._interceptor_async import (
@@ -29,13 +28,6 @@ from ._protocol_connect import (
 from ._response_metadata import handle_response_headers
 from .code import Code
 from .errors import ConnectError
-
-try:
-    from asyncio import (
-        timeout as asyncio_timeout,  # pyright: ignore[reportAttributeAccessIssue]
-    )
-except ImportError:
-    from ._asyncio_timeout import timeout as asyncio_timeout
 
 if TYPE_CHECKING:
     import sys
@@ -383,6 +375,9 @@ class ConnectClient:
             timeout_s = None
             timeout = USE_CLIENT_DEFAULT
 
+        loop = asyncio.get_running_loop()
+        deadline = None if timeout_s is None else loop.time() + timeout_s
+
         queue: asyncio.Queue[object] = asyncio.Queue()
         sentinel = object()
 
@@ -393,37 +388,36 @@ class ConnectClient:
                     request, self._codec, self._send_compression
                 )
 
-                async with asyncio_timeout(timeout_s):
-                    # Use build_request + send to avoid AsyncContextManager which
-                    # has issues in cleanup during cancellation.
-                    httpx_request = self._session.build_request(
-                        method="POST",
-                        url=url,
-                        headers=request_headers,
-                        content=request_data,
-                        timeout=timeout,
-                    )
-                    resp = await self._session.send(httpx_request, stream=True)
-                    compression = _client_shared.validate_response_content_encoding(
-                        resp.headers.get(CONNECT_STREAMING_HEADER_COMPRESSION, "")
-                    )
-                    _client_shared.validate_stream_response_content_type(
-                        self._codec.name(), resp.headers.get("content-type", "")
-                    )
-                    handle_response_headers(resp.headers)
+                # Use build_request + send to avoid AsyncContextManager which
+                # has issues in cleanup during cancellation.
+                httpx_request = self._session.build_request(
+                    method="POST",
+                    url=url,
+                    headers=request_headers,
+                    content=request_data,
+                    timeout=timeout,
+                )
+                resp = await self._session.send(httpx_request, stream=True)
+                compression = _client_shared.validate_response_content_encoding(
+                    resp.headers.get(CONNECT_STREAMING_HEADER_COMPRESSION, "")
+                )
+                _client_shared.validate_stream_response_content_type(
+                    self._codec.name(), resp.headers.get("content-type", "")
+                )
+                handle_response_headers(resp.headers)
 
-                    if resp.status_code == 200:
-                        reader = EnvelopeReader(
-                            ctx.method().output,
-                            self._codec,
-                            compression,
-                            self._read_max_bytes,
-                        )
-                        async for chunk in resp.aiter_bytes():
-                            for message in reader.feed(chunk):
-                                await queue.put(message)
-                    else:
-                        raise ConnectWireError.from_response(resp).to_exception()
+                if resp.status_code == 200:
+                    reader = EnvelopeReader(
+                        ctx.method().output,
+                        self._codec,
+                        compression,
+                        self._read_max_bytes,
+                    )
+                    async for chunk in resp.aiter_bytes():
+                        for message in reader.feed(chunk):
+                            await queue.put(message)
+                else:
+                    raise ConnectWireError.from_response(resp).to_exception()
             except Exception as exc:
                 queue.put_nowait(exc)
             finally:
@@ -436,7 +430,18 @@ class ConnectClient:
         producer.add_done_callback(_consume_task_result)
         try:
             while True:
-                item = await queue.get()
+                try:
+                    if deadline is None:
+                        item = await queue.get()
+                    else:
+                        remaining = deadline - loop.time()
+                        if remaining <= 0:
+                            raise asyncio.TimeoutError
+                        item = await asyncio.wait_for(queue.get(), remaining)
+                except asyncio.TimeoutError:
+                    if not producer.done():
+                        producer.cancel()
+                    raise
                 if item is sentinel:
                     break
                 if isinstance(item, Exception):
