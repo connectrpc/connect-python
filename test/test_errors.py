@@ -353,7 +353,7 @@ def timeout_server():
 
 
 @pytest.mark.parametrize(
-    ("client_timeout_ms", "call_timeout_ms"), [(200, None), (None, 200)]
+    ("client_timeout_ms", "call_timeout_ms"), [(50, None), (None, 50)]
 )
 def test_sync_client_timeout(
     client_timeout_ms, call_timeout_ms, timeout_server: str
@@ -385,12 +385,12 @@ def test_sync_client_timeout(
 
     assert exc_info.value.code == Code.DEADLINE_EXCEEDED
     assert exc_info.value.message == "Request timed out"
-    assert recorded_timeout_header == "200"
+    assert recorded_timeout_header == "50"
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("client_timeout_ms", "call_timeout_ms"), [(200, None), (None, 200)]
+    ("client_timeout_ms", "call_timeout_ms"), [(50, None), (None, 50)]
 )
 async def test_async_client_timeout(
     client_timeout_ms, call_timeout_ms, timeout_server: str
@@ -416,4 +416,4 @@ async def test_async_client_timeout(
 
     assert exc_info.value.code == Code.DEADLINE_EXCEEDED
     assert exc_info.value.message == "Request timed out"
-    assert recorded_timeout_header == "200"
+    assert recorded_timeout_header == "50"
