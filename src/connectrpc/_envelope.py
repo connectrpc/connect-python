@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-import json
 import struct
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from ._compression import Compression, IdentityCompression
-from ._protocol import ConnectWireError
-from ._response_metadata import handle_response_trailers
 from .code import Code
 from .errors import ConnectError
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+    import httpx
+
     from ._codec import Codec
+    from ._protocol import ConnectWireError
     from .request import Headers
 
 _RES = TypeVar("_RES")
@@ -49,8 +49,8 @@ class EnvelopeReader(Generic[_RES]):
                 if len(self._buffer) < self._next_message_length + 5:
                     return
 
-                compressed = self._buffer[0] & 0b01 != 0
-                end_stream = self._buffer[0] & 0b10 != 0
+                prefix_byte = self._buffer[0]
+                compressed = prefix_byte & 0b01 != 0
 
                 message_data = self._buffer[5 : 5 + self._next_message_length]
                 self._buffer = self._buffer[5 + self._next_message_length :]
@@ -72,18 +72,7 @@ class EnvelopeReader(Generic[_RES]):
                         f"message is larger than configured max {self._read_max_bytes}",
                     )
 
-                if end_stream:
-                    end_stream_message: dict = json.loads(message_data)
-                    metadata = end_stream_message.get("metadata")
-                    if metadata:
-                        handle_response_trailers(metadata)
-                    error = end_stream_message.get("error")
-                    if error:
-                        # Most likely a bug in the protocol, handling of unknown code is different for unary
-                        # and streaming.
-                        raise ConnectWireError.from_dict(
-                            error, 500, Code.UNKNOWN
-                        ).to_exception()
+                if self.handle_end_message(prefix_byte, message_data):
                     return
 
                 res = self._message_class()
@@ -94,6 +83,21 @@ class EnvelopeReader(Generic[_RES]):
                 return
 
             self._next_message_length = int.from_bytes(self._buffer[1:5], "big")
+
+    def handle_end_message(
+        self, prefix_byte: int, message_data: bytes | bytearray
+    ) -> bool:
+        """For client protocols with an end message like Connect and gRPC-Web, handle the end message.
+        Returns True if the end message was handled, False otherwise.
+        """
+        return False
+
+    def handle_response_complete(
+        self, response: httpx.Response, e: ConnectError | None = None
+    ) -> None:
+        """Handle any client finalization needed when the response is complete.
+        This is typically used to process trailers for gRPC.
+        """
 
 
 class EnvelopeWriter(ABC, Generic[_T]):

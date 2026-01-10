@@ -155,7 +155,13 @@ _http_errors = [
     ),
     pytest.param(
         200,
-        {"text": "weird encoding", "headers": {"content-encoding": "weird"}},
+        {
+            "text": "weird encoding",
+            "headers": {
+                "content-type": "application/proto",
+                "content-encoding": "weird",
+            },
+        },
         Code.INTERNAL,
         "unknown encoding 'weird'; accepted encodings are gzip, br, zstd, identity",
         id="bad encoding",

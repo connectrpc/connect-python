@@ -12,8 +12,14 @@ _current_dir = Path(__file__).parent
 _client_py_path = str(_current_dir / "client.py")
 _config_path = str(_current_dir / "config.yaml")
 
-_skipped_tests = [
-    # Not implemented yet,
+_skipped_tests_sync = [
+    # Need to use async APIs for proper cancellation support in Python.
+    "--skip",
+    "Client Cancellation/**",
+]
+
+_httpx_opts = [
+    # Trailers not supported
     "--skip",
     "**/Protocol:PROTOCOL_GRPC/**",
     "--skip",
@@ -24,20 +30,28 @@ _skipped_tests = [
     "gRPC Empty Responses/**",
     "--skip",
     "gRPC Proto Sub-Format Responses/**",
-]
-
-_skipped_tests_sync = [
-    *_skipped_tests,
-    # Need to use async APIs for proper cancellation support in Python.
+    # Bidirectional streaming not supported
     "--skip",
+    "**/full-duplex/**",
+    # Cancellation delivery isn't reliable
+    "--known-flaky",
     "Client Cancellation/**",
+    "--known-flaky",
+    "Timeouts/**",
 ]
 
 
-def test_client_sync() -> None:
+@pytest.mark.parametrize("client", ["httpx", "pyqwest"])
+def test_client_sync(client: str) -> None:
     args = maybe_patch_args_with_debug(
-        [sys.executable, _client_py_path, "--mode", "sync"]
+        [sys.executable, _client_py_path, "--mode", "sync", "--client", client]
     )
+
+    opts = []
+    match client:
+        case "httpx":
+            opts = _httpx_opts
+
     result = subprocess.run(
         [
             "go",
@@ -47,6 +61,7 @@ def test_client_sync() -> None:
             _config_path,
             "--mode",
             "client",
+            *opts,
             *_skipped_tests_sync,
             "--",
             *args,
@@ -59,18 +74,17 @@ def test_client_sync() -> None:
         pytest.fail(f"\n{result.stdout}\n{result.stderr}")
 
 
-_skipped_tests_async = [
-    *_skipped_tests,
-    # Cancellation currently not working for full duplex
-    "--skip",
-    "Client Cancellation/**/full-duplex/**",
-]
-
-
-def test_client_async() -> None:
+@pytest.mark.parametrize("client", ["httpx", "pyqwest"])
+def test_client_async(client: str) -> None:
     args = maybe_patch_args_with_debug(
-        [sys.executable, _client_py_path, "--mode", "async"]
+        [sys.executable, _client_py_path, "--mode", "async", "--client", client]
     )
+
+    opts = []
+    match client:
+        case "httpx":
+            opts = _httpx_opts
+
     result = subprocess.run(
         [
             "go",
@@ -80,9 +94,7 @@ def test_client_async() -> None:
             _config_path,
             "--mode",
             "client",
-            *_skipped_tests_async,
-            "--known-flaky",
-            "Client Cancellation/**",
+            *opts,
             "--",
             *args,
         ],

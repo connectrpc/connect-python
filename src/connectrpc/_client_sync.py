@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 import httpx
 from httpx import USE_CLIENT_DEFAULT, Timeout
 
+from connectrpc._protocol_grpc import GRPCClientProtocol
+
 from . import _client_shared
 from ._codec import Codec, get_proto_binary_codec, get_proto_json_codec
-from ._envelope import EnvelopeReader
 from ._interceptor_sync import (
     BidiStreamInterceptorSync,
     ClientStreamInterceptorSync,
@@ -18,10 +19,7 @@ from ._interceptor_sync import (
     resolve_interceptors,
 )
 from ._protocol import ConnectWireError
-from ._protocol_connect import (
-    CONNECT_STREAMING_HEADER_COMPRESSION,
-    ConnectEnvelopeWriter,
-)
+from ._protocol_connect import ConnectClientProtocol, ConnectEnvelopeWriter
 from ._response_metadata import handle_response_headers
 from .code import Code
 from .errors import ConnectError
@@ -32,6 +30,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from ._compression import Compression
+    from ._envelope import EnvelopeReader
     from .method import MethodInfo
     from .request import Headers, RequestContext
 
@@ -81,6 +80,7 @@ class ConnectClientSync:
         address: str,
         *,
         proto_json: bool = False,
+        grpc: bool = False,
         accept_compression: Iterable[str] | None = None,
         send_compression: str | None = None,
         timeout_ms: int | None = None,
@@ -115,6 +115,11 @@ class ConnectClientSync:
             self._session = httpx.Client(timeout=_convert_connect_timeout(timeout_ms))
             self._close_client = True
         self._closed = False
+
+        if grpc:
+            self._protocol = GRPCClientProtocol()
+        else:
+            self._protocol = ConnectClientProtocol()
 
         interceptors = resolve_interceptors(interceptors)
         execute_unary = self._send_request_unary
@@ -186,7 +191,7 @@ class ConnectClientSync:
         timeout_ms: int | None = None,
         use_get: bool = False,
     ) -> RES:
-        ctx = _client_shared.create_request_context(
+        ctx = self._protocol.create_request_context(
             method=method,
             http_method="GET" if use_get else "POST",
             user_headers=headers,
@@ -206,7 +211,7 @@ class ConnectClientSync:
         headers: Headers | Mapping[str, str] | None = None,
         timeout_ms: int | None = None,
     ) -> RES:
-        ctx = _client_shared.create_request_context(
+        ctx = self._protocol.create_request_context(
             method=method,
             http_method="POST",
             user_headers=headers,
@@ -226,7 +231,7 @@ class ConnectClientSync:
         headers: Headers | Mapping[str, str] | None = None,
         timeout_ms: int | None = None,
     ) -> Iterator[RES]:
-        ctx = _client_shared.create_request_context(
+        ctx = self._protocol.create_request_context(
             method=method,
             http_method="POST",
             user_headers=headers,
@@ -246,7 +251,7 @@ class ConnectClientSync:
         headers: Headers | Mapping[str, str] | None = None,
         timeout_ms: int | None = None,
     ) -> Iterator[RES]:
-        ctx = _client_shared.create_request_context(
+        ctx = self._protocol.create_request_context(
             method=method,
             http_method="POST",
             user_headers=headers,
@@ -259,6 +264,11 @@ class ConnectClientSync:
         return self._execute_bidi_stream(request, ctx)
 
     def _send_request_unary(self, request: REQ, ctx: RequestContext[REQ, RES]) -> RES:
+        if isinstance(self._protocol, GRPCClientProtocol):
+            return _consume_single_response(
+                self._send_request_bidi_stream(iter([request]), ctx)
+            )
+
         request_headers = httpx.Headers(list(ctx.request_headers().allitems()))
         url = f"{self._address}/{ctx.method().service_name}/{ctx.method().name}"
         if (timeout_ms := ctx.timeout_ms()) is not None:
@@ -287,14 +297,14 @@ class ConnectClientSync:
                     timeout=timeout,
                 )
 
-            _client_shared.validate_response_content_encoding(
-                resp.headers.get("content-encoding", "")
-            )
-            _client_shared.validate_response_content_type(
+            self._protocol.validate_response(
                 self._codec.name(),
                 resp.status_code,
                 resp.headers.get("content-type", ""),
             )
+            # Decompression itself is handled by httpx, but we validate it
+            # by resolving it.
+            self._protocol.handle_response_compression(resp.headers, stream=False)
             handle_response_headers(resp.headers)
 
             if resp.status_code == 200:
@@ -339,6 +349,8 @@ class ConnectClientSync:
             timeout = USE_CLIENT_DEFAULT
 
         stream_error: Exception | None = None
+        reader: EnvelopeReader | None = None
+        resp: httpx.Response | None = None
         try:
             request_data = _streaming_request_content(
                 request, self._codec, self._send_compression
@@ -351,16 +363,16 @@ class ConnectClientSync:
                 content=request_data,
                 timeout=timeout,
             ) as resp:
-                compression = _client_shared.validate_response_content_encoding(
-                    resp.headers.get(CONNECT_STREAMING_HEADER_COMPRESSION, "")
-                )
-                _client_shared.validate_stream_response_content_type(
-                    self._codec.name(), resp.headers.get("content-type", "")
-                )
                 handle_response_headers(resp.headers)
 
                 if resp.status_code == 200:
-                    reader = EnvelopeReader(
+                    self._protocol.validate_stream_response(
+                        self._codec.name(), resp.headers.get("content-type", "")
+                    )
+                    compression = self._protocol.handle_response_compression(
+                        resp.headers, stream=True
+                    )
+                    reader = self._protocol.create_envelope_reader(
                         ctx.method().output,
                         self._codec,
                         compression,
@@ -372,6 +384,14 @@ class ConnectClientSync:
                     except ConnectError as e:
                         stream_error = e
                         raise
+                    # For sync, we rely on the HTTP client to handle timeout, but
+                    # currently the one we use for gRPC does not propagate RST_STREAM
+                    # correctly which is used for server timeouts. We go ahead and check
+                    # the timeout ourselves too.
+                    # https://github.com/hyperium/hyper/issues/3681#issuecomment-3734084436
+                    if (t := ctx.timeout_ms()) is not None and t <= 0:
+                        raise TimeoutError
+                    reader.handle_response_complete(resp)
                 else:
                     raise ConnectWireError.from_response(resp).to_exception()
         except (httpx.TimeoutException, TimeoutError) as e:
@@ -385,6 +405,13 @@ class ConnectClientSync:
             # the stream error here.
             if stream_error is not None:
                 raise stream_error from None
+
+            if rst_err := _client_shared.maybe_map_stream_reset(e, ctx):
+                # It is possible for a reset to come with trailers which should
+                # be used.
+                if reader and resp:
+                    reader.handle_response_complete(resp, rst_err)
+                raise rst_err from e
             raise ConnectError(Code.UNAVAILABLE, str(e)) from e
 
 

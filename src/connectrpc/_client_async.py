@@ -11,7 +11,6 @@ from httpx import USE_CLIENT_DEFAULT, Timeout
 from . import _client_shared
 from ._asyncio_timeout import timeout as asyncio_timeout
 from ._codec import Codec, get_proto_binary_codec, get_proto_json_codec
-from ._envelope import EnvelopeReader
 from ._interceptor_async import (
     BidiStreamInterceptor,
     ClientStreamInterceptor,
@@ -21,10 +20,8 @@ from ._interceptor_async import (
     resolve_interceptors,
 )
 from ._protocol import ConnectWireError
-from ._protocol_connect import (
-    CONNECT_STREAMING_HEADER_COMPRESSION,
-    ConnectEnvelopeWriter,
-)
+from ._protocol_connect import ConnectClientProtocol, ConnectEnvelopeWriter
+from ._protocol_grpc import GRPCClientProtocol
 from ._response_metadata import handle_response_headers
 from .code import Code
 from .errors import ConnectError
@@ -42,6 +39,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from ._compression import Compression
+    from ._envelope import EnvelopeReader
     from .method import MethodInfo
     from .request import Headers, RequestContext
 
@@ -91,6 +89,7 @@ class ConnectClient:
         address: str,
         *,
         proto_json: bool = False,
+        grpc: bool = False,
         accept_compression: Iterable[str] | None = None,
         send_compression: str | None = None,
         timeout_ms: int | None = None,
@@ -127,6 +126,11 @@ class ConnectClient:
             )
             self._close_client = True
         self._closed = False
+
+        if grpc:
+            self._protocol = GRPCClientProtocol()
+        else:
+            self._protocol = ConnectClientProtocol()
 
         interceptors = resolve_interceptors(interceptors)
         execute_unary = self._send_request_unary
@@ -192,7 +196,7 @@ class ConnectClient:
         timeout_ms: int | None = None,
         use_get: bool = False,
     ) -> RES:
-        ctx = _client_shared.create_request_context(
+        ctx = self._protocol.create_request_context(
             method=method,
             http_method="GET" if use_get else "POST",
             user_headers=headers,
@@ -212,7 +216,7 @@ class ConnectClient:
         headers: Headers | Mapping[str, str] | None = None,
         timeout_ms: int | None = None,
     ) -> RES:
-        ctx = _client_shared.create_request_context(
+        ctx = self._protocol.create_request_context(
             method=method,
             http_method="POST",
             user_headers=headers,
@@ -232,7 +236,7 @@ class ConnectClient:
         headers: Headers | Mapping[str, str] | None = None,
         timeout_ms: int | None = None,
     ) -> AsyncIterator[RES]:
-        ctx = _client_shared.create_request_context(
+        ctx = self._protocol.create_request_context(
             method=method,
             http_method="POST",
             user_headers=headers,
@@ -252,7 +256,7 @@ class ConnectClient:
         headers: Headers | Mapping[str, str] | None = None,
         timeout_ms: int | None = None,
     ) -> AsyncIterator[RES]:
-        ctx = _client_shared.create_request_context(
+        ctx = self._protocol.create_request_context(
             method=method,
             http_method="POST",
             user_headers=headers,
@@ -267,6 +271,11 @@ class ConnectClient:
     async def _send_request_unary(
         self, request: REQ, ctx: RequestContext[REQ, RES]
     ) -> RES:
+        if isinstance(self._protocol, GRPCClientProtocol):
+            return await _consume_single_response(
+                self._send_request_bidi_stream(_yield_single_message(request), ctx)
+            )
+
         request_headers = httpx.Headers(list(ctx.request_headers().allitems()))
         url = f"{self._address}/{ctx.method().service_name}/{ctx.method().name}"
         if (timeout_ms := ctx.timeout_ms()) is not None:
@@ -303,14 +312,14 @@ class ConnectClient:
                     timeout_s,
                 )
 
-            _client_shared.validate_response_content_encoding(
-                resp.headers.get("content-encoding", "")
-            )
-            _client_shared.validate_response_content_type(
+            self._protocol.validate_response(
                 self._codec.name(),
                 resp.status_code,
                 resp.headers.get("content-type", ""),
             )
+            # Decompression itself is handled by httpx, but we validate it
+            # by resolving it.
+            self._protocol.handle_response_compression(resp.headers, stream=False)
             handle_response_headers(resp.headers)
 
             if resp.status_code == 200:
@@ -360,44 +369,48 @@ class ConnectClient:
             timeout_s = None
             timeout = USE_CLIENT_DEFAULT
 
+        reader: EnvelopeReader | None = None
+        resp: httpx.Response | None = None
         try:
             request_data = _streaming_request_content(
                 request, self._codec, self._send_compression
             )
 
-            async with (
-                asyncio_timeout(timeout_s),
-                self._session.stream(
+            async with asyncio_timeout(timeout_s):
+                httpx_req = self._session.build_request(
                     method="POST",
                     url=url,
                     headers=request_headers,
                     content=request_data,
                     timeout=timeout,
-                ) as resp,
-            ):
-                compression = _client_shared.validate_response_content_encoding(
-                    resp.headers.get(CONNECT_STREAMING_HEADER_COMPRESSION, "")
                 )
-                _client_shared.validate_stream_response_content_type(
-                    self._codec.name(), resp.headers.get("content-type", "")
-                )
-                handle_response_headers(resp.headers)
-
-                if resp.status_code == 200:
-                    reader = EnvelopeReader(
-                        ctx.method().output,
-                        self._codec,
-                        compression,
-                        self._read_max_bytes,
-                    )
-                    async for chunk in resp.aiter_bytes():
-                        for message in reader.feed(chunk):
-                            yield message
-                            # Check for cancellation each message. While this seems heavyweight,
-                            # conformance tests require it.
-                            await sleep(0)
-                else:
-                    raise ConnectWireError.from_response(resp).to_exception()
+                resp = await self._session.send(httpx_req, stream=True)
+                try:
+                    handle_response_headers(resp.headers)
+                    if resp.status_code == 200:
+                        self._protocol.validate_stream_response(
+                            self._codec.name(), resp.headers.get("content-type", "")
+                        )
+                        compression = self._protocol.handle_response_compression(
+                            resp.headers, stream=True
+                        )
+                        reader = self._protocol.create_envelope_reader(
+                            ctx.method().output,
+                            self._codec,
+                            compression,
+                            self._read_max_bytes,
+                        )
+                        async for chunk in resp.aiter_bytes():
+                            for message in reader.feed(chunk):
+                                yield message
+                                # Check for cancellation each message. While this seems heavyweight,
+                                # conformance tests require it.
+                                await sleep(0)
+                        reader.handle_response_complete(resp)
+                    else:
+                        raise ConnectWireError.from_response(resp).to_exception()
+                finally:
+                    await asyncio.shield(resp.aclose())
         except (httpx.TimeoutException, TimeoutError, asyncio.TimeoutError) as e:
             raise ConnectError(Code.DEADLINE_EXCEEDED, "Request timed out") from e
         except ConnectError:
@@ -405,6 +418,12 @@ class ConnectClient:
         except CancelledError as e:
             raise ConnectError(Code.CANCELED, "Request was cancelled") from e
         except Exception as e:
+            if rst_err := _client_shared.maybe_map_stream_reset(e, ctx):
+                # It is possible for a reset to come with trailers which should
+                # be used.
+                if reader and resp:
+                    reader.handle_response_complete(resp, rst_err)
+                raise rst_err from e
             raise ConnectError(Code.UNAVAILABLE, str(e)) from e
 
 

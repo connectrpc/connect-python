@@ -1,41 +1,30 @@
 from __future__ import annotations
 
 import base64
+import re
 from http import HTTPStatus
 from typing import TYPE_CHECKING, TypeVar
 
+from httpx import RemoteProtocolError
+
 from . import _compression
 from ._codec import CODEC_NAME_JSON, CODEC_NAME_JSON_CHARSET_UTF8, Codec
-from ._compression import (
-    Compression,
-    get_accept_encoding,
-    get_available_compressions,
-    get_compression,
-)
+from ._compression import Compression, get_available_compressions, get_compression
 from ._protocol import ConnectWireError
 from ._protocol_connect import (
     CONNECT_PROTOCOL_VERSION,
     CONNECT_STREAMING_CONTENT_TYPE_PREFIX,
-    CONNECT_STREAMING_HEADER_ACCEPT_COMPRESSION,
-    CONNECT_STREAMING_HEADER_COMPRESSION,
     CONNECT_UNARY_CONTENT_TYPE_PREFIX,
-    CONNECT_UNARY_HEADER_ACCEPT_COMPRESSION,
-    CONNECT_UNARY_HEADER_COMPRESSION,
     codec_name_from_content_type,
 )
-from ._version import __version__
 from .code import Code
 from .errors import ConnectError
-from .request import Headers, RequestContext
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
-
     from httpx import Headers as HttpxHeaders
 
-    from .method import MethodInfo
+    from .request import RequestContext
 
-_DEFAULT_CONNECT_USER_AGENT = f"connectrpc/{__version__}"
 
 REQ = TypeVar("REQ")
 RES = TypeVar("RES")
@@ -52,64 +41,6 @@ def resolve_send_compression(compression_name: str | None) -> Compression | None
         )
         raise ValueError(msg)
     return compression
-
-
-def create_request_context(
-    *,
-    method: MethodInfo[REQ, RES],
-    http_method: str,
-    user_headers: Headers | Mapping[str, str] | None,
-    timeout_ms: int | None,
-    codec: Codec,
-    stream: bool,
-    accept_compression: Iterable[str] | None,
-    send_compression: Compression | None,
-) -> RequestContext:
-    match user_headers:
-        case Headers():
-            # Copy to prevent modification if user keeps reference
-            # TODO: Optimize
-            headers = Headers(tuple(user_headers.allitems()))
-        case None:
-            headers = Headers()
-        case _:
-            headers = Headers(user_headers)
-
-    if "user-agent" not in headers:
-        headers["user-agent"] = _DEFAULT_CONNECT_USER_AGENT
-    headers["connect-protocol-version"] = CONNECT_PROTOCOL_VERSION
-
-    compression_header = (
-        CONNECT_STREAMING_HEADER_COMPRESSION
-        if stream
-        else CONNECT_UNARY_HEADER_COMPRESSION
-    )
-    accept_compression_header = (
-        CONNECT_STREAMING_HEADER_ACCEPT_COMPRESSION
-        if stream
-        else CONNECT_UNARY_HEADER_ACCEPT_COMPRESSION
-    )
-
-    if accept_compression is not None:
-        headers[accept_compression_header] = ", ".join(accept_compression)
-    else:
-        headers[accept_compression_header] = get_accept_encoding()
-    if send_compression is not None:
-        headers[compression_header] = send_compression.name()
-    else:
-        headers.pop(compression_header, None)
-    headers["content-type"] = (
-        f"{CONNECT_STREAMING_CONTENT_TYPE_PREFIX if stream else CONNECT_UNARY_CONTENT_TYPE_PREFIX}{codec.name()}"
-    )
-    if timeout_ms is not None:
-        headers["connect-timeout-ms"] = str(timeout_ms)
-
-    return RequestContext(
-        method=method,
-        http_method=http_method,
-        request_headers=headers,
-        timeout_ms=timeout_ms,
-    )
 
 
 def prepare_get_params(
@@ -139,7 +70,7 @@ def validate_response_content_encoding(
     return res
 
 
-def validate_response_content_type(
+def validate_unary_response(
     request_codec_name: str, status_code: int, response_content_type: str
 ) -> None:
     if status_code != HTTPStatus.OK:
@@ -196,3 +127,55 @@ def validate_stream_response_content_type(
             Code.INTERNAL,
             f"invalid content-type: '{response_content_type}'; expecting '{CONNECT_STREAMING_CONTENT_TYPE_PREFIX}{request_codec_name}'",
         )
+
+
+_stream_error_code_regex = re.compile(
+    r".*<StreamReset .*, error_code:(\d+), .*remote_reset:True>.*"
+)
+
+
+# https://github.com/connectrpc/connect-go/blob/59cc6973156cd9164d6bea493b1d106ed894f2df/error.go#L393
+def maybe_map_stream_reset(
+    e: Exception, ctx: RequestContext[REQ, RES]
+) -> ConnectError | None:
+    if not isinstance(e, RemoteProtocolError):
+        return None
+
+    msg = str(e)
+    # HTTPX serializes httpcore exceptions to string unfortunately
+    # https://github.com/encode/httpx/blob/ae1b9f66238f75ced3ced5e4485408435de10768/httpx/_transports/default.py#L117
+    match = _stream_error_code_regex.match(msg)
+    if not match:
+        return None
+
+    # don't need when httpx without h2 is installed
+    from h2.errors import ErrorCodes  # noqa: PLC0415
+
+    match int(match.group(1)):
+        case (
+            ErrorCodes.NO_ERROR
+            | ErrorCodes.PROTOCOL_ERROR
+            | ErrorCodes.INTERNAL_ERROR
+            | ErrorCodes.FLOW_CONTROL_ERROR
+            | ErrorCodes.SETTINGS_TIMEOUT
+            | ErrorCodes.FRAME_SIZE_ERROR
+            | ErrorCodes.COMPRESSION_ERROR
+            | ErrorCodes.CONNECT_ERROR
+        ):
+            return ConnectError(Code.INTERNAL, msg)
+        case ErrorCodes.REFUSED_STREAM:
+            return ConnectError(Code.UNAVAILABLE, msg)
+        case ErrorCodes.CANCEL:
+            # Some servers use CANCEL when deadline expires. We can't differentiate
+            # that from normal cancel without checking our own deadline.
+            if (t := ctx.timeout_ms()) is not None and t <= 0:
+                return ConnectError(Code.DEADLINE_EXCEEDED, msg)
+            return ConnectError(Code.CANCELED, msg)
+        case ErrorCodes.ENHANCE_YOUR_CALM:
+            return ConnectError(Code.RESOURCE_EXHAUSTED, f"Bandwidth exhausted: {msg}")
+        case ErrorCodes.INADEQUATE_SECURITY:
+            return ConnectError(
+                Code.PERMISSION_DENIED, f"Transport protocol insecure: {msg}"
+            )
+
+    return None

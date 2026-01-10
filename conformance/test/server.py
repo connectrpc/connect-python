@@ -708,17 +708,18 @@ def _find_free_port():
         return s.getsockname()[1]
 
 
+Mode = Literal["sync", "async"]
 Server = Literal["daphne", "granian", "gunicorn", "hypercorn", "pyvoy", "uvicorn"]
 
 
 class Args(argparse.Namespace):
-    mode: Literal["sync", "async"]
+    mode: Mode
     server: Server
 
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Conformance server")
-    parser.add_argument("--mode", choices=["sync", "async"])
+    parser.add_argument("--mode", choices=get_args(Mode))
     parser.add_argument("--server", choices=get_args(Server))
     args = parser.parse_args(namespace=Args())
 
