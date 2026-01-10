@@ -1,6 +1,6 @@
 [project]
 name = "connect-python"
-version = "0.7.0"
+version = "0.7.1"
 description = "Server and client runtime library for Connect RPC"
 maintainers = [
     { name = "Anuraag Agrawal", email = "anuraaga@gmail.com" },
@@ -248,7 +248,7 @@ connect-python = { workspace = true }
 connect-python-example = { workspace = true }
 
 [tool.bumpversion]
-current_version = "0.7.0"
+current_version = "0.7.1"
 files = [
     { filename = "pyproject.toml" },
     { filename = "protoc-gen-connect-python/pyproject.toml" },
