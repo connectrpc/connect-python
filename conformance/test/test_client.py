@@ -82,7 +82,7 @@ def test_client_async() -> None:
             "client",
             *_skipped_tests_async,
             "--known-flaky",
-            "Client Cancellation/**",
+            "**/cancel-after-responses",
             "--",
             *args,
         ],

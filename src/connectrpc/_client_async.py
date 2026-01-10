@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import functools
-from asyncio import CancelledError, sleep, wait_for
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from asyncio import CancelledError, wait_for
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar, cast
 
 import httpx
 from httpx import USE_CLIENT_DEFAULT, Timeout
 
 from . import _client_shared
-from ._asyncio_timeout import timeout as asyncio_timeout
 from ._codec import Codec, get_proto_binary_codec, get_proto_json_codec
 from ._envelope import EnvelopeReader
 from ._interceptor_async import (
@@ -28,13 +28,6 @@ from ._protocol_connect import (
 from ._response_metadata import handle_response_headers
 from .code import Code
 from .errors import ConnectError
-
-try:
-    from asyncio import (
-        timeout as asyncio_timeout,  # pyright: ignore[reportAttributeAccessIssue]
-    )
-except ImportError:
-    from ._asyncio_timeout import timeout as asyncio_timeout
 
 if TYPE_CHECKING:
     import sys
@@ -276,65 +269,95 @@ class ConnectClient:
             timeout_s = None
             timeout = USE_CLIENT_DEFAULT
 
-        try:
+        result_queue: asyncio.Queue[object] = asyncio.Queue(maxsize=1)
+
+        async def _do_request() -> None:
             request_data = self._codec.encode(request)
             if self._send_compression:
                 request_data = self._send_compression.compress(request_data)
 
-            if ctx.http_method() == "GET":
-                params = _client_shared.prepare_get_params(
-                    self._codec, request_data, request_headers
-                )
-                request_headers.pop("content-type", None)
-                resp = await wait_for(
-                    self._session.get(
-                        url=url, headers=request_headers, params=params, timeout=timeout
-                    ),
-                    timeout_s,
-                )
-            else:
-                resp = await wait_for(
-                    self._session.post(
+            try:
+                if ctx.http_method() == "GET":
+                    params = _client_shared.prepare_get_params(
+                        self._codec, request_data, request_headers
+                    )
+                    request_headers.pop("content-type", None)
+                    httpx_request = self._session.build_request(
+                        method="GET",
+                        url=url,
+                        headers=request_headers,
+                        params=params,
+                        timeout=timeout,
+                    )
+                else:
+                    httpx_request = self._session.build_request(
+                        method="POST",
                         url=url,
                         headers=request_headers,
                         content=request_data,
                         timeout=timeout,
-                    ),
-                    timeout_s,
-                )
-
-            _client_shared.validate_response_content_encoding(
-                resp.headers.get("content-encoding", "")
-            )
-            _client_shared.validate_response_content_type(
-                self._codec.name(),
-                resp.status_code,
-                resp.headers.get("content-type", ""),
-            )
-            handle_response_headers(resp.headers)
-
-            if resp.status_code == 200:
-                if (
-                    self._read_max_bytes is not None
-                    and len(resp.content) > self._read_max_bytes
-                ):
-                    raise ConnectError(
-                        Code.RESOURCE_EXHAUSTED,
-                        f"message is larger than configured max {self._read_max_bytes}",
                     )
 
-                response = ctx.method().output()
-                self._codec.decode(resp.content, response)
-                return response
-            raise ConnectWireError.from_response(resp).to_exception()
+                resp = await wait_for(self._session.send(httpx_request), timeout_s)
+
+                _client_shared.validate_response_content_encoding(
+                    resp.headers.get("content-encoding", "")
+                )
+                _client_shared.validate_response_content_type(
+                    self._codec.name(),
+                    resp.status_code,
+                    resp.headers.get("content-type", ""),
+                )
+                handle_response_headers(resp.headers)
+
+                if resp.status_code == 200:
+                    if (
+                        self._read_max_bytes is not None
+                        and len(resp.content) > self._read_max_bytes
+                    ):
+                        raise ConnectError(
+                            Code.RESOURCE_EXHAUSTED,
+                            f"message is larger than configured max {self._read_max_bytes}",
+                        )
+
+                    response = ctx.method().output()
+                    self._codec.decode(resp.content, response)
+                    result_queue.put_nowait(response)
+                    return
+                raise ConnectWireError.from_response(resp).to_exception()
+            except BaseException as exc:
+                if result_queue.empty():
+                    result_queue.put_nowait(exc)
+                raise
+
+        task = asyncio.create_task(_do_request())
+        task.add_done_callback(_consume_task_result)
+        try:
+            try:
+                if timeout_s is None:
+                    item = await result_queue.get()
+                else:
+                    item = await asyncio.wait_for(result_queue.get(), timeout_s)
+            except asyncio.TimeoutError:
+                if not task.done():
+                    task.cancel()
+                raise
+            if isinstance(item, BaseException):
+                raise item
+            return cast("RES", item)
         except (httpx.TimeoutException, TimeoutError, asyncio.TimeoutError) as e:
             raise ConnectError(Code.DEADLINE_EXCEEDED, "Request timed out") from e
         except ConnectError:
             raise
         except CancelledError as e:
+            if not task.done():
+                task.cancel()
             raise ConnectError(Code.CANCELED, "Request was cancelled") from e
         except Exception as e:
             raise ConnectError(Code.UNAVAILABLE, str(e)) from e
+        finally:
+            if not task.done():
+                task.cancel()
 
     async def _send_request_client_stream(
         self, request: AsyncIterator[REQ], ctx: RequestContext[REQ, RES]
@@ -360,21 +383,29 @@ class ConnectClient:
             timeout_s = None
             timeout = USE_CLIENT_DEFAULT
 
-        try:
-            request_data = _streaming_request_content(
-                request, self._codec, self._send_compression
-            )
+        loop = asyncio.get_running_loop()
+        deadline = None if timeout_s is None else loop.time() + timeout_s
 
-            async with (
-                asyncio_timeout(timeout_s),
-                self._session.stream(
+        queue: asyncio.Queue[object] = asyncio.Queue()
+        sentinel = object()
+
+        async def _produce() -> None:
+            resp = None
+            try:
+                request_data = _streaming_request_content(
+                    request, self._codec, self._send_compression
+                )
+
+                # Use build_request + send to avoid AsyncContextManager which
+                # has issues in cleanup during cancellation.
+                httpx_request = self._session.build_request(
                     method="POST",
                     url=url,
                     headers=request_headers,
                     content=request_data,
                     timeout=timeout,
-                ) as resp,
-            ):
+                )
+                resp = await self._session.send(httpx_request, stream=True)
                 compression = _client_shared.validate_response_content_encoding(
                     resp.headers.get(CONNECT_STREAMING_HEADER_COMPRESSION, "")
                 )
@@ -392,20 +423,50 @@ class ConnectClient:
                     )
                     async for chunk in resp.aiter_bytes():
                         for message in reader.feed(chunk):
-                            yield message
-                            # Check for cancellation each message. While this seems heavyweight,
-                            # conformance tests require it.
-                            await sleep(0)
+                            await queue.put(message)
                 else:
                     raise ConnectWireError.from_response(resp).to_exception()
+            except Exception as exc:
+                queue.put_nowait(exc)
+            finally:
+                if resp is not None:
+                    with contextlib.suppress(Exception):
+                        await asyncio.shield(resp.aclose())
+                queue.put_nowait(sentinel)
+
+        producer = asyncio.create_task(_produce())
+        producer.add_done_callback(_consume_task_result)
+        try:
+            while True:
+                try:
+                    if deadline is None:
+                        item = await queue.get()
+                    else:
+                        remaining = deadline - loop.time()
+                        if remaining <= 0:
+                            raise asyncio.TimeoutError
+                        item = await asyncio.wait_for(queue.get(), remaining)
+                except asyncio.TimeoutError:
+                    if not producer.done():
+                        producer.cancel()
+                    raise
+                if item is sentinel:
+                    break
+                if isinstance(item, Exception):
+                    raise item
+                yield cast("RES", item)
         except (httpx.TimeoutException, TimeoutError, asyncio.TimeoutError) as e:
             raise ConnectError(Code.DEADLINE_EXCEEDED, "Request timed out") from e
         except ConnectError:
             raise
         except CancelledError as e:
+            producer.cancel()
             raise ConnectError(Code.CANCELED, "Request was cancelled") from e
         except Exception as e:
             raise ConnectError(Code.UNAVAILABLE, str(e)) from e
+        finally:
+            if not producer.done():
+                producer.cancel()
 
 
 def _convert_connect_timeout(timeout_ms: float | None) -> Timeout:
@@ -416,6 +477,11 @@ def _convert_connect_timeout(timeout_ms: float | None) -> Timeout:
     # We apply the timeout to the entire operation per connect's semantics so don't need
     # HTTP timeout
     return Timeout(None)
+
+
+def _consume_task_result(task: asyncio.Task[Any]) -> None:
+    with contextlib.suppress(BaseException):
+        task.result()
 
 
 async def _streaming_request_content(
