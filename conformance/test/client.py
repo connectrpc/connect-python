@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
+import multiprocessing
+import queue
 import ssl
 import sys
 import time
 import traceback
 from tempfile import NamedTemporaryFile
-from typing import TYPE_CHECKING, Literal, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar, get_args
 
 import httpx
 from _util import create_standard_streams
@@ -16,7 +19,13 @@ from gen.connectrpc.conformance.v1.client_compat_pb2 import (
     ClientCompatResponse,
 )
 from gen.connectrpc.conformance.v1.config_pb2 import Code as ConformanceCode
-from gen.connectrpc.conformance.v1.config_pb2 import Codec, Compression, HTTPVersion
+from gen.connectrpc.conformance.v1.config_pb2 import (
+    Codec,
+    Compression,
+    HTTPVersion,
+    Protocol,
+    StreamType,
+)
 from gen.connectrpc.conformance.v1.service_connect import (
     ConformanceServiceClient,
     ConformanceServiceClientSync,
@@ -31,6 +40,9 @@ from gen.connectrpc.conformance.v1.service_pb2 import (
     UnimplementedRequest,
 )
 from google.protobuf.message import Message
+from pyqwest import HTTPTransport, SyncHTTPTransport
+from pyqwest import HTTPVersion as PyQwestHTTPVersion
+from pyqwest.httpx import AsyncPyqwestTransport, PyqwestTransport
 
 from connectrpc.client import ResponseMetadata
 from connectrpc.code import Code
@@ -106,8 +118,127 @@ def _unpack_request(message: Any, request: T) -> T:
     return request
 
 
+async def httpx_client_kwargs(test_request: ClientCompatRequest) -> dict:
+    kwargs = {}
+    match test_request.http_version:
+        case HTTPVersion.HTTP_VERSION_1:
+            kwargs["http1"] = True
+            kwargs["http2"] = False
+        case HTTPVersion.HTTP_VERSION_2:
+            kwargs["http1"] = False
+            kwargs["http2"] = True
+    if test_request.server_tls_cert:
+        ctx = ssl.create_default_context(
+            purpose=ssl.Purpose.SERVER_AUTH,
+            cadata=test_request.server_tls_cert.decode(),
+        )
+        if test_request.HasField("client_tls_creds"):
+
+            def load_certs() -> None:
+                with (
+                    NamedTemporaryFile() as cert_file,
+                    NamedTemporaryFile() as key_file,
+                ):
+                    cert_file.write(test_request.client_tls_creds.cert)
+                    cert_file.flush()
+                    key_file.write(test_request.client_tls_creds.key)
+                    key_file.flush()
+                    ctx.load_cert_chain(certfile=cert_file.name, keyfile=key_file.name)
+
+            await asyncio.to_thread(load_certs)
+        kwargs["verify"] = ctx
+
+    return kwargs
+
+
+def pyqwest_client_kwargs(test_request: ClientCompatRequest) -> dict:
+    kwargs: dict = {"enable_gzip": True, "enable_brotli": True, "enable_zstd": True}
+    match test_request.http_version:
+        case HTTPVersion.HTTP_VERSION_1:
+            kwargs["http_version"] = PyQwestHTTPVersion.HTTP1
+        case HTTPVersion.HTTP_VERSION_2:
+            kwargs["http_version"] = PyQwestHTTPVersion.HTTP2
+    if test_request.server_tls_cert:
+        kwargs["tls_ca_cert"] = test_request.server_tls_cert
+        if test_request.HasField("client_tls_creds"):
+            kwargs["tls_key"] = test_request.client_tls_creds.key
+            kwargs["tls_cert"] = test_request.client_tls_creds.cert
+
+    return kwargs
+
+
+@contextlib.asynccontextmanager
+async def client_sync(
+    test_request: ClientCompatRequest, client_type: Client
+) -> AsyncIterator[ConformanceServiceClientSync]:
+    read_max_bytes = None
+    if test_request.message_receive_limit:
+        read_max_bytes = test_request.message_receive_limit
+    scheme = "https" if test_request.server_tls_cert else "http"
+    cleanup = contextlib.ExitStack()
+    match client_type:
+        case "httpx":
+            args = await httpx_client_kwargs(test_request)
+            session = cleanup.enter_context(httpx.Client(**args))
+        case "pyqwest":
+            args = pyqwest_client_kwargs(test_request)
+            http_transport = cleanup.enter_context(SyncHTTPTransport(**args))
+            transport = cleanup.enter_context(PyqwestTransport(http_transport))
+            session = cleanup.enter_context(httpx.Client(transport=transport))
+
+    with (
+        cleanup,
+        ConformanceServiceClientSync(
+            f"{scheme}://{test_request.host}:{test_request.port}",
+            session=session,
+            send_compression=_convert_compression(test_request.compression),
+            proto_json=test_request.codec == Codec.CODEC_JSON,
+            grpc=test_request.protocol == Protocol.PROTOCOL_GRPC,
+            read_max_bytes=read_max_bytes,
+        ) as client,
+    ):
+        yield client
+
+
+@contextlib.asynccontextmanager
+async def client_async(
+    test_request: ClientCompatRequest, client_type: Client
+) -> AsyncIterator[ConformanceServiceClient]:
+    read_max_bytes = None
+    if test_request.message_receive_limit:
+        read_max_bytes = test_request.message_receive_limit
+    scheme = "https" if test_request.server_tls_cert else "http"
+    cleanup = contextlib.AsyncExitStack()
+    match client_type:
+        case "httpx":
+            args = await httpx_client_kwargs(test_request)
+            session = await cleanup.enter_async_context(httpx.AsyncClient(**args))
+        case "pyqwest":
+            args = pyqwest_client_kwargs(test_request)
+            http_transport = await cleanup.enter_async_context(HTTPTransport(**args))
+            transport = await cleanup.enter_async_context(
+                AsyncPyqwestTransport(http_transport)
+            )
+            session = await cleanup.enter_async_context(
+                httpx.AsyncClient(transport=transport)
+            )
+
+    async with (
+        cleanup,
+        ConformanceServiceClient(
+            f"{scheme}://{test_request.host}:{test_request.port}",
+            session=session,
+            send_compression=_convert_compression(test_request.compression),
+            proto_json=test_request.codec == Codec.CODEC_JSON,
+            grpc=test_request.protocol == Protocol.PROTOCOL_GRPC,
+            read_max_bytes=read_max_bytes,
+        ) as client,
+    ):
+        yield client
+
+
 async def _run_test(
-    mode: Literal["sync", "async"], test_request: ClientCompatRequest
+    mode: Mode, test_request: ClientCompatRequest, client_type: Client
 ) -> ClientCompatResponse:
     test_response = ClientCompatResponse()
     test_response.test_name = test_request.test_name
@@ -115,9 +246,6 @@ async def _run_test(
     timeout_ms = None
     if test_request.timeout_ms:
         timeout_ms = test_request.timeout_ms
-    read_max_bytes = None
-    if test_request.message_receive_limit:
-        read_max_bytes = test_request.message_receive_limit
 
     request_headers = Headers()
     for header in test_request.request_headers:
@@ -129,82 +257,78 @@ async def _run_test(
     with ResponseMetadata() as meta:
         try:
             task: asyncio.Task
-            session_kwargs = {}
-            match test_request.http_version:
-                case HTTPVersion.HTTP_VERSION_1:
-                    session_kwargs["http1"] = True
-                    session_kwargs["http2"] = False
-                case HTTPVersion.HTTP_VERSION_2:
-                    session_kwargs["http1"] = False
-                    session_kwargs["http2"] = True
-            scheme = "http"
-            if test_request.server_tls_cert:
-                scheme = "https"
-                ctx = ssl.create_default_context(
-                    purpose=ssl.Purpose.SERVER_AUTH,
-                    cadata=test_request.server_tls_cert.decode(),
-                )
-                if test_request.HasField("client_tls_creds"):
-                    with (
-                        NamedTemporaryFile() as cert_file,
-                        NamedTemporaryFile() as key_file,
-                    ):
-                        cert_file.write(test_request.client_tls_creds.cert)
-                        cert_file.flush()
-                        key_file.write(test_request.client_tls_creds.key)
-                        key_file.flush()
-                        ctx.load_cert_chain(
-                            certfile=cert_file.name, keyfile=key_file.name
-                        )
-                session_kwargs["verify"] = ctx
+            request_closed = asyncio.Event()
             match mode:
                 case "sync":
-                    with (
-                        httpx.Client(**session_kwargs) as session,
-                        ConformanceServiceClientSync(
-                            f"{scheme}://{test_request.host}:{test_request.port}",
-                            session=session,
-                            send_compression=_convert_compression(
-                                test_request.compression
-                            ),
-                            proto_json=test_request.codec == Codec.CODEC_JSON,
-                            read_max_bytes=read_max_bytes,
-                        ) as client,
-                    ):
+                    async with client_sync(test_request, client_type) as client:
                         match test_request.method:
                             case "BidiStream":
+                                request_queue = queue.Queue()
 
                                 def send_bidi_stream_request_sync(
                                     client: ConformanceServiceClientSync,
                                     request: Iterator[BidiStreamRequest],
                                 ) -> None:
-                                    for message in client.bidi_stream(
+                                    responses = client.bidi_stream(
                                         request,
                                         headers=request_headers,
                                         timeout_ms=timeout_ms,
+                                    )
+                                    for message in test_request.request_messages:
+                                        if test_request.request_delay_ms:
+                                            time.sleep(
+                                                test_request.request_delay_ms / 1000.0
+                                            )
+                                        request_queue.put(
+                                            _unpack_request(
+                                                message, BidiStreamRequest()
+                                            )
+                                        )
+
+                                        if (
+                                            test_request.stream_type
+                                            != StreamType.STREAM_TYPE_FULL_DUPLEX_BIDI_STREAM
+                                        ):
+                                            continue
+
+                                        response = next(responses, None)
+                                        if response is not None:
+                                            payloads.append(response.payload)
+                                            if (
+                                                num
+                                                := test_request.cancel.after_num_responses
+                                            ) and len(payloads) >= num:
+                                                task.cancel()
+
+                                    if test_request.cancel.HasField(
+                                        "before_close_send"
                                     ):
-                                        payloads.append(message.payload)
+                                        task.cancel()
+
+                                    request_queue.put(None)
+
+                                    request_closed.set()
+
+                                    for response in responses:
+                                        payloads.append(response.payload)
                                         if (
                                             num
                                             := test_request.cancel.after_num_responses
                                         ) and len(payloads) >= num:
                                             task.cancel()
 
-                                def bidi_request_stream_sync():
-                                    for message in test_request.request_messages:
-                                        if test_request.request_delay_ms:
-                                            time.sleep(
-                                                test_request.request_delay_ms / 1000.0
-                                            )
-                                        yield _unpack_request(
-                                            message, BidiStreamRequest()
-                                        )
+                                def bidi_stream_request_sync():
+                                    while True:
+                                        request = request_queue.get()
+                                        if request is None:
+                                            return
+                                        yield request
 
                                 task = asyncio.create_task(
                                     asyncio.to_thread(
                                         send_bidi_stream_request_sync,
                                         client,
-                                        bidi_request_stream_sync(),
+                                        bidi_stream_request_sync(),
                                     )
                                 )
 
@@ -230,6 +354,11 @@ async def _run_test(
                                         yield _unpack_request(
                                             message, ClientStreamRequest()
                                         )
+                                    if test_request.cancel.HasField(
+                                        "before_close_send"
+                                    ):
+                                        task.cancel()
+                                    request_closed.set()
 
                                 task = asyncio.create_task(
                                     asyncio.to_thread(
@@ -262,6 +391,7 @@ async def _run_test(
                                         ),
                                     )
                                 )
+                                request_closed.set()
                             case "ServerStream":
 
                                 def send_server_stream_request_sync(
@@ -290,6 +420,7 @@ async def _run_test(
                                         ),
                                     )
                                 )
+                                request_closed.set()
                             case "Unary":
 
                                 def send_unary_request_sync(
@@ -313,6 +444,7 @@ async def _run_test(
                                         ),
                                     )
                                 )
+                                request_closed.set()
                             case "Unimplemented":
                                 task = asyncio.create_task(
                                     asyncio.to_thread(
@@ -325,6 +457,7 @@ async def _run_test(
                                         timeout_ms=timeout_ms,
                                     )
                                 )
+                                request_closed.set()
                             case _:
                                 msg = f"Unrecognized method: {test_request.method}"
                                 raise ValueError(msg)
@@ -335,20 +468,10 @@ async def _run_test(
                             task.cancel()
                         await task
                 case "async":
-                    async with (
-                        httpx.AsyncClient(**session_kwargs) as session,
-                        ConformanceServiceClient(
-                            f"{scheme}://{test_request.host}:{test_request.port}",
-                            session=session,
-                            send_compression=_convert_compression(
-                                test_request.compression
-                            ),
-                            proto_json=test_request.codec == Codec.CODEC_JSON,
-                            read_max_bytes=read_max_bytes,
-                        ) as client,
-                    ):
+                    async with client_async(test_request, client_type) as client:
                         match test_request.method:
                             case "BidiStream":
+                                request_queue = asyncio.Queue()
 
                                 async def send_bidi_stream_request(
                                     client: ConformanceServiceClient,
@@ -359,6 +482,41 @@ async def _run_test(
                                         headers=request_headers,
                                         timeout_ms=timeout_ms,
                                     )
+                                    for message in test_request.request_messages:
+                                        if test_request.request_delay_ms:
+                                            await asyncio.sleep(
+                                                test_request.request_delay_ms / 1000.0
+                                            )
+                                        await request_queue.put(
+                                            _unpack_request(
+                                                message, BidiStreamRequest()
+                                            )
+                                        )
+
+                                        if (
+                                            test_request.stream_type
+                                            != StreamType.STREAM_TYPE_FULL_DUPLEX_BIDI_STREAM
+                                        ):
+                                            continue
+
+                                        response = await anext(responses, None)
+                                        if response is not None:
+                                            payloads.append(response.payload)
+                                            if (
+                                                num
+                                                := test_request.cancel.after_num_responses
+                                            ) and len(payloads) >= num:
+                                                task.cancel()
+
+                                    if test_request.cancel.HasField(
+                                        "before_close_send"
+                                    ):
+                                        task.cancel()
+
+                                    await request_queue.put(None)
+
+                                    request_closed.set()
+
                                     async for response in responses:
                                         payloads.append(response.payload)
                                         if (
@@ -368,22 +526,11 @@ async def _run_test(
                                             task.cancel()
 
                                 async def bidi_stream_request():
-                                    for message in test_request.request_messages:
-                                        if test_request.request_delay_ms:
-                                            await asyncio.sleep(
-                                                test_request.request_delay_ms / 1000.0
-                                            )
-                                        yield _unpack_request(
-                                            message, BidiStreamRequest()
-                                        )
-                                    if test_request.cancel.HasField(
-                                        "before_close_send"
-                                    ):
-                                        task.cancel()
-                                        # Don't finish the stream for this case by sleeping for
-                                        # a long time. We won't end up sleeping for long since we
-                                        # cancelled.
-                                        await asyncio.sleep(600)
+                                    while True:
+                                        request = await request_queue.get()
+                                        if request is None:
+                                            return
+                                        yield request
 
                                 task = asyncio.create_task(
                                     send_bidi_stream_request(
@@ -417,10 +564,7 @@ async def _run_test(
                                         "before_close_send"
                                     ):
                                         task.cancel()
-                                        # Don't finish the stream for this case by sleeping for
-                                        # a long time. We won't end up sleeping for long since we
-                                        # cancelled.
-                                        await asyncio.sleep(600)
+                                    request_closed.set()
 
                                 task = asyncio.create_task(
                                     send_client_stream_request(
@@ -450,6 +594,7 @@ async def _run_test(
                                         ),
                                     )
                                 )
+                                request_closed.set()
                             case "ServerStream":
 
                                 async def send_server_stream_request(
@@ -477,6 +622,7 @@ async def _run_test(
                                         ),
                                     )
                                 )
+                                request_closed.set()
                             case "Unary":
 
                                 async def send_unary_request(
@@ -499,6 +645,7 @@ async def _run_test(
                                         ),
                                     )
                                 )
+                                request_closed.set()
                             case "Unimplemented":
                                 task = asyncio.create_task(
                                     client.unimplemented(
@@ -510,10 +657,12 @@ async def _run_test(
                                         timeout_ms=timeout_ms,
                                     )
                                 )
+                                request_closed.set()
                             case _:
                                 msg = f"Unrecognized method: {test_request.method}"
                                 raise ValueError(msg)
                         if test_request.cancel.after_close_send_ms:
+                            await request_closed.wait()
                             await asyncio.sleep(
                                 test_request.cancel.after_close_send_ms / 1000.0
                             )
@@ -541,34 +690,50 @@ async def _run_test(
     return test_response
 
 
+Mode = Literal["sync", "async"]
+Client = Literal["httpx", "pyqwest"]
+
+
 class Args(argparse.Namespace):
-    mode: Literal["sync", "async"]
+    mode: Mode
+    client: Client
+    parallel: int
 
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Conformance client")
-    parser.add_argument("--mode", choices=["sync", "async"])
+    parser.add_argument("--mode", choices=get_args(Mode))
+    parser.add_argument("--parallel", type=int, default=multiprocessing.cpu_count() * 4)
+    parser.add_argument("--client", choices=get_args(Client))
     args = parser.parse_args(namespace=Args())
 
     stdin, stdout = await create_standard_streams()
-    while True:
-        try:
-            size_buf = await stdin.readexactly(4)
-        except asyncio.IncompleteReadError:
-            return
-        size = int.from_bytes(size_buf, byteorder="big")
-        # Allow to raise even on EOF since we always should have a message
-        request_buf = await stdin.readexactly(size)
-        request = ClientCompatRequest()
-        request.ParseFromString(request_buf)
+    sema = asyncio.Semaphore(args.parallel)
+    tasks: list[asyncio.Task] = []
+    try:
+        while True:
+            try:
+                size_buf = await stdin.readexactly(4)
+            except asyncio.IncompleteReadError:
+                return
+            size = int.from_bytes(size_buf, byteorder="big")
+            # Allow to raise even on EOF since we always should have a message
+            request_buf = await stdin.readexactly(size)
+            request = ClientCompatRequest()
+            request.ParseFromString(request_buf)
 
-        response = await _run_test(args.mode, request)
+            async def task(request: ClientCompatRequest) -> None:
+                async with sema:
+                    response = await _run_test(args.mode, request, args.client)
 
-        response_buf = response.SerializeToString()
-        size_buf = len(response_buf).to_bytes(4, byteorder="big")
-        stdout.write(size_buf)
-        stdout.write(response_buf)
-        await stdout.drain()
+                    response_buf = response.SerializeToString()
+                    size_buf = len(response_buf).to_bytes(4, byteorder="big")
+                    stdout.write(size_buf + response_buf)
+                    await stdout.drain()
+
+            tasks.append(asyncio.create_task(task(request)))
+    finally:
+        asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":

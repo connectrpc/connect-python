@@ -50,6 +50,7 @@ dev = [
     "mkdocs==1.6.1",
     "mkdocs-material==9.6.20",
     "mkdocstrings[python]==0.30.1",
+    "pyqwest==0.1.0",
     "pyright[nodejs]==1.1.405",
     "pytest-timeout==2.4.0",
     "pyvoy==0.2.0",
