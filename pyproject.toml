@@ -2,65 +2,66 @@
 name = "connect-python"
 version = "0.7.1"
 description = "Server and client runtime library for Connect RPC"
-readme = "README.md"
-requires-python = ">= 3.10"
-license-files = ["LICENSE"]
 maintainers = [
-  { name = "Anuraag Agrawal", email = "anuraaga@gmail.com" },
-  { name = "Spencer Nelson", email = "spencer@firetiger.com" },
-  { name = "Stefan VanBuren", email = "svanburen@buf.build" },
-  { name = "Yasushi Itoh", email = "i2y.may.roku@gmail.com" },
+    { name = "Anuraag Agrawal", email = "anuraaga@gmail.com" },
+    { name = "Spencer Nelson", email = "spencer@firetiger.com" },
+    { name = "Stefan VanBuren", email = "svanburen@buf.build" },
+    { name = "Yasushi Itoh", email = "i2y.may.roku@gmail.com" },
 ]
-keywords = ["connect", "grpc", "http", "protobuf", "rpc"]
-classifiers = [
-  "Development Status :: 3 - Alpha",
-  "Intended Audience :: Developers",
-  "License :: OSI Approved :: Apache Software License",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.14",
-  "Topic :: Internet :: WWW/HTTP",
-  "Topic :: Software Development :: Libraries :: Python Modules",
-  "Typing :: Typed",
-]
+requires-python = ">= 3.10"
 dependencies = ["httpx>=0.28.1", "protobuf>=5.28"]
+readme = "README.md"
+license-files = ["LICENSE"]
+keywords = ["rpc", "grpc", "connect", "protobuf", "http"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
 
 [project.urls]
 Homepage = "https://github.com/connectrpc/connect-python"
-Issues = "https://github.com/connectrpc/connect-python/issues"
 Repository = "https://github.com/connectrpc/connect-python"
+Issues = "https://github.com/connectrpc/connect-python/issues"
 
 [dependency-groups]
 dev = [
-  # Needed to enable HTTP/2 in daphne
-  "Twisted[tls,http2]==25.5.0",
-  "asgiref==3.9.1",
-  "brotli==1.1.0",
-  "bump-my-version==1.2.4",
-  "connect-python-example",
-  "daphne==4.2.1",
-  "granian==2.5.7",
-  "grpcio-tools==1.76.0",
-  "gunicorn[gevent]==23.0.0",
-  "httpx[http2]==0.28.1",
-  "hypercorn==0.17.3",
-  "just-bin==1.42.4; sys_platform != 'win32'",
-  "pyqwest==0.1.0",
-  "pyright[nodejs]==1.1.405",
-  # Versions locked in constraint-dependencies
-  "pytest",
-  "pytest-asyncio",
-  "pytest-cov",
-  "pytest-timeout==2.4.0",
-  "pyvoy==0.2.0",
-  "ruff~=0.13.2",
-  "typing_extensions==4.15.0",
-  "uvicorn==0.37.0",
-  "zstandard==0.25.0",
+    "asgiref==3.9.1",
+    "brotli==1.1.0",
+    "bump-my-version==1.2.4",
+    "connect-python-example",
+    "daphne==4.2.1",
+    "httpx[http2]==0.28.1",
+    "hypercorn==0.17.3",
+    "granian==2.5.7",
+    "grpcio-tools==1.76.0",
+    "gunicorn[gevent]==23.0.0",
+    "just-bin==1.42.4; sys_platform != 'win32'",
+    "pyqwest==0.1.0",
+    "pyright[nodejs]==1.1.405",
+    "pytest-timeout==2.4.0",
+    "pyvoy==0.2.0",
+    "ruff~=0.13.2",
+    "uvicorn==0.37.0",
+    # Needed to enable HTTP/2 in daphne
+    "Twisted[tls,http2]==25.5.0",
+    "typing_extensions==4.15.0",
+    "zstandard==0.25.0",
+
+    # Versions locked in constraint-dependencies
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
 ]
 
 [build-system]
@@ -70,9 +71,9 @@ build-backend = "uv_build"
 [tool.uv]
 resolution = "lowest-direct"
 constraint-dependencies = [
-  "pytest==8.4.2",
-  "pytest-asyncio==1.2.0",
-  "pytest-cov==7.0.0",
+    "pytest==8.4.2",
+    "pytest-asyncio==1.2.0",
+    "pytest-cov==7.0.0",
 ]
 
 [tool.uv.build-backend]
@@ -80,7 +81,7 @@ module-name = "connectrpc"
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
-timeout = 1800  # 30 min
+timeout = 1800       # 30 min
 
 [tool.ruff.format]
 skip-magic-trailing-comma = true
@@ -88,127 +89,129 @@ docstring-code-format = true
 
 [tool.ruff.lint]
 extend-select = [
-  # Same order as listed on https://docs.astral.sh/ruff/rules/
-  "YTT",
-  "ANN",
-  "ASYNC",
-  "S",
-  "FBT",
-  "B",
-  "A",
-  "COM818",  # Other comma rules are handled by formatting
-  "C4",
-  "DTZ",
-  "T10",
-  "EM",
-  "EXE",
-  "FA",
-  "ISC",
-  "ICN",
-  "LOG",
-  "G",
-  "INP",
-  "PIE",
-  "T20",
-  "PYI",
-  "PT",
-  "Q004",  # Other quote rules are handled by formatting
-  "RSE",
-  "RET",
-  # This rule is a bit strict since accessing private members within this package can be
-  # useful to reduce public API exposure. But it is important to not access private members
-  # of dependencies like httpx so we enable it and ignore the locations where we need to.
-  "SLF",
-  "SIM",
-  "SLOT",
-  "TID",
-  # TODO: Update TODOs then enable
-  # "TD",
-  "TC",
-  "ARG",
-  "PTH",
-  "FLY",
-  "I",
-  "N",
-  "PERF",
-  "E",
-  "W",
-  # TODO: Flesh out docs and enable
-  # "DOC"
-  # "D",
-  "F",
-  "PGH",
-  "PLC",
-  "PLE",
-  "PLW",
-  "UP",
-  "FURB",
-  "RUF",
-  # TODO: See if it makes sense to enable after a pass at reducing code duplication
-  # "TRY",
+    # Same order as listed on https://docs.astral.sh/ruff/rules/
+    "YTT",
+    "ANN",
+    "ASYNC",
+    "S",
+    "FBT",
+    "B",
+    "A",
+    "COM818", # Other comma rules are handled by formatting
+    "C4",
+    "DTZ",
+    "T10",
+    "EM",
+    "EXE",
+    "FA",
+    "ISC",
+    "ICN",
+    "LOG",
+    "G",
+    "INP",
+    "PIE",
+    "T20",
+    "PYI",
+    "PT",
+    "Q004",   # Other quote rules are handled by formatting
+    "RSE",
+    "RET",
+    # This rule is a bit strict since accessing private members within this package can be
+    # useful to reduce public API exposure. But it is important to not access private members
+    # of dependencies like httpx so we enable it and ignore the locations where we need to.
+    "SLF",
+    "SIM",
+    "SLOT",
+    "TID",
+    # TODO: Update TODOs then enable
+    # "TD",
+    "TC",
+    "ARG",
+    "PTH",
+    "FLY",
+    "I",
+    "N",
+    "PERF",
+    "E",
+    "W",
+    # TODO: Flesh out docs and enable
+    # "DOC"
+    # "D",
+    "F",
+    "PGH",
+    "PLC",
+    "PLE",
+    "PLW",
+    "UP",
+    "FURB",
+    "RUF",
+    # TODO: See if it makes sense to enable after a pass at reducing code duplication
+    # "TRY",
 ]
+
 # Document reasons for ignoring specific linting errors
 extend-ignore = [
-  # Not applicable
-  "AIR",
-  # Dangerous false positives https://github.com/astral-sh/ruff/issues/4845
-  "ERA",
-  # Not Applicable
-  "FAST",
-  # Important to call user callbacks safely
-  "BLE",
-  # stdlib includes a module named code. This is less of an issue since users need to import a module so allow it
-  "A005",
-  # TODO: Consider using copyright headers
-  "CPY",
-  # Not Applicable
-  "DJ",
-  # It's fine to have TODOs
-  "FIX",
-  # Not Applicable
-  "INT",
-  # Even prevents pytest.raises around an iteration which is too strict
-  "PT012",
-  # Triggers for protocol implementations that don't need the arg too
-  "ARG002",
-  # Complexity checks usually reduce readability
-  "C90",
-  # Not Applicable
-  "NPY",
-  # Not Applicable
-  "PD",
-  # We use the Exception suffix instead
-  "N818",
-  # Handled by formatting
-  "E111",
-  "E114",
-  "E117",
-  "E501",
-  "W191",
-  # Low signal-to-noise ratio
-  "PLR",
+    # Not applicable
+    "AIR",
+    # Dangerous false positives https://github.com/astral-sh/ruff/issues/4845
+    "ERA",
+    # Not Applicable
+    "FAST",
+    # Important to call user callbacks safely
+    "BLE",
+    # stdlib includes a module named code. This is less of an issue since users need to import a module so allow it
+    "A005",
+    # TODO: Consider using copyright headers
+    "CPY",
+    # Not Applicable
+    "DJ",
+    # It's fine to have TODOs
+    "FIX",
+    # Not Applicable
+    "INT",
+    # Even prevents pytest.raises around an iteration which is too strict
+    "PT012",
+    # Triggers for protocol implementations that don't need the arg too
+    "ARG002",
+    # Complexity checks usually reduce readability
+    "C90",
+    # Not Applicable
+    "NPY",
+    # Not Applicable
+    "PD",
+    # We use the Exception suffix instead
+    "N818",
+    # Handled by formatting
+    "E111",
+    "E114",
+    "E117",
+    "E501",
+    "W191",
+    # Low signal-to-noise ratio
+    "PLR",
 ]
+
 typing-extensions = false
 
 [tool.ruff.lint.per-file-ignores]
 "conformance/test/**" = ["ANN", "INP", "SLF", "SIM115", "S101", "D"]
 "example/**" = [
-  "ANN",
-  "S",  # Keep examples simpler, e.g. allow normal random
-  "T20",
-  "D",
+    "ANN",
+    "S",   # Keep examples simpler, e.g. allow normal random
+    "T20",
+    "D",
 ]
 "**/test_*.py" = [
-  "ANN",
-  "S101",
-  "S603",
-  "S607",
-  "FBT",
-  "EM",
-  "INP",
-  "SLF",
-  "PERF",
-  "D",
+    "ANN",
+    "S101",
+    "S603",
+    "S607",
+    "FBT",
+    "EM",
+    "INP",
+    "SLF",
+    "PERF",
+    "D",
 ]
 "**/*_grpc.py" = ["N", "FBT"]
 
@@ -222,15 +225,17 @@ extend-exclude = ["*_pb2.py", "*_pb2.pyi"]
 
 [tool.pyright]
 exclude = [
-  # Defaults.
-  "**/node_modules",
-  "**/__pycache__",
-  "**/.*",
-  # GRPC python files don't typecheck on their own.
-  # See https://github.com/grpc/grpc/issues/39555
-  "**/*_pb2_grpc.py",
-  # TODO: Work out the import issues to allow it to work.
-  "conformance/**",
+    # Defaults.
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+
+    # GRPC python files don't typecheck on their own.
+    # See https://github.com/grpc/grpc/issues/39555
+    "**/*_pb2_grpc.py",
+
+    # TODO: Work out the import issues to allow it to work.
+    "conformance/**",
 ]
 
 [tool.uv.workspace]
@@ -243,8 +248,8 @@ connect-python-example = { workspace = true }
 [tool.bumpversion]
 current_version = "0.7.1"
 files = [
-  { filename = "pyproject.toml" },
-  { filename = "protoc-gen-connect-python/pyproject.toml" },
+    { filename = "pyproject.toml" },
+    { filename = "protoc-gen-connect-python/pyproject.toml" },
 ]
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
 serialize = ["{major}.{minor}.{patch}"]
