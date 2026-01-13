@@ -398,7 +398,7 @@ service YourService {
 
 ## Development
 
-We use `ruff` for linting and formatting, `pyright` for type checking, and `tombi` for TOML linting and formatting.
+We use `ruff` for linting and formatting, `ty` for type checking, and `tombi` for TOML linting and formatting.
 
 We rely on the conformance test suit (in
 [./conformance](./conformance)) to verify behavior.

@@ -11,7 +11,6 @@ from pyqwest import FullResponse, Response
 from pyqwest import Headers as HTTPHeaders
 
 from . import _client_shared
-from ._asyncio_timeout import timeout as asyncio_timeout
 from ._codec import proto_binary_codec
 from ._compression import IdentityCompression, _gzip, resolve_compressions
 from ._interceptor_async import (
@@ -31,9 +30,7 @@ from .errors import ConnectError
 from .protocol import ProtocolType
 
 try:
-    from asyncio import (
-        timeout as asyncio_timeout,  # pyright: ignore[reportAttributeAccessIssue]
-    )
+    from asyncio import timeout as asyncio_timeout  # ty: ignore[unresolved-import]
 except ImportError:
     from ._asyncio_timeout import timeout as asyncio_timeout
 

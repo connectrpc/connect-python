@@ -95,7 +95,7 @@ cmd = "tombi lint"
 
 [tasks.lint-types]
 help = "Apply type checking to Python files"
-cmd = "pyright"
+cmd = "ty check ."
 
 [tasks.test]
 help = "Run unit tests"

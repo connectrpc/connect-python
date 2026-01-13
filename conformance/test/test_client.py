@@ -6,8 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-
-from ._util import VERSION_CONFORMANCE, coverage_env, maybe_patch_args_with_debug
+from _util import VERSION_CONFORMANCE, coverage_env, maybe_patch_args_with_debug
 
 if TYPE_CHECKING:
     from coverage import Coverage
