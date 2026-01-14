@@ -83,22 +83,7 @@ To release a new version, follow the guide in [RELEASE.md](./RELEASE.md).
 
 ## Documentation
 
-### Building Documentation
-
-```bash
-# Build documentation
-uv run just docs
-
-# Serve documentation locally
-uv run just docs-serve
-```
-
-### Writing Documentation
-
-- Use MyST markdown for documentation files
-- Place API documentation in `docs/api.md`
-- Place examples in `docs/examples.md`
-- Update the main `docs/index.md` for structural changes
+Documentation is contained in the [connectrpc/connectrpc.com](https://github.com/connectrpc/connectrpc.com) repository.
 
 ## Contributing
 
