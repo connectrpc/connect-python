@@ -22,11 +22,11 @@ typecheck:
 # Run unit tests with no extras
 [working-directory('noextras')]
 test-noextras *args:
-    uv run --exact pytest {{ args }}
+    uv run --exact pytest -W error {{ args }}
 
 # Run unit tests
 test *args: (test-noextras args)
-    uv run pytest {{ args }}
+    uv run pytest -W error {{ args }}
 
 # Run lint, typecheck and test
 check: lint typecheck test
