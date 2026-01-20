@@ -5,7 +5,7 @@ dependencies = [
   "connect-python",
   "flask==3.1.2",
   "protobuf>=5.28",
-  "starlette==0.51.0",
+  "starlette==0.52.1",
 ]
 
 [build-system]
