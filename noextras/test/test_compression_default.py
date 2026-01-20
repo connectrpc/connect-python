@@ -11,7 +11,8 @@ from example.eliza_connect import (
     ElizaServiceWSGIApplication,
 )
 from example.eliza_pb2 import SayRequest, SayResponse
-from httpx import ASGITransport, AsyncClient, Client, WSGITransport
+from pyqwest import Client, SyncClient
+from pyqwest.testing import ASGITransport, WSGITransport
 
 
 @pytest.mark.parametrize("compression", ["gzip", "identity", None])
@@ -23,7 +24,7 @@ def test_roundtrip_sync(compression: str) -> None:
     app = ElizaServiceWSGIApplication(RoundtripElizaServiceSync())
     with ElizaServiceClientSync(
         "http://localhost",
-        session=Client(transport=WSGITransport(app=app)),
+        http_client=SyncClient(WSGITransport(app=app)),
         send_compression=compression,
         accept_compression=[compression] if compression else None,
     ) as client:
@@ -39,10 +40,10 @@ async def test_roundtrip_async(compression: str) -> None:
             return SayResponse(sentence=request.sentence)
 
     app = ElizaServiceASGIApplication(DetailsElizaService())
-    transport = ASGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    transport = ASGITransport(app)
     async with ElizaServiceClient(
         "http://localhost",
-        session=AsyncClient(transport=transport),
+        http_client=Client(transport),
         send_compression=compression,
         accept_compression=[compression] if compression else None,
     ) as client:
@@ -63,7 +64,7 @@ def test_invalid_compression_sync(compression: str) -> None:
     ) as exc_info:
         ElizaServiceClientSync(
             "http://localhost",
-            session=Client(transport=WSGITransport(app=app)),
+            http_client=SyncClient(WSGITransport(app=app)),
             send_compression=compression,
             accept_compression=[compression] if compression else None,
         )
@@ -81,13 +82,13 @@ async def test_invalid_compression_async(compression: str) -> None:
             return SayResponse(sentence=request.sentence)
 
     app = ElizaServiceASGIApplication(DetailsElizaService())
-    transport = ASGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    transport = ASGITransport(app)
     with pytest.raises(
         ValueError, match=r"Unsupported compression method: .*"
     ) as exc_info:
         ElizaServiceClient(
             "http://localhost",
-            session=AsyncClient(transport=transport),
+            http_client=Client(transport),
             send_compression=compression,
             accept_compression=[compression] if compression else None,
         )

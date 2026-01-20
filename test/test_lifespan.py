@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import asyncio
 from collections import Counter
-from io import StringIO
 
 import pytest
-import uvicorn
-from httpx import ASGITransport, AsyncClient
-from uvicorn.config import LOGGING_CONFIG
+from pyqwest import Client
+from pyqwest.testing import ASGITransport
 
 from connectrpc.errors import ConnectError
 
@@ -42,31 +39,15 @@ async def test_lifespan() -> None:
             final_count = counter["requests"]
 
     app = HaberdasherASGIApplication(counting_haberdasher())
-    # Use uvicorn since it supports lifespan
-    config = uvicorn.Config(
-        app, port=0, log_level="critical", timeout_graceful_shutdown=0
-    )
-    server = uvicorn.Server(config)
-    uvicorn_task = asyncio.create_task(server.serve())
-
-    for _ in range(50):
-        if server.started:
-            break
-        await asyncio.sleep(0.1)
-    else:
-        msg = "Server did not start"
-        raise RuntimeError(msg)
-
-    port = server.servers[0].sockets[0].getsockname()[1]
-
-    async with HaberdasherClient(f"http://localhost:{port}") as client:
+    async with (
+        ASGITransport(app) as transport,
+        HaberdasherClient("http://localhost", http_client=Client(transport)) as client,
+    ):
         for _ in range(5):
             hat = await client.make_hat(Size(inches=10))
             assert hat.size == 10
             assert hat.color == "blue"
 
-    server.should_exit = True
-    await uvicorn_task
     assert final_count == 5
 
 
@@ -88,21 +69,13 @@ async def test_lifespan_startup_error() -> None:
             final_count = counter["requests"]
 
     app = HaberdasherASGIApplication(counting_haberdasher())
-    # Use uvicorn since it supports lifespan
-    logs = StringIO()
-    log_config = LOGGING_CONFIG.copy()
-    log_config["handlers"]["default"]["stream"] = logs
-    config = uvicorn.Config(
-        app,
-        port=0,
-        log_level="error",
-        timeout_graceful_shutdown=0,
-        log_config=log_config,
-    )
-    server = uvicorn.Server(config)
-    await server.serve()
+    with pytest.raises(
+        RuntimeError, match="ASGI application failed to start up"
+    ) as exc_info:
+        async with ASGITransport(app):
+            pass
 
-    assert "Haberdasher failed to start" in logs.getvalue()
+    assert "Haberdasher failed to start" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -117,39 +90,12 @@ async def test_lifespan_shutdown_error() -> None:
             raise RuntimeError(msg)
 
     app = HaberdasherASGIApplication(counting_haberdasher())
-    # Use uvicorn since it supports lifespan
-    logs = StringIO()
-    log_config = LOGGING_CONFIG.copy()
-    log_config["handlers"]["default"]["stream"] = logs
-    config = uvicorn.Config(
-        app,
-        port=0,
-        log_level="error",
-        timeout_graceful_shutdown=0,
-        log_config=log_config,
-    )
-    server = uvicorn.Server(config)
-    uvicorn_task = asyncio.create_task(server.serve())
-
-    for _ in range(50):
-        if server.started:
-            break
-        await asyncio.sleep(0.1)
-    else:
-        msg = "Server did not start"
-        raise RuntimeError(msg)
-
-    port = server.servers[0].sockets[0].getsockname()[1]
-
-    async with HaberdasherClient(f"http://localhost:{port}") as client:
-        for _ in range(5):
-            hat = await client.make_hat(Size(inches=10))
-            assert hat.size == 10
-            assert hat.color == "blue"
-
-    server.should_exit = True
-    await uvicorn_task
-    assert "Haberdasher failed to shut down" in logs.getvalue()
+    with pytest.raises(
+        RuntimeError, match="ASGI application failed to shut down"
+    ) as exc_info:
+        async with ASGITransport(app):
+            pass
+    assert "Haberdasher failed to shut down" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -166,13 +112,13 @@ async def test_lifespan_not_supported() -> None:
             final_count = counter["requests"]
 
     app = HaberdasherASGIApplication(counting_haberdasher())
-    transport = ASGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    transport = ASGITransport(app)
     async with HaberdasherClient(
-        "http://localhost", session=AsyncClient(transport=transport)
+        "http://localhost", http_client=Client(transport)
     ) as client:
-        with pytest.raises(ConnectError) as e:
+        with pytest.raises(ConnectError):
             await client.make_hat(Size(inches=10))
     assert (
         "ASGI server does not support lifespan but async generator passed for service."
-        in str(e.value)
+        in str(transport.app_exception)
     )

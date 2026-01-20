@@ -11,7 +11,7 @@ This repo provides a Python implementation of Connect, including both client and
 
 ## Features
 
-- **Clients**: Both synchronous and asynchronous clients backed by [httpx](https://www.python-httpx.org/)
+- **Clients**: Both synchronous and asynchronous clients backed by [pyqwest](https://pyqwest.dev/)
 - **Servers**: WSGI and ASGI server implementations for use with any Python app server
 - **Type Safety**: Fully type-annotated, including the generated code
 - **Compression**: Built-in support for gzip, brotli, and zstd compression
@@ -63,8 +63,8 @@ it can be referenced as `protoc-gen-connect-python`.
 Then, you can use `protoc-gen-connect-python` as a local plugin:
 
 ```yaml
-  - local: .venv/bin/protoc-gen-connect-python
-    out: .
+- local: .venv/bin/protoc-gen-connect-python
+  out: .
 ```
 
 Alternatively, download a precompiled binary from the
@@ -79,18 +79,14 @@ For more usage details, see the [docs](./docs/usage.md).
 ### Basic Client Usage
 
 ```python
-import httpx
 from your_service_pb2 import HelloRequest, HelloResponse
 from your_service_connect import HelloServiceClient
 
 # Create async client
 async def main():
-    async with httpx.AsyncClient() as session:
-        client = HelloServiceClient(
-            base_url="https://api.example.com",
-            session=session
-        )
-
+    async with HelloServiceClient(
+        base_url="https://api.example.com",
+    ) as client:
         # Make a unary RPC call
         response = await client.say_hello(HelloRequest(name="World"))
         print(response.message)  # "Hello, World!"
@@ -117,18 +113,14 @@ app = HelloServiceASGIApplication(MyHelloService())
 ### Basic Client Usage (Synchronous)
 
 ```python
-import httpx
 from your_service_pb2 import HelloRequest
 from your_service_connect import HelloServiceClientSync
 
 # Create sync client
 def main():
-    with httpx.Client() as session:
-        client = HelloServiceClientSync(
-            base_url="https://api.example.com",
-            session=session
-        )
-
+    with HelloServiceClientSync(
+        base_url="https://api.example.com",
+    ) as client:
         # Make a unary RPC call
         response = client.say_hello(HelloRequest(name="World"))
         print(response.message)  # "Hello, World!"

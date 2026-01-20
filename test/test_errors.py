@@ -1,22 +1,23 @@
 from __future__ import annotations
 
+import asyncio
 import threading
-import time
 from http import HTTPStatus
 from typing import NoReturn
 
 import pytest
-import uvicorn
-from httpx import (
-    ASGITransport,
-    AsyncClient,
+from pyqwest import (
     Client,
-    MockTransport,
+    Headers,
     Request,
     Response,
-    Timeout,
-    WSGITransport,
+    SyncClient,
+    SyncRequest,
+    SyncResponse,
+    SyncTransport,
+    Transport,
 )
+from pyqwest.testing import ASGITransport, WSGITransport
 
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
@@ -64,16 +65,22 @@ def test_sync_errors(code: Code, message: str, http_status: int) -> None:
     app = HaberdasherWSGIApplication(haberdasher)
     transport = WSGITransport(app)
 
-    recorded_response: Response | None = None
+    recorded_response: SyncResponse | None = SyncResponse(status=100)
 
-    def record_response(response) -> None:
-        nonlocal recorded_response
-        recorded_response = response
+    class ResponseRecorder(SyncTransport):
+        def __init__(self, transport: SyncTransport) -> None:
+            self._transport = transport
 
-    session = Client(transport=transport, event_hooks={"response": [record_response]})
+        def execute_sync(self, request: SyncRequest) -> SyncResponse:
+            nonlocal recorded_response
+            response = self._transport.execute_sync(request)
+            recorded_response = response
+            return response
+
+    http_client = SyncClient(transport=ResponseRecorder(transport))
 
     with (
-        HaberdasherClientSync("http://localhost", session=session) as client,
+        HaberdasherClientSync("http://localhost", http_client=http_client) as client,
         pytest.raises(ConnectError) as exc_info,
     ):
         client.make_hat(request=Size(inches=10))
@@ -81,7 +88,7 @@ def test_sync_errors(code: Code, message: str, http_status: int) -> None:
     assert exc_info.value.code == code
     assert exc_info.value.message == message
     assert recorded_response is not None
-    assert recorded_response.status_code == http_status
+    assert recorded_response.status == http_status
 
 
 @pytest.mark.asyncio
@@ -96,72 +103,72 @@ async def test_async_errors(code: Code, message: str, http_status: int) -> None:
 
     haberdasher = ErrorHaberdasher(ConnectError(code, message))
     app = HaberdasherASGIApplication(haberdasher)
-    transport = ASGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    transport = ASGITransport(app)
 
-    recorded_response: Response | None = None
+    recorded_response: Response | None = Response(status=100)
 
-    async def record_response(response) -> None:
-        nonlocal recorded_response
-        recorded_response = response
+    class ResponseRecorder(Transport):
+        def __init__(self, transport: Transport) -> None:
+            self._transport = transport
 
-    async with (
-        AsyncClient(
-            transport=transport, event_hooks={"response": [record_response]}
-        ) as session,
-        HaberdasherClient("http://localhost", session=session) as client,
-    ):
+        async def execute(self, request: Request) -> Response:
+            nonlocal recorded_response
+            response = await self._transport.execute(request)
+            recorded_response = response
+            return response
+
+    http_client = Client(transport=ResponseRecorder(transport))
+    async with HaberdasherClient("http://localhost", http_client=http_client) as client:
         with pytest.raises(ConnectError) as exc_info:
             await client.make_hat(request=Size(inches=10))
 
     assert exc_info.value.code == code
     assert exc_info.value.message == message
     assert recorded_response is not None
-    assert recorded_response.status_code == http_status
+    assert recorded_response.status == http_status
 
 
 _http_errors = [
-    pytest.param(400, {}, Code.INTERNAL, "Bad Request", id="400"),
-    pytest.param(401, {}, Code.UNAUTHENTICATED, "Unauthorized", id="401"),
-    pytest.param(403, {}, Code.PERMISSION_DENIED, "Forbidden", id="403"),
-    pytest.param(404, {}, Code.UNIMPLEMENTED, "Not Found", id="404"),
-    pytest.param(429, {}, Code.UNAVAILABLE, "Too Many Requests", id="429"),
-    pytest.param(499, {}, Code.UNKNOWN, "Client Closed Request", id="499"),
-    pytest.param(502, {}, Code.UNAVAILABLE, "Bad Gateway", id="502"),
-    pytest.param(503, {}, Code.UNAVAILABLE, "Service Unavailable", id="503"),
-    pytest.param(504, {}, Code.UNAVAILABLE, "Gateway Timeout", id="504"),
+    pytest.param(400, b"", {}, Code.INTERNAL, "Bad Request", id="400"),
+    pytest.param(401, b"", {}, Code.UNAUTHENTICATED, "Unauthorized", id="401"),
+    pytest.param(403, b"", {}, Code.PERMISSION_DENIED, "Forbidden", id="403"),
+    pytest.param(404, b"", {}, Code.UNIMPLEMENTED, "Not Found", id="404"),
+    pytest.param(429, b"", {}, Code.UNAVAILABLE, "Too Many Requests", id="429"),
+    pytest.param(499, b"", {}, Code.UNKNOWN, "Client Closed Request", id="499"),
+    pytest.param(502, b"", {}, Code.UNAVAILABLE, "Bad Gateway", id="502"),
+    pytest.param(503, b"", {}, Code.UNAVAILABLE, "Service Unavailable", id="503"),
+    pytest.param(504, b"", {}, Code.UNAVAILABLE, "Gateway Timeout", id="504"),
     pytest.param(
         400,
-        {"json": {"code": "invalid_argument", "message": "Bad parameter"}},
+        b'{"code": "invalid_argument", "message": "Bad parameter"}',
+        {"content-type": "application/json"},
         Code.INVALID_ARGUMENT,
         "Bad parameter",
         id="connect error",
     ),
     pytest.param(
         400,
-        {"json": {"message": "Bad parameter"}},
+        b'{"message": "Bad parameter"}',
+        {"content-type": "application/json"},
         Code.INTERNAL,
         "Bad parameter",
         id="connect error without code",
     ),
     pytest.param(
         404,
-        {"json": {"code": "not_found"}},
+        b'{"code": "not_found"}',
+        {"content-type": "application/json"},
         Code.NOT_FOUND,
         "",
         id="connect error without message",
     ),
     pytest.param(
-        502, {"text": '"{bad_json'}, Code.UNAVAILABLE, "Bad Gateway", id="bad json"
+        502, b'"{bad_json', {}, Code.UNAVAILABLE, "Bad Gateway", id="bad json"
     ),
     pytest.param(
         200,
-        {
-            "text": "weird encoding",
-            "headers": {
-                "content-type": "application/proto",
-                "content-encoding": "weird",
-            },
-        },
+        b"weird encoding",
+        {"content-type": "application/proto", "content-encoding": "weird"},
         Code.INTERNAL,
         "unknown encoding 'weird'; accepted encodings are gzip, br, zstd, identity",
         id="bad encoding",
@@ -170,13 +177,22 @@ _http_errors = [
 
 
 @pytest.mark.parametrize(
-    ("response_status", "response_kwargs", "code", "message"), _http_errors
+    ("response_status", "content", "response_headers", "code", "message"), _http_errors
 )
-def test_sync_http_errors(response_status, response_kwargs, code, message) -> None:
-    transport = MockTransport(lambda _: Response(response_status, **response_kwargs))
+def test_sync_http_errors(
+    response_status, content, response_headers, code, message
+) -> None:
+    class MockTransport(SyncTransport):
+        def execute_sync(self, request: SyncRequest) -> SyncResponse:
+            return SyncResponse(
+                status=response_status,
+                content=content,
+                headers=Headers(response_headers),
+            )
+
     with (
         HaberdasherClientSync(
-            "http://localhost", session=Client(transport=transport)
+            "http://localhost", http_client=SyncClient(transport=MockTransport())
         ) as client,
         pytest.raises(ConnectError) as exc_info,
     ):
@@ -187,14 +203,21 @@ def test_sync_http_errors(response_status, response_kwargs, code, message) -> No
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("response_status", "response_kwargs", "code", "message"), _http_errors
+    ("response_status", "content", "response_headers", "code", "message"), _http_errors
 )
 async def test_async_http_errors(
-    response_status, response_kwargs, code, message
+    response_status, content, response_headers, code, message
 ) -> None:
-    transport = MockTransport(lambda _: Response(response_status, **response_kwargs))
+    class MockTransport(Transport):
+        async def execute(self, request: Request) -> Response:
+            return Response(
+                status=response_status,
+                content=content,
+                headers=Headers(response_headers),
+            )
+
     async with HaberdasherClient(
-        "http://localhost", session=AsyncClient(transport=transport)
+        "http://localhost", http_client=Client(transport=MockTransport())
     ) as client:
         with pytest.raises(ConnectError) as exc_info:
             await client.make_hat(request=Size(inches=10))
@@ -292,12 +315,12 @@ def test_sync_client_errors(
     app = HaberdasherWSGIApplication(ValidHaberdasherSync())
     transport = WSGITransport(app)
 
-    client = Client(transport=transport)
-    response = client.request(
+    client = SyncClient(transport)
+    response = client.execute(
         method=method, url=f"http://localhost{path}", content=body, headers=headers
     )
 
-    assert response.status_code == response_status
+    assert response.status == response_status
     assert response.headers == response_headers
 
 
@@ -315,75 +338,46 @@ async def test_async_client_errors(
 
     haberdasher = ValidHaberdasher()
     app = HaberdasherASGIApplication(haberdasher)
-    transport = ASGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    transport = ASGITransport(app)
 
-    client = AsyncClient(transport=transport)
-    response = await client.request(
+    client = Client(transport)
+    response = await client.execute(
         method=method, url=f"http://localhost{path}", content=body, headers=headers
     )
 
-    assert response.status_code == response_status
+    assert response.status == response_status
     assert response.headers == response_headers
-
-
-# To exercise timeouts, can't use mock transports
-@pytest.fixture(scope="module")
-def timeout_server():
-    class SleepingHaberdasher(Haberdasher):
-        def make_hat(self, request, ctx) -> NoReturn:
-            time.sleep(10)
-            raise AssertionError("Should be timedout already")
-
-    app = HaberdasherASGIApplication(SleepingHaberdasher())
-    config = uvicorn.Config(
-        app, port=0, log_level="critical", timeout_graceful_shutdown=0
-    )
-    server = uvicorn.Server(config)
-    # Since we want to target the server from sync clients as well as async,
-    # it's best to use a sync fixture with the server on a background thread.
-    thread = threading.Thread(target=server.run)
-    thread.daemon = True
-    thread.start()
-
-    for _ in range(50):
-        if server.started:
-            break
-        time.sleep(0.1)
-    assert server.started
-
-    port = server.servers[0].sockets[0].getsockname()[1]
-
-    yield f"http://localhost:{port}"
-
-    server.should_exit = True
 
 
 @pytest.mark.parametrize(
     ("client_timeout_ms", "call_timeout_ms"), [(200, None), (None, 200)]
 )
-def test_sync_client_timeout(
-    client_timeout_ms, call_timeout_ms, timeout_server: str
-) -> None:
+def test_sync_client_timeout(client_timeout_ms, call_timeout_ms) -> None:
     recorded_timeout_header = ""
 
-    def modify_timeout_header(request: Request) -> None:
-        nonlocal recorded_timeout_header
-        recorded_timeout_header = request.headers.get("connect-timeout-ms")
-        # Make sure server doesn't timeout since we are verifying client timeout
-        request.headers["connect-timeout-ms"] = "10000"
+    class ModifyTimeout(SyncTransport):
+        def __init__(self, transport: SyncTransport) -> None:
+            self._transport = transport
 
+        def execute_sync(self, request: SyncRequest) -> SyncResponse:
+            nonlocal recorded_timeout_header
+            recorded_timeout_header = request.headers.get("connect-timeout-ms")
+            # Make sure server doesn't timeout since we are verifying client timeout
+            request.headers["connect-timeout-ms"] = "10000"
+            return self._transport.execute_sync(request)
+
+    timed_out = threading.Event()
+
+    class SleepingHaberdasher(HaberdasherSync):
+        def make_hat(self, request, ctx) -> NoReturn:
+            timed_out.wait()
+            raise AssertionError("Timedout already")
+
+    app = HaberdasherWSGIApplication(SleepingHaberdasher())
+    http_client = SyncClient(ModifyTimeout(WSGITransport(app)))
     with (
-        Client(
-            timeout=Timeout(
-                None,
-                read=client_timeout_ms / 1000.0
-                if client_timeout_ms is not None
-                else None,
-            ),
-            event_hooks={"request": [modify_timeout_header]},
-        ) as session,
         HaberdasherClientSync(
-            timeout_server, timeout_ms=client_timeout_ms, session=session
+            "http://localhost", timeout_ms=client_timeout_ms, http_client=http_client
         ) as client,
         pytest.raises(ConnectError) as exc_info,
     ):
@@ -392,31 +386,38 @@ def test_sync_client_timeout(
     assert exc_info.value.code == Code.DEADLINE_EXCEEDED
     assert exc_info.value.message == "Request timed out"
     assert recorded_timeout_header == "200"
+    timed_out.set()
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("client_timeout_ms", "call_timeout_ms"), [(200, None), (None, 200)]
 )
-async def test_async_client_timeout(
-    client_timeout_ms, call_timeout_ms, timeout_server: str
-) -> None:
+async def test_async_client_timeout(client_timeout_ms, call_timeout_ms) -> None:
     recorded_timeout_header = ""
 
-    async def modify_timeout_header(request: Request) -> None:
-        nonlocal recorded_timeout_header
-        recorded_timeout_header = request.headers.get("connect-timeout-ms")
-        # Make sure server doesn't timeout since we are verifying client timeout
-        request.headers["connect-timeout-ms"] = "10000"
+    class ModifyTimeout(Transport):
+        def __init__(self, transport: Transport) -> None:
+            self._transport = transport
 
-    async with (
-        AsyncClient(
-            timeout=Timeout(None), event_hooks={"request": [modify_timeout_header]}
-        ) as session,
-        HaberdasherClient(
-            timeout_server, timeout_ms=client_timeout_ms, session=session
-        ) as client,
-    ):
+        async def execute(self, request: Request) -> Response:
+            nonlocal recorded_timeout_header
+            recorded_timeout_header = request.headers.get("connect-timeout-ms")
+            # Make sure server doesn't timeout since we are verifying client timeout
+            request.headers["connect-timeout-ms"] = "10000"
+            return await self._transport.execute(request)
+
+    class SleepingHaberdasher(Haberdasher):
+        async def make_hat(self, request, ctx) -> NoReturn:
+            await asyncio.sleep(10)
+            raise AssertionError("Should be timedout already")
+
+    app = HaberdasherASGIApplication(SleepingHaberdasher())
+    http_client = Client(ModifyTimeout(ASGITransport(app)))
+
+    async with HaberdasherClient(
+        "http://localhost", timeout_ms=client_timeout_ms, http_client=http_client
+    ) as client:
         with pytest.raises(ConnectError) as exc_info:
             await client.make_hat(request=Size(inches=10), timeout_ms=call_timeout_ms)
 

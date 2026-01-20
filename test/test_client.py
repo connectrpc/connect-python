@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from httpx import ASGITransport, AsyncClient, Client, WSGITransport
+from pyqwest import Client, SyncClient
+from pyqwest.testing import ASGITransport, WSGITransport
 
 from connectrpc.client import ResponseMetadata
 
@@ -68,7 +69,7 @@ def test_headers_sync(headers, trailers, response_headers, response_trailers) ->
     )
 
     client = HaberdasherClientSync(
-        "http://localhost", session=Client(transport=transport)
+        "http://localhost", http_client=SyncClient(transport=transport)
     )
 
     with ResponseMetadata() as resp:
@@ -100,11 +101,11 @@ async def test_headers_async(
             return Hat()
 
     transport = ASGITransport(
-        HaberdasherASGIApplication(HeadersHaberdasher(headers, trailers))  # pyright:ignore[reportArgumentType] - httpx type is not complete
+        HaberdasherASGIApplication(HeadersHaberdasher(headers, trailers))
     )
 
     client = HaberdasherClient(
-        "http://localhost", session=AsyncClient(transport=transport)
+        "http://localhost", http_client=Client(transport=transport)
     )
 
     with ResponseMetadata() as resp:

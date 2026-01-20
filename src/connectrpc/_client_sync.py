@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import functools
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from urllib.parse import urlencode
 
-import httpx
-from httpx import USE_CLIENT_DEFAULT, Timeout
+from pyqwest import FullResponse, SyncClient, SyncResponse
+from pyqwest import Headers as HTTPHeaders
 
 from connectrpc._protocol_grpc import GRPCClientProtocol
 
@@ -86,7 +87,7 @@ class ConnectClientSync:
         timeout_ms: int | None = None,
         read_max_bytes: int | None = None,
         interceptors: Iterable[InterceptorSync] = (),
-        session: httpx.Client | None = None,
+        http_client: SyncClient | None = None,
     ) -> None:
         """Creates a new synchronous Connect client.
 
@@ -98,7 +99,7 @@ class ConnectClientSync:
             timeout_ms: The timeout for requests in milliseconds
             read_max_bytes: The maximum number of bytes to read from the response
             interceptors: A list of interceptors to apply to requests
-            session: An httpx Client to use for requests
+            http_client: A pyqwest SyncClient to use for requests
         """
         self._address = address
         self._codec = get_proto_json_codec() if proto_json else get_proto_binary_codec()
@@ -108,12 +109,11 @@ class ConnectClientSync:
         self._send_compression = _client_shared.resolve_send_compression(
             send_compression
         )
-        if session:
-            self._session = session
-            self._close_client = False
+        if http_client:
+            self._http_client = http_client
         else:
-            self._session = httpx.Client(timeout=_convert_connect_timeout(timeout_ms))
-            self._close_client = True
+            # Use shared default transport if not specified
+            self._http_client = SyncClient()
         self._closed = False
 
         if grpc:
@@ -168,8 +168,6 @@ class ConnectClientSync:
         """Close the HTTP client. After closing, the client cannot be used to make requests."""
         if not self._closed:
             self._closed = True
-            if self._close_client:
-                self._session.close()
 
     def __enter__(self) -> Self:
         return self
@@ -269,12 +267,12 @@ class ConnectClientSync:
                 self._send_request_bidi_stream(iter([request]), ctx)
             )
 
-        request_headers = httpx.Headers(list(ctx.request_headers().allitems()))
+        request_headers = HTTPHeaders(ctx.request_headers().allitems())
         url = f"{self._address}/{ctx.method().service_name}/{ctx.method().name}"
         if (timeout_ms := ctx.timeout_ms()) is not None:
-            timeout = _convert_connect_timeout(timeout_ms)
+            timeout_s = timeout_ms / 1000.0
         else:
-            timeout = USE_CLIENT_DEFAULT
+            timeout_s = None
 
         try:
             request_data = self._codec.encode(request)
@@ -285,29 +283,29 @@ class ConnectClientSync:
                 params = _client_shared.prepare_get_params(
                     self._codec, request_data, request_headers
                 )
+                params_str = urlencode(params)
+                url = f"{url}?{params_str}"
                 request_headers.pop("content-type", None)
-                resp = self._session.get(
-                    url=url, headers=request_headers, params=params, timeout=timeout
+                resp = self._http_client.get(
+                    url=url, headers=request_headers, timeout=timeout_s
                 )
             else:
-                resp = self._session.post(
+                resp = self._http_client.post(
                     url=url,
                     headers=request_headers,
                     content=request_data,
-                    timeout=timeout,
+                    timeout=timeout_s,
                 )
 
             self._protocol.validate_response(
-                self._codec.name(),
-                resp.status_code,
-                resp.headers.get("content-type", ""),
+                self._codec.name(), resp.status, resp.headers.get("content-type", "")
             )
-            # Decompression itself is handled by httpx, but we validate it
+            # Decompression itself is handled by pyqwest, but we validate it
             # by resolving it.
             self._protocol.handle_response_compression(resp.headers, stream=False)
             handle_response_headers(resp.headers)
 
-            if resp.status_code == 200:
+            if resp.status == 200:
                 if (
                     self._read_max_bytes is not None
                     and len(resp.content) > self._read_max_bytes
@@ -321,7 +319,7 @@ class ConnectClientSync:
                 self._codec.decode(resp.content, response)
                 return response
             raise ConnectWireError.from_response(resp).to_exception()
-        except (httpx.TimeoutException, TimeoutError) as e:
+        except TimeoutError as e:
             raise ConnectError(Code.DEADLINE_EXCEEDED, "Request timed out") from e
         except ConnectError:
             raise
@@ -341,31 +339,31 @@ class ConnectClientSync:
     def _send_request_bidi_stream(
         self, request: Iterator[REQ], ctx: RequestContext[REQ, RES]
     ) -> Iterator[RES]:
-        request_headers = httpx.Headers(list(ctx.request_headers().allitems()))
+        request_headers = HTTPHeaders(ctx.request_headers().allitems())
         url = f"{self._address}/{ctx.method().service_name}/{ctx.method().name}"
         if (timeout_ms := ctx.timeout_ms()) is not None:
-            timeout = _convert_connect_timeout(timeout_ms)
+            timeout_s = timeout_ms / 1000.0
         else:
-            timeout = USE_CLIENT_DEFAULT
+            timeout_s = None
 
         stream_error: Exception | None = None
         reader: EnvelopeReader | None = None
-        resp: httpx.Response | None = None
+        resp: SyncResponse | None = None
         try:
             request_data = _streaming_request_content(
                 request, self._codec, self._send_compression
             )
 
-            with self._session.stream(
+            with self._http_client.stream(
                 method="POST",
                 url=url,
                 headers=request_headers,
                 content=request_data,
-                timeout=timeout,
+                timeout=timeout_s,
             ) as resp:
                 handle_response_headers(resp.headers)
 
-                if resp.status_code == 200:
+                if resp.status == 200:
                     self._protocol.validate_stream_response(
                         self._codec.name(), resp.headers.get("content-type", "")
                     )
@@ -379,7 +377,7 @@ class ConnectClientSync:
                         self._read_max_bytes,
                     )
                     try:
-                        for chunk in resp.iter_bytes():
+                        for chunk in resp.content:
                             yield from reader.feed(chunk)
                     except ConnectError as e:
                         stream_error = e
@@ -391,10 +389,20 @@ class ConnectClientSync:
                     # https://github.com/hyperium/hyper/issues/3681#issuecomment-3734084436
                     if (t := ctx.timeout_ms()) is not None and t <= 0:
                         raise TimeoutError
+
                     reader.handle_response_complete(resp)
                 else:
-                    raise ConnectWireError.from_response(resp).to_exception()
-        except (httpx.TimeoutException, TimeoutError) as e:
+                    content = bytearray()
+                    for chunk in resp.content:
+                        content.extend(chunk)
+                    fres = FullResponse(
+                        status=resp.status,
+                        headers=resp.headers,
+                        content=bytes(content),
+                        trailers=resp.trailers,
+                    )
+                    raise ConnectWireError.from_response(fres).to_exception()
+        except TimeoutError as e:
             raise ConnectError(Code.DEADLINE_EXCEEDED, "Request timed out") from e
         except ConnectError:
             raise
@@ -413,17 +421,6 @@ class ConnectClientSync:
                     reader.handle_response_complete(resp, rst_err)
                 raise rst_err from e
             raise ConnectError(Code.UNAVAILABLE, str(e)) from e
-
-
-# Convert a timeout with connect semantics to a httpx.Timeout. Connect timeouts
-# should apply to an entire operation but this is difficult in synchronous Python code
-# to do cross-platform. For now, we just apply the timeout to all httpx timeouts
-# if provided, or default to no read/write timeouts but with a connect timeout if
-# not provided to match connect-go behavior as closely as possible.
-def _convert_connect_timeout(timeout_ms: float | None) -> Timeout:
-    if timeout_ms is None:
-        return Timeout(None, connect=30.0)
-    return Timeout(timeout_ms / 1000.0)
 
 
 def _streaming_request_content(

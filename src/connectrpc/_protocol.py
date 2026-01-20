@@ -15,7 +15,8 @@ from .errors import ConnectError
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, Sequence
 
-    import httpx
+    from pyqwest import FullResponse
+    from pyqwest import Headers as HTTPHeaders
 
     from ._codec import Codec
     from ._compression import Compression
@@ -97,16 +98,14 @@ class ConnectWireError:
         return ConnectWireError(Code.UNKNOWN, str(exc), details=())
 
     @staticmethod
-    def from_response(response: httpx.Response) -> ConnectWireError:
+    def from_response(response: FullResponse) -> ConnectWireError:
         try:
             data = response.json()
         except Exception:
             data = None
         if isinstance(data, dict):
-            return ConnectWireError.from_dict(
-                data, response.status_code, Code.UNAVAILABLE
-            )
-        return ConnectWireError.from_http_status(response.status_code)
+            return ConnectWireError.from_dict(data, response.status, Code.UNAVAILABLE)
+        return ConnectWireError.from_http_status(response.status)
 
     @staticmethod
     def from_dict(
@@ -243,7 +242,7 @@ class ClientProtocol(Protocol):
         ...
 
     def handle_response_compression(
-        self, headers: httpx.Headers, *, stream: bool
+        self, headers: HTTPHeaders, *, stream: bool
     ) -> Compression:
         """Handles response compression based on the response headers."""
         ...

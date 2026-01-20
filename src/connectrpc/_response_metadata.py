@@ -10,20 +10,20 @@ if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
     from types import TracebackType
 
-    from httpx import Headers as HttpxHeaders
+    from pyqwest import Headers as HTTPHeaders
 
 
 _current_response = ContextVar["ResponseMetadata"]("connectrpc_current_response")
 
 
-def handle_response_headers(headers: HttpxHeaders) -> None:
+def handle_response_headers(headers: HTTPHeaders) -> None:
     response = _current_response.get(None)
     if not response:
         return
 
     response_headers: Headers = Headers()
     response_trailers: Headers = Headers()
-    for key, value in headers.multi_items():
+    for key, value in headers.items():
         if key.startswith("trailer-"):
             normalized_key = key[len("trailer-") :]
             obj = response_trailers
@@ -37,14 +37,19 @@ def handle_response_headers(headers: HttpxHeaders) -> None:
         response._trailers = response_trailers  # noqa: SLF001
 
 
-def handle_response_trailers(trailers: Mapping[str, Sequence[str]]) -> None:
+def handle_response_trailers(
+    trailers: HTTPHeaders | Mapping[str, Sequence[str]],
+) -> None:
     response = _current_response.get(None)
     if not response:
         return
     response_trailers = response.trailers()
-    for key, values in trailers.items():
-        for value in values:
+    for key, value in trailers.items():
+        if isinstance(value, str):
             response_trailers.add(key, value)
+        else:
+            for v in value:
+                response_trailers.add(key, v)
     if response_trailers:
         response._trailers = response_trailers  # noqa: SLF001
 
