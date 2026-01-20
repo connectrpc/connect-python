@@ -74,8 +74,6 @@ Alternatively, download a precompiled binary from the
 application should include `connect-python` as a dependency for the runtime
 component.
 
-For more usage details, see the [docs](./docs/usage.md).
-
 ### Basic Client Usage
 
 ```python
@@ -137,7 +135,7 @@ if __name__ == "__main__":
     main()
 ```
 
-For more detailed usage including streaming, interceptors, and advanced features, see the [documentation](./docs/usage.md).
+Check out [the docs](https://connectrpc.com/docs/python/getting-started) for more detailed usage including [streaming](https://connectrpc.com/docs/python/streaming), [interceptors](https://connectrpc.com/docs/python/interceptors), and other advanced features.
 
 ## Streaming Support
 
