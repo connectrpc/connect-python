@@ -45,7 +45,7 @@ dev = [
     "hypercorn==0.17.3",
     "granian==2.5.7",
     "grpcio-tools==1.76.0",
-    "gunicorn[gevent]==23.0.0",
+    "gunicorn==23.0.0",
     "just-bin==1.42.4; sys_platform != 'win32'",
     "pyqwest==0.1.0",
     "pyright[nodejs]==1.1.405",
@@ -83,7 +83,7 @@ module-name = "connectrpc"
 [tool.pytest]
 strict = true
 testpaths = ["test"]
-timeout = "1800" # 30 min
+timeout = "1800"     # 30 min
 
 [tool.ruff.format]
 skip-magic-trailing-comma = true

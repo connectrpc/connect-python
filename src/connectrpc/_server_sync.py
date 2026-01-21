@@ -566,28 +566,22 @@ def _response_stream(
     ctx: RequestContext,
 ) -> Iterable[bytes]:
     error: Exception | None = None
-    exited = False
     try:
         body = writer.write(first_response)
         yield body
         for message in response_stream:
             body = writer.write(message)
             yield body
-    except GeneratorExit:
-        # gunicorn closing the connection, if we try to yield further it will just
-        # spam logs.
-        exited = True
     except Exception as e:
         error = e
-    finally:
-        if not exited:
-            yield _end_response(
-                writer.end(
-                    ctx.response_trailers(),
-                    ConnectWireError.from_exception(error) if error else None,
-                ),
-                send_trailers,
-            )
+
+    yield _end_response(
+        writer.end(
+            ctx.response_trailers(),
+            ConnectWireError.from_exception(error) if error else None,
+        ),
+        send_trailers,
+    )
 
 
 def _consume_single_request(stream: Iterator[_REQ]) -> _REQ:
