@@ -18,39 +18,11 @@ _skipped_tests_sync = [
     "Client Cancellation/**",
 ]
 
-_httpx_opts = [
-    # Trailers not supported
-    "--skip",
-    "**/Protocol:PROTOCOL_GRPC/**",
-    "--skip",
-    "gRPC Trailers/**",
-    "--skip",
-    "gRPC Unexpected Responses/**",
-    "--skip",
-    "gRPC Empty Responses/**",
-    "--skip",
-    "gRPC Proto Sub-Format Responses/**",
-    # Bidirectional streaming not supported
-    "--skip",
-    "**/full-duplex/**",
-    # Cancellation delivery isn't reliable
-    "--known-flaky",
-    "Client Cancellation/**",
-    "--known-flaky",
-    "Timeouts/**",
-]
 
-
-@pytest.mark.parametrize("client", ["httpx", "pyqwest"])
-def test_client_sync(client: str) -> None:
+def test_client_sync() -> None:
     args = maybe_patch_args_with_debug(
-        [sys.executable, _client_py_path, "--mode", "sync", "--client", client]
+        [sys.executable, _client_py_path, "--mode", "sync"]
     )
-
-    opts = []
-    match client:
-        case "httpx":
-            opts = _httpx_opts
 
     result = subprocess.run(
         [
@@ -61,7 +33,6 @@ def test_client_sync(client: str) -> None:
             _config_path,
             "--mode",
             "client",
-            *opts,
             *_skipped_tests_sync,
             "--",
             *args,
@@ -74,16 +45,10 @@ def test_client_sync(client: str) -> None:
         pytest.fail(f"\n{result.stdout}\n{result.stderr}")
 
 
-@pytest.mark.parametrize("client", ["httpx", "pyqwest"])
-def test_client_async(client: str) -> None:
+def test_client_async() -> None:
     args = maybe_patch_args_with_debug(
-        [sys.executable, _client_py_path, "--mode", "async", "--client", client]
+        [sys.executable, _client_py_path, "--mode", "async"]
     )
-
-    opts = []
-    match client:
-        case "httpx":
-            opts = _httpx_opts
 
     result = subprocess.run(
         [
@@ -94,7 +59,6 @@ def test_client_async(client: str) -> None:
             _config_path,
             "--mode",
             "client",
-            *opts,
             "--",
             *args,
         ],

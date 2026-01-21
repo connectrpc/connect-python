@@ -9,7 +9,7 @@ maintainers = [
     { name = "Yasushi Itoh", email = "i2y.may.roku@gmail.com" },
 ]
 requires-python = ">= 3.10"
-dependencies = ["httpx>=0.28.1", "protobuf>=5.28"]
+dependencies = ["protobuf>=5.28", "pyqwest>=0.3.2"]
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["rpc", "grpc", "connect", "protobuf", "http"]
@@ -41,13 +41,11 @@ dev = [
     "bump-my-version==1.2.4",
     "connect-python-example",
     "daphne==4.2.1",
-    "httpx[http2]==0.28.1",
     "hypercorn==0.17.3",
     "granian==2.5.7",
     "grpcio-tools==1.76.0",
     "gunicorn==23.0.0",
     "just-bin==1.42.4; sys_platform != 'win32'",
-    "pyqwest==0.1.0",
     "pyright[nodejs]==1.1.405",
     "pyvoy==0.2.0",
     "ruff~=0.13.2",
@@ -120,7 +118,7 @@ extend-select = [
     "RET",
     # This rule is a bit strict since accessing private members within this package can be
     # useful to reduce public API exposure. But it is important to not access private members
-    # of dependencies like httpx so we enable it and ignore the locations where we need to.
+    # of external dependencies so we enable it and ignore the locations where we need to.
     "SLF",
     "SIM",
     "SLOT",

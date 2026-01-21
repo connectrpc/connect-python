@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from httpx import ASGITransport, AsyncClient, Client, WSGITransport
+from pyqwest import Client, SyncClient
+from pyqwest.testing import ASGITransport, WSGITransport
 
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
@@ -32,7 +33,7 @@ def test_roundtrip_sync(proto_json: bool, compression: str) -> None:
     app = HaberdasherWSGIApplication(RoundtripHaberdasherSync())
     with HaberdasherClientSync(
         "http://localhost",
-        session=Client(transport=WSGITransport(app=app)),
+        http_client=SyncClient(WSGITransport(app=app)),
         proto_json=proto_json,
         send_compression=compression,
         accept_compression=[compression] if compression else None,
@@ -51,10 +52,10 @@ async def test_roundtrip_async(proto_json: bool, compression: str) -> None:
             return Hat(size=request.inches, color="green")
 
     app = HaberdasherASGIApplication(DetailsHaberdasher())
-    transport = ASGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    transport = ASGITransport(app)
     async with HaberdasherClient(
         "http://localhost",
-        session=AsyncClient(transport=transport),
+        http_client=Client(transport),
         proto_json=proto_json,
         send_compression=compression,
         accept_compression=[compression] if compression else None,
@@ -78,12 +79,12 @@ async def test_roundtrip_response_stream_async(
             raise ConnectError(Code.RESOURCE_EXHAUSTED, "No more hats available")
 
     app = HaberdasherASGIApplication(StreamingHaberdasher())
-    transport = ASGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    transport = ASGITransport(app)
 
     hats: list[Hat] = []
     async with HaberdasherClient(
         "http://localhost",
-        session=AsyncClient(transport=transport),
+        http_client=Client(transport=transport),
         proto_json=proto_json,
         send_compression=compression,
         accept_compression=[compression] if compression else None,
@@ -125,10 +126,10 @@ def test_message_limit_sync(client_bad: bool, compression: str) -> None:
             yield good_hat if client_bad else bad_hat
 
     app = HaberdasherWSGIApplication(LargeHaberdasher(), read_max_bytes=100)
-    transport = WSGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    transport = WSGITransport(app)
     with HaberdasherClientSync(
         "http://localhost",
-        session=Client(transport=transport),
+        http_client=SyncClient(transport),
         send_compression=compression,
         accept_compression=[compression] if compression else None,
         read_max_bytes=100,
@@ -190,10 +191,10 @@ async def test_message_limit_async(client_bad: bool, compression: str) -> None:
             yield good_hat if client_bad else bad_hat
 
     app = HaberdasherASGIApplication(LargeHaberdasher(), read_max_bytes=100)
-    transport = ASGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    transport = ASGITransport(app)
     async with HaberdasherClient(
         "http://localhost",
-        session=AsyncClient(transport=transport),
+        http_client=Client(transport=transport),
         send_compression=compression,
         accept_compression=[compression] if compression else None,
         read_max_bytes=100,

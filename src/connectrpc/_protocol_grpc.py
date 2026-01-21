@@ -25,7 +25,8 @@ from .request import Headers, RequestContext
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
 
-    import httpx
+    from pyqwest import Headers as HTTPHeaders
+    from pyqwest import Response, SyncResponse
 
     from ._codec import Codec
     from ._compression import Compression
@@ -221,7 +222,7 @@ class GRPCClientProtocol:
             )
 
     def handle_response_compression(
-        self, headers: httpx.Headers, *, stream: bool
+        self, headers: HTTPHeaders, *, stream: bool
     ) -> Compression:
         encoding = headers.get(GRPC_HEADER_COMPRESSION)
         if not encoding:
@@ -265,15 +266,11 @@ class GRPCEnvelopeReader(EnvelopeReader[RES]):
         return False
 
     def handle_response_complete(
-        self, response: httpx.Response, e: ConnectError | None = None
+        self, response: Response | SyncResponse, e: ConnectError | None = None
     ) -> None:
-        get_trailers = response.extensions.get("get_trailers")
-        if not get_trailers:
-            msg = "gRPC client support requires using an HTTPX-compatible client that supports trailers"
-            raise RuntimeError(msg)
+        trailers = response.trailers
         # Go ahead and feed HTTP trailers regardless of gRPC semantics.
-        trailers: httpx.Headers = get_trailers()
-        handle_response_trailers({k: trailers.get_list(k) for k in trailers})
+        handle_response_trailers(trailers)
 
         # Now handle gRPC trailers. They are either the HTTP trailers if there was body present
         # or HTTP headers if there was no body.

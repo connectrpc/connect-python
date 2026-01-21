@@ -25,7 +25,7 @@ from .request import Headers, RequestContext
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
 
-    import httpx
+    import pyqwest
 
     from ._codec import Codec
     from ._compression import Compression
@@ -269,7 +269,7 @@ class ConnectClientProtocol:
             )
 
     def handle_response_compression(
-        self, headers: httpx.Headers, *, stream: bool
+        self, headers: pyqwest.Headers, *, stream: bool
     ) -> Compression:
         compression_header = (
             CONNECT_STREAMING_HEADER_COMPRESSION

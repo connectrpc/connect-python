@@ -4,7 +4,8 @@ from typing import NoReturn
 
 import pytest
 from google.protobuf.struct_pb2 import Struct, Value
-from httpx import ASGITransport, AsyncClient, Client, WSGITransport
+from pyqwest import Client, SyncClient
+from pyqwest.testing import ASGITransport, WSGITransport
 
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError, pack_any
@@ -35,7 +36,7 @@ def test_details_sync() -> None:
     app = HaberdasherWSGIApplication(DetailsHaberdasherSync())
     with (
         HaberdasherClientSync(
-            "http://localhost", session=Client(transport=WSGITransport(app=app))
+            "http://localhost", http_client=SyncClient(transport=WSGITransport(app=app))
         ) as client,
         pytest.raises(ConnectError) as exc_info,
     ):
@@ -65,9 +66,9 @@ async def test_details_async() -> None:
             )
 
     app = HaberdasherASGIApplication(DetailsHaberdasher())
-    transport = ASGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    transport = ASGITransport(app)
     async with HaberdasherClient(
-        "http://localhost", session=AsyncClient(transport=transport)
+        "http://localhost", http_client=Client(transport=transport)
     ) as client:
         with pytest.raises(ConnectError) as exc_info:
             await client.make_hat(request=Size(inches=10))
