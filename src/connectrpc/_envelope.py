@@ -11,7 +11,7 @@ from .errors import ConnectError
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    import httpx
+    from pyqwest import Response, SyncResponse
 
     from ._codec import Codec
     from ._protocol import ConnectWireError
@@ -39,7 +39,7 @@ class EnvelopeReader(Generic[_RES]):
 
         self._next_message_length = None
 
-    def feed(self, data: bytes) -> Iterator[_RES]:
+    def feed(self, data: bytes | memoryview | bytearray) -> Iterator[_RES]:
         self._buffer.extend(data)
         return self._read_messages()
 
@@ -93,7 +93,7 @@ class EnvelopeReader(Generic[_RES]):
         return False
 
     def handle_response_complete(
-        self, response: httpx.Response, e: ConnectError | None = None
+        self, response: Response | SyncResponse, e: ConnectError | None = None
     ) -> None:
         """Handle any client finalization needed when the response is complete.
         This is typically used to process trailers for gRPC.

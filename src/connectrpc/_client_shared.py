@@ -5,7 +5,8 @@ import re
 from http import HTTPStatus
 from typing import TYPE_CHECKING, TypeVar
 
-from httpx import RemoteProtocolError
+from pyqwest import Headers as HTTPHeaders
+from pyqwest import StreamError, StreamErrorCode
 
 from . import _compression
 from ._codec import CODEC_NAME_JSON, CODEC_NAME_JSON_CHARSET_UTF8, Codec
@@ -21,8 +22,6 @@ from .code import Code
 from .errors import ConnectError
 
 if TYPE_CHECKING:
-    from httpx import Headers as HttpxHeaders
-
     from .request import RequestContext
 
 
@@ -44,7 +43,7 @@ def resolve_send_compression(compression_name: str | None) -> Compression | None
 
 
 def prepare_get_params(
-    codec: Codec, request_data: bytes, headers: HttpxHeaders
+    codec: Codec, request_data: bytes, headers: HTTPHeaders
 ) -> dict[str, str]:
     params = {"connect": f"v{CONNECT_PROTOCOL_VERSION}"}
     if request_data:
@@ -138,42 +137,33 @@ _stream_error_code_regex = re.compile(
 def maybe_map_stream_reset(
     e: Exception, ctx: RequestContext[REQ, RES]
 ) -> ConnectError | None:
-    if not isinstance(e, RemoteProtocolError):
+    if not isinstance(e, StreamError):
         return None
 
     msg = str(e)
-    # HTTPX serializes httpcore exceptions to string unfortunately
-    # https://github.com/encode/httpx/blob/ae1b9f66238f75ced3ced5e4485408435de10768/httpx/_transports/default.py#L117
-    match = _stream_error_code_regex.match(msg)
-    if not match:
-        return None
-
-    # don't need when httpx without h2 is installed
-    from h2.errors import ErrorCodes  # noqa: PLC0415
-
-    match int(match.group(1)):
+    match e.code:
         case (
-            ErrorCodes.NO_ERROR
-            | ErrorCodes.PROTOCOL_ERROR
-            | ErrorCodes.INTERNAL_ERROR
-            | ErrorCodes.FLOW_CONTROL_ERROR
-            | ErrorCodes.SETTINGS_TIMEOUT
-            | ErrorCodes.FRAME_SIZE_ERROR
-            | ErrorCodes.COMPRESSION_ERROR
-            | ErrorCodes.CONNECT_ERROR
+            StreamErrorCode.NO_ERROR
+            | StreamErrorCode.PROTOCOL_ERROR
+            | StreamErrorCode.INTERNAL_ERROR
+            | StreamErrorCode.FLOW_CONTROL_ERROR
+            | StreamErrorCode.SETTINGS_TIMEOUT
+            | StreamErrorCode.FRAME_SIZE_ERROR
+            | StreamErrorCode.COMPRESSION_ERROR
+            | StreamErrorCode.CONNECT_ERROR
         ):
             return ConnectError(Code.INTERNAL, msg)
-        case ErrorCodes.REFUSED_STREAM:
+        case StreamErrorCode.REFUSED_STREAM:
             return ConnectError(Code.UNAVAILABLE, msg)
-        case ErrorCodes.CANCEL:
+        case StreamErrorCode.CANCEL:
             # Some servers use CANCEL when deadline expires. We can't differentiate
             # that from normal cancel without checking our own deadline.
             if (t := ctx.timeout_ms()) is not None and t <= 0:
                 return ConnectError(Code.DEADLINE_EXCEEDED, msg)
             return ConnectError(Code.CANCELED, msg)
-        case ErrorCodes.ENHANCE_YOUR_CALM:
+        case StreamErrorCode.ENHANCE_YOUR_CALM:
             return ConnectError(Code.RESOURCE_EXHAUSTED, f"Bandwidth exhausted: {msg}")
-        case ErrorCodes.INADEQUATE_SECURITY:
+        case StreamErrorCode.INADEQUATE_SECURITY:
             return ConnectError(
                 Code.PERMISSION_DENIED, f"Transport protocol insecure: {msg}"
             )

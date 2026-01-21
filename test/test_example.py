@@ -27,7 +27,6 @@ def test_sync(sync_server: WSGIServer) -> None:
     ) as client:
         response = client.say(SayRequest(sentence="Hello"))
         assert len(response.sentence) > 0
-    assert client._session.is_closed
 
 
 @pytest.mark.asyncio
@@ -37,4 +36,3 @@ async def test_async_client_basic(sync_server: WSGIServer) -> None:
     ) as client:
         response = await client.say(SayRequest(sentence="Hello"))
         assert len(response.sentence) > 0
-    assert client._session.is_closed

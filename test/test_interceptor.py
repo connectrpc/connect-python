@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport, AsyncClient, Client, WSGITransport
+from pyqwest import Client, SyncClient
+from pyqwest.testing import ASGITransport, WSGITransport
 
 from .haberdasher_connect import (
     Haberdasher,
@@ -65,11 +66,11 @@ async def client_async(interceptor: RequestInterceptor):
                 yield Hat(size=s.inches, color=next(colors))
 
     app = HaberdasherASGIApplication(SimpleHaberdasher(), interceptors=(interceptor,))
-    transport = ASGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    transport = ASGITransport(app)
     async with HaberdasherClient(
         "http://localhost",
         interceptors=(interceptor,),
-        session=AsyncClient(transport=transport),
+        http_client=Client(transport=transport),
     ) as client:
         yield client
 
@@ -150,11 +151,11 @@ def client_sync(interceptor: RequestInterceptor):
     app = HaberdasherWSGIApplication(
         SimpleHaberdasherSync(), interceptors=(interceptor,)
     )
-    transport = WSGITransport(app)  # pyright:ignore[reportArgumentType] - httpx type is not complete
+    transport = WSGITransport(app)
     with HaberdasherClientSync(
         "http://localhost",
         interceptors=(interceptor,),
-        session=Client(transport=transport),
+        http_client=SyncClient(transport),
     ) as client:
         yield client
 
