@@ -1,6 +1,6 @@
 [project]
 name = "connect-python"
-version = "0.7.1"
+version = "0.8.0"
 description = "Server and client runtime library for Connect RPC"
 maintainers = [
     { name = "Anuraag Agrawal", email = "anuraaga@gmail.com" },
@@ -9,7 +9,7 @@ maintainers = [
     { name = "Yasushi Itoh", email = "i2y.may.roku@gmail.com" },
 ]
 requires-python = ">= 3.10"
-dependencies = ["protobuf>=5.28", "pyqwest>=0.3.2"]
+dependencies = ["protobuf>=5.28", "pyqwest>=0.3.3"]
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["rpc", "grpc", "connect", "protobuf", "http"]
@@ -246,7 +246,7 @@ connect-python = { workspace = true }
 connect-python-example = { workspace = true }
 
 [tool.bumpversion]
-current_version = "0.7.1"
+current_version = "0.8.0"
 files = [
     { filename = "pyproject.toml" },
     { filename = "protoc-gen-connect-python/pyproject.toml" },

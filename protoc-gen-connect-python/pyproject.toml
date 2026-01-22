@@ -1,6 +1,6 @@
 [project]
 name = "protoc-gen-connect-python"
-version = "0.7.1"
+version = "0.8.0"
 description = "Code generator for connect-python"
 maintainers = [
     { name = "Anuraag Agrawal", email = "anuraaga@gmail.com" },
