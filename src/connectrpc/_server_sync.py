@@ -554,8 +554,17 @@ def _request_stream(
     read_max_bytes: int | None = None,
 ) -> Iterator[_REQ]:
     reader = EnvelopeReader(request_class, codec, compression, read_max_bytes)
-    for chunk in _read_body(environ):
-        yield from reader.feed(chunk)
+    try:
+        for chunk in _read_body(environ):
+            yield from reader.feed(chunk)
+    except ConnectError:
+        if environ.get("SERVER_PROTOCOL", "").startswith("HTTP/1"):
+            # In HTTP/1, the request body should be drained before returning. Generally it's
+            # best for the application server to handle this, but gunicorn is a famous
+            # server that doesn't do so, so we go ahead and do it ourselves.
+            for _ in _read_body(environ):
+                pass
+        raise
 
 
 def _response_stream(
