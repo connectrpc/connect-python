@@ -574,14 +574,14 @@ def _response_stream(
             yield body
     except Exception as e:
         error = e
-    finally:
-        yield _end_response(
-            writer.end(
-                ctx.response_trailers(),
-                ConnectWireError.from_exception(error) if error else None,
-            ),
-            send_trailers,
-        )
+
+    yield _end_response(
+        writer.end(
+            ctx.response_trailers(),
+            ConnectWireError.from_exception(error) if error else None,
+        ),
+        send_trailers,
+    )
 
 
 def _consume_single_request(stream: Iterator[_REQ]) -> _REQ:

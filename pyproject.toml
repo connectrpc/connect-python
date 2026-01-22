@@ -44,7 +44,7 @@ dev = [
     "hypercorn==0.17.3",
     "granian==2.5.7",
     "grpcio-tools==1.76.0",
-    "gunicorn[gevent]==23.0.0",
+    "gunicorn==23.0.0",
     "just-bin==1.42.4; sys_platform != 'win32'",
     "pyright[nodejs]==1.1.405",
     "pyvoy==0.2.0",

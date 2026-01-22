@@ -538,8 +538,10 @@ async def serve_gunicorn(
     args = [
         "--bind=127.0.0.1:0",
         "--workers=4",
-        "--worker-class=gevent",
+        "--worker-class=gthread",
+        "--threads=16",
         "--reuse-port",
+        "--keep-alive=0",
     ]
     if certfile:
         args.append(f"--certfile={certfile}")
