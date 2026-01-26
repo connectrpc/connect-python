@@ -88,7 +88,17 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
         read_max_bytes: int | None = None,
         compressions: Iterable[str] | None = None,
     ) -> None:
-        """Initialize the ASGI application."""
+        """Initialize the ASGI application.
+
+        Args:
+            service: The service instance or async generator that yields the service during lifespan.
+            endpoints: A mapping of URL paths to endpoints resolved from service.
+            interceptors: A sequence of interceptors to apply to the endpoints.
+            read_max_bytes: Maximum size of request messages.
+            compressions: A sequence of supported compression algorithms. If unset,
+                          defaults to gzip along with zstd and br if available.
+                          If set to empty, disables compression.
+        """
         super().__init__()
         self._service = service
         self._endpoints = endpoints

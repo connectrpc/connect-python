@@ -167,7 +167,16 @@ class ConnectWSGIApplication(ABC):
         read_max_bytes: int | None = None,
         compressions: Iterable[str] | None = None,
     ) -> None:
-        """Initialize the WSGI application."""
+        """Initialize the WSGI application.
+
+        Args:
+            endpoints: A mapping of URL paths to service endpoints.
+            interceptors: A sequence of interceptors to apply to the endpoints.
+            read_max_bytes: Maximum size of request messages.
+            compressions: A sequence of supported compression algorithms. If unset,
+                          defaults to gzip along with zstd and br if available.
+                          If set to empty, disables compression.
+        """
         super().__init__()
         if interceptors:
             interceptors = [
