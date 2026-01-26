@@ -29,7 +29,7 @@ class GZipCompression(Compression):
         return "gzip"
 
     def compress(self, data: bytes | bytearray) -> bytes:
-        return gzip.compress(data)
+        return gzip.compress(data, compresslevel=6)
 
     def decompress(self, data: bytes | bytearray) -> bytes:
         return gzip.decompress(data)
@@ -45,7 +45,7 @@ try:
             return "br"
 
         def compress(self, data: bytes | bytearray) -> bytes:
-            return brotli.compress(data)
+            return brotli.compress(data, quality=6)
 
         def decompress(self, data: bytes | bytearray) -> bytes:
             return brotli.decompress(data)
