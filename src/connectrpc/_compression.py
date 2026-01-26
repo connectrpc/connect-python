@@ -45,7 +45,7 @@ try:
             return "br"
 
         def compress(self, data: bytes | bytearray) -> bytes:
-            return brotli.compress(data, quality=6)
+            return brotli.compress(data, quality=3)
 
         def decompress(self, data: bytes | bytearray) -> bytes:
             return brotli.decompress(data)
