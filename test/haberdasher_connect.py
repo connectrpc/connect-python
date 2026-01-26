@@ -71,6 +71,7 @@ class HaberdasherASGIApplication(ConnectASGIApplication[Haberdasher]):
         *,
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
+        compressions: Iterable[str] | None = None,
     ) -> None:
         super().__init__(
             service=service,
@@ -138,6 +139,7 @@ class HaberdasherASGIApplication(ConnectASGIApplication[Haberdasher]):
             },
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
+            compressions=compressions,
         )
 
     @property
@@ -308,6 +310,7 @@ class HaberdasherWSGIApplication(ConnectWSGIApplication):
         service: HaberdasherSync,
         interceptors: Iterable[InterceptorSync] = (),
         read_max_bytes: int | None = None,
+        compressions: Iterable[str] | None = None,
     ) -> None:
         super().__init__(
             endpoints={
@@ -374,6 +377,7 @@ class HaberdasherWSGIApplication(ConnectWSGIApplication):
             },
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
+            compressions=compressions,
         )
 
     @property
