@@ -95,7 +95,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
             endpoints: A mapping of URL paths to endpoints resolved from service.
             interceptors: A sequence of interceptors to apply to the endpoints.
             read_max_bytes: Maximum size of request messages.
-            compressions: A sequence of supported compression algorithms. If unset,
+            compressions: Supported compression algorithms. If unset,
                           defaults to gzip along with zstd and br if available.
                           If set to empty, disables compression.
         """
