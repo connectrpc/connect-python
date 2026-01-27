@@ -56,6 +56,7 @@ class ElizaServiceASGIApplication(ConnectASGIApplication[ElizaService]):
         *,
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
+        compressions: Iterable[str] | None = None,
     ) -> None:
         super().__init__(
             service=service,
@@ -93,6 +94,7 @@ class ElizaServiceASGIApplication(ConnectASGIApplication[ElizaService]):
             },
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
+            compressions=compressions,
         )
 
     @property
@@ -190,6 +192,7 @@ class ElizaServiceWSGIApplication(ConnectWSGIApplication):
         service: ElizaServiceSync,
         interceptors: Iterable[InterceptorSync] = (),
         read_max_bytes: int | None = None,
+        compressions: Iterable[str] | None = None,
     ) -> None:
         super().__init__(
             endpoints={
@@ -226,6 +229,7 @@ class ElizaServiceWSGIApplication(ConnectWSGIApplication):
             },
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
+            compressions=compressions,
         )
 
     @property

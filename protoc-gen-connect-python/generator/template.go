@@ -68,7 +68,7 @@ class {{.Name}}(Protocol):{{- range .Methods }}
 {{ end }}
 
 class {{.Name}}ASGIApplication(ConnectASGIApplication[{{.Name}}]):
-    def __init__(self, service: {{.Name}} | AsyncGenerator[{{.Name}}], *, interceptors: Iterable[Interceptor]=(), read_max_bytes: int | None = None) -> None:
+    def __init__(self, service: {{.Name}} | AsyncGenerator[{{.Name}}], *, interceptors: Iterable[Interceptor]=(), read_max_bytes: int | None = None, compressions: Iterable[str] | None = None) -> None:
         super().__init__(
             service=service,
             endpoints=lambda svc: { {{- range .Methods }}
@@ -85,6 +85,7 @@ class {{.Name}}ASGIApplication(ConnectASGIApplication[{{.Name}}]):
             },
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
+            compressions=compressions,
         )
 
     @property
@@ -128,7 +129,7 @@ class {{.Name}}Sync(Protocol):{{- range .Methods }}
 
 
 class {{.Name}}WSGIApplication(ConnectWSGIApplication):
-    def __init__(self, service: {{.Name}}Sync, interceptors: Iterable[InterceptorSync]=(), read_max_bytes: int | None = None) -> None:
+    def __init__(self, service: {{.Name}}Sync, interceptors: Iterable[InterceptorSync]=(), read_max_bytes: int | None = None, compressions: Iterable[str] | None = None) -> None:
         super().__init__(
             endpoints={ {{- range .Methods }}
                 "/{{.ServiceName}}/{{.Name}}": EndpointSync.{{.EndpointType}}(
@@ -144,6 +145,7 @@ class {{.Name}}WSGIApplication(ConnectWSGIApplication):
             },
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
+            compressions=compressions,
         )
 
     @property

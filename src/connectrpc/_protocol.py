@@ -207,7 +207,7 @@ class ServerProtocol(Protocol):
         ...
 
     def negotiate_stream_compression(
-        self, headers: Headers
+        self, headers: Headers, compressions: dict[str, Compression] | None
     ) -> tuple[Compression | None, Compression]:
         """Negotiates request and response compression based on headers."""
         ...

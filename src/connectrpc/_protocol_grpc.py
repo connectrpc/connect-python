@@ -82,12 +82,12 @@ class GRPCServerProtocol:
         return "proto"
 
     def negotiate_stream_compression(
-        self, headers: Headers
+        self, headers: Headers, compressions: dict[str, Compression] | None
     ) -> tuple[Compression | None, Compression]:
         req_compression_name = headers.get(GRPC_HEADER_COMPRESSION, "identity")
         req_compression = get_compression(req_compression_name)
         accept_compression = headers.get(GRPC_HEADER_ACCEPT_COMPRESSION, "")
-        resp_compression = negotiate_compression(accept_compression)
+        resp_compression = negotiate_compression(accept_compression, compressions)
         return req_compression, resp_compression
 
 

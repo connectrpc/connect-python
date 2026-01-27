@@ -89,6 +89,7 @@ class ConformanceServiceASGIApplication(ConnectASGIApplication[ConformanceServic
         *,
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
+        compressions: Iterable[str] | None = None,
     ) -> None:
         super().__init__(
             service=service,
@@ -156,6 +157,7 @@ class ConformanceServiceASGIApplication(ConnectASGIApplication[ConformanceServic
             },
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
+            compressions=compressions,
         )
 
     @property
@@ -354,6 +356,7 @@ class ConformanceServiceWSGIApplication(ConnectWSGIApplication):
         service: ConformanceServiceSync,
         interceptors: Iterable[InterceptorSync] = (),
         read_max_bytes: int | None = None,
+        compressions: Iterable[str] | None = None,
     ) -> None:
         super().__init__(
             endpoints={
@@ -420,6 +423,7 @@ class ConformanceServiceWSGIApplication(ConnectWSGIApplication):
             },
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
+            compressions=compressions,
         )
 
     @property

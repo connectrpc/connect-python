@@ -116,9 +116,12 @@ def get_accept_encoding() -> str:
     )
 
 
-def negotiate_compression(accept_encoding: str) -> Compression:
+def negotiate_compression(
+    accept_encoding: str, compressions: dict[str, Compression] | None
+) -> Compression:
+    compressions = compressions if compressions is not None else _compressions
     for accept in accept_encoding.split(","):
-        compression = _compressions.get(accept.strip())
+        compression = compressions.get(accept.strip())
         if compression:
             return compression
     return _identity

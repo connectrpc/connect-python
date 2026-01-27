@@ -123,7 +123,7 @@ class ConnectServerProtocol:
         return codec_name_from_content_type(content_type, stream=stream)
 
     def negotiate_stream_compression(
-        self, headers: Headers
+        self, headers: Headers, compressions: dict[str, Compression] | None
     ) -> tuple[Compression, Compression]:
         req_compression_name = headers.get(
             CONNECT_STREAMING_HEADER_COMPRESSION, "identity"
@@ -132,7 +132,7 @@ class ConnectServerProtocol:
         accept_compression = headers.get(
             CONNECT_STREAMING_HEADER_ACCEPT_COMPRESSION, ""
         )
-        resp_compression = negotiate_compression(accept_compression)
+        resp_compression = negotiate_compression(accept_compression, compressions)
         return req_compression, resp_compression
 
 

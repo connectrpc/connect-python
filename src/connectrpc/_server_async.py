@@ -86,14 +86,36 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
         endpoints: Callable[[_SVC], Mapping[str, Endpoint]],
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
+        compressions: Iterable[str] | None = None,
     ) -> None:
-        """Initialize the ASGI application."""
+        """Initialize the ASGI application.
+
+        Args:
+            service: The service instance or async generator that yields the service during lifespan.
+            endpoints: A mapping of URL paths to endpoints resolved from service.
+            interceptors: A sequence of interceptors to apply to the endpoints.
+            read_max_bytes: Maximum size of request messages.
+            compressions: Supported compression algorithms. If unset,
+                          defaults to gzip along with zstd and br if available.
+                          If set to empty, disables compression.
+        """
         super().__init__()
         self._service = service
         self._endpoints = endpoints
         self._interceptors = interceptors
         self._resolved_endpoints = None
         self._read_max_bytes = read_max_bytes
+        if compressions is not None:
+            compressions_dict: dict[str, _compression.Compression] = {}
+            for name in compressions:
+                comp = _compression.get_compression(name)
+                if not comp:
+                    msg = f"unknown compression: '{name}': supported encodings are {', '.join(_compression.get_available_compressions())}"
+                    raise ValueError(msg)
+                compressions_dict[name] = comp
+            self._compressions = compressions_dict
+        else:
+            self._compressions = None
 
     async def __call__(
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
@@ -225,7 +247,9 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
         ctx: RequestContext,
     ) -> None:
         accept_encoding = headers.get("accept-encoding", "")
-        compression = _compression.negotiate_compression(accept_encoding)
+        compression = _compression.negotiate_compression(
+            accept_encoding, self._compressions
+        )
 
         if http_method == "GET":
             request = await self._read_get_request(endpoint, codec, query_params)
@@ -347,7 +371,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
         ctx: _server_shared.RequestContext,
     ) -> None:
         req_compression, resp_compression = protocol.negotiate_stream_compression(
-            headers
+            headers, self._compressions
         )
 
         writer = protocol.create_envelope_writer(codec, resp_compression)
