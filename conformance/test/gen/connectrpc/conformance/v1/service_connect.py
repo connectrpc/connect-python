@@ -24,8 +24,10 @@ if TYPE_CHECKING:
         Iterable,
         Iterator,
         Mapping,
+        Sequence,
     )
 
+    from connectrpc.compression import Compression
     from connectrpc.interceptor import Interceptor, InterceptorSync
     from connectrpc.request import Headers, RequestContext
 
@@ -89,7 +91,7 @@ class ConformanceServiceASGIApplication(ConnectASGIApplication[ConformanceServic
         *,
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
-        compressions: Iterable[str] | None = None,
+        compressions: Sequence[Compression] | None = None,
     ) -> None:
         super().__init__(
             service=service,
@@ -356,7 +358,7 @@ class ConformanceServiceWSGIApplication(ConnectWSGIApplication):
         service: ConformanceServiceSync,
         interceptors: Iterable[InterceptorSync] = (),
         read_max_bytes: int | None = None,
-        compressions: Iterable[str] | None = None,
+        compressions: Sequence[Compression] | None = None,
     ) -> None:
         super().__init__(
             endpoints={

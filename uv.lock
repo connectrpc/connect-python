@@ -13,7 +13,6 @@ resolution-mode = "lowest-direct"
 members = [
     "connect-python",
     "connect-python-example",
-    "connect-python-noextras",
 ]
 constraints = [
     { name = "pytest", specifier = "==9.0.2" },
@@ -474,29 +473,6 @@ requires-dist = [
     { name = "flask", specifier = "==3.1.2" },
     { name = "protobuf", specifier = ">=5.28" },
     { name = "starlette", specifier = "==0.52.1" },
-]
-
-[[package]]
-name = "connect-python-noextras"
-version = "0.1.0"
-source = { virtual = "noextras" }
-dependencies = [
-    { name = "connect-python" },
-    { name = "connect-python-example" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "pytest-timeout" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "connect-python", editable = "." },
-    { name = "connect-python-example", editable = "example" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "pytest-timeout" },
 ]
 
 [[package]]

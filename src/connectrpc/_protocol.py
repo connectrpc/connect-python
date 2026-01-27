@@ -13,7 +13,7 @@ from .code import Code
 from .errors import ConnectError
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping, Sequence
+    from collections.abc import Mapping, Sequence
 
     from pyqwest import FullResponse
     from pyqwest import Headers as HTTPHeaders
@@ -207,7 +207,7 @@ class ServerProtocol(Protocol):
         ...
 
     def negotiate_stream_compression(
-        self, headers: Headers, compressions: dict[str, Compression] | None
+        self, headers: Headers, compressions: dict[str, Compression]
     ) -> tuple[Compression | None, Compression]:
         """Negotiates request and response compression based on headers."""
         ...
@@ -223,7 +223,7 @@ class ClientProtocol(Protocol):
         timeout_ms: int | None,
         codec: Codec,
         stream: bool,
-        accept_compression: Iterable[str] | None,
+        accept_compression: str,
         send_compression: Compression | None,
     ) -> RequestContext[REQ, RES]:
         """Creates a RequestContext for the given method and headers."""

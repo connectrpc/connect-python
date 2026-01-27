@@ -239,7 +239,7 @@ exclude = [
 ]
 
 [tool.uv.workspace]
-members = ["example", "noextras"]
+members = ["example"]
 
 [tool.uv.sources]
 connect-python = { workspace = true }

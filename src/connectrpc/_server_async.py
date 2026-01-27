@@ -10,8 +10,8 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING, Generic, TypeVar, cast
 from urllib.parse import parse_qs
 
-from . import _compression, _server_shared
 from ._codec import Codec, get_codec
+from ._compression import negotiate_compression, resolve_compressions
 from ._envelope import EnvelopeReader
 from ._interceptor_async import (
     BidiStreamInterceptor,
@@ -46,6 +46,9 @@ if TYPE_CHECKING:
     )
 
     from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, HTTPScope, Scope
+
+    from . import _server_shared
+    from .compression import Compression
 else:
     ASGIReceiveCallable = "asgiref.typing.ASGIReceiveCallable"
     ASGISendCallable = "asgiref.typing.ASGISendCallable"
@@ -86,7 +89,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
         endpoints: Callable[[_SVC], Mapping[str, Endpoint]],
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
-        compressions: Iterable[str] | None = None,
+        compressions: Sequence[Compression] | None = None,
     ) -> None:
         """Initialize the ASGI application.
 
@@ -95,8 +98,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
             endpoints: A mapping of URL paths to endpoints resolved from service.
             interceptors: A sequence of interceptors to apply to the endpoints.
             read_max_bytes: Maximum size of request messages.
-            compressions: Supported compression algorithms. If unset,
-                          defaults to gzip along with zstd and br if available.
+            compressions: Supported compression algorithms. If unset, defaults to gzip.
                           If set to empty, disables compression.
         """
         super().__init__()
@@ -105,17 +107,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
         self._interceptors = interceptors
         self._resolved_endpoints = None
         self._read_max_bytes = read_max_bytes
-        if compressions is not None:
-            compressions_dict: dict[str, _compression.Compression] = {}
-            for name in compressions:
-                comp = _compression.get_compression(name)
-                if not comp:
-                    msg = f"unknown compression: '{name}': supported encodings are {', '.join(_compression.get_available_compressions())}"
-                    raise ValueError(msg)
-                compressions_dict[name] = comp
-            self._compressions = compressions_dict
-        else:
-            self._compressions = None
+        self._compressions = resolve_compressions(compressions)
 
     async def __call__(
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
@@ -247,9 +239,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
         ctx: RequestContext,
     ) -> None:
         accept_encoding = headers.get("accept-encoding", "")
-        compression = _compression.negotiate_compression(
-            accept_encoding, self._compressions
-        )
+        compression = negotiate_compression(accept_encoding, self._compressions)
 
         if http_method == "GET":
             request = await self._read_get_request(endpoint, codec, query_params)
@@ -313,11 +303,11 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
 
         # Handle compression
         compression_name = params.get("compression", ["identity"])[0]
-        compression = _compression.get_compression(compression_name)
+        compression = self._compressions.get(compression_name)
         if not compression:
             raise ConnectError(
                 Code.UNIMPLEMENTED,
-                f"unknown compression: '{compression_name}': supported encodings are {', '.join(_compression.get_available_compressions())}",
+                f"unknown compression: '{compression_name}': supported encodings are {', '.join(self._compressions.keys())}",
             )
 
         # Decompress and decode message
@@ -342,11 +332,11 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
 
         # Handle compression if specified
         compression_name = headers.get("content-encoding", "identity").lower()
-        compression = _compression.get_compression(compression_name)
+        compression = self._compressions.get(compression_name)
         if not compression:
             raise ConnectError(
                 Code.UNIMPLEMENTED,
-                f"unknown compression: '{compression_name}': supported encodings are {', '.join(_compression.get_available_compressions())}",
+                f"unknown compression: '{compression_name}': supported encodings are {', '.join(self._compressions.keys())}",
             )
 
         if req_body:  # Don't decompress empty body
@@ -525,7 +515,7 @@ async def _request_stream(
     receive: ASGIReceiveCallable,
     request_class: type[_REQ],
     codec: Codec,
-    compression: _compression.Compression,
+    compression: Compression,
     read_max_bytes: int | None = None,
 ) -> AsyncIterator[_REQ]:
     reader = EnvelopeReader(request_class, codec, compression, read_max_bytes)

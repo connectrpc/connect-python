@@ -15,17 +15,12 @@ lint:
     uv run ruff format --check .
     uv run ruff check .
 
-# Typecheck Python files
+# Typecheck Python filesno
 typecheck:
     uv run pyright
 
-# Run unit tests with no extras
-[working-directory('noextras')]
-test-noextras *args:
-    uv run --exact pytest -W error {{ args }}
-
 # Run unit tests
-test *args: (test-noextras args)
+test *args:
     uv run pytest -W error {{ args }}
 
 # Run lint, typecheck and test

@@ -6,13 +6,7 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from ._codec import CODEC_NAME_JSON, CODEC_NAME_JSON_CHARSET_UTF8, Codec
-from ._compression import (
-    IdentityCompression,
-    get_accept_encoding,
-    get_available_compressions,
-    get_compression,
-    negotiate_compression,
-)
+from ._compression import IdentityCompression, negotiate_compression
 from ._envelope import EnvelopeReader, EnvelopeWriter
 from ._protocol import ConnectWireError, HTTPException
 from ._response_metadata import handle_response_trailers
@@ -23,7 +17,7 @@ from .method import IdempotencyLevel, MethodInfo
 from .request import Headers, RequestContext
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Mapping
 
     import pyqwest
 
@@ -123,12 +117,14 @@ class ConnectServerProtocol:
         return codec_name_from_content_type(content_type, stream=stream)
 
     def negotiate_stream_compression(
-        self, headers: Headers, compressions: dict[str, Compression] | None
+        self, headers: Headers, compressions: dict[str, Compression]
     ) -> tuple[Compression, Compression]:
         req_compression_name = headers.get(
             CONNECT_STREAMING_HEADER_COMPRESSION, "identity"
         )
-        req_compression = get_compression(req_compression_name) or IdentityCompression()
+        req_compression = (
+            compressions.get(req_compression_name) or IdentityCompression()
+        )
         accept_compression = headers.get(
             CONNECT_STREAMING_HEADER_ACCEPT_COMPRESSION, ""
         )
@@ -162,7 +158,7 @@ class ConnectClientProtocol:
         timeout_ms: int | None,
         codec: Codec,
         stream: bool,
-        accept_compression: Iterable[str] | None,
+        accept_compression: str,
         send_compression: Compression | None,
     ) -> RequestContext[REQ, RES]:
         match user_headers:
@@ -190,10 +186,7 @@ class ConnectClientProtocol:
             else CONNECT_UNARY_HEADER_ACCEPT_COMPRESSION
         )
 
-        if accept_compression is not None:
-            headers[accept_compression_header] = ", ".join(accept_compression)
-        else:
-            headers[accept_compression_header] = get_accept_encoding()
+        headers[accept_compression_header] = accept_compression
         if send_compression is not None:
             headers[compression_header] = send_compression.name()
         else:
@@ -269,7 +262,11 @@ class ConnectClientProtocol:
             )
 
     def handle_response_compression(
-        self, headers: pyqwest.Headers, *, stream: bool
+        self,
+        headers: pyqwest.Headers,
+        compressions: dict[str, Compression],
+        *,
+        stream: bool,
     ) -> Compression:
         compression_header = (
             CONNECT_STREAMING_HEADER_COMPRESSION
@@ -279,11 +276,11 @@ class ConnectClientProtocol:
         encoding = headers.get(compression_header)
         if not encoding:
             return IdentityCompression()
-        res = get_compression(encoding)
+        res = compressions.get(encoding)
         if not res:
             raise ConnectError(
                 Code.INTERNAL,
-                f"unknown encoding '{encoding}'; accepted encodings are {', '.join(get_available_compressions())}",
+                f"unknown encoding '{encoding}'; accepted encodings are {', '.join(compressions.keys())}",
             )
         return res
 

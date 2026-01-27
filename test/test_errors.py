@@ -170,7 +170,7 @@ _http_errors = [
         b"weird encoding",
         {"content-type": "application/proto", "content-encoding": "weird"},
         Code.INTERNAL,
-        "unknown encoding 'weird'; accepted encodings are gzip, br, zstd, identity",
+        "unknown encoding 'weird'; accepted encodings are gzip, identity",
         id="bad encoding",
     ),
 ]

@@ -5,7 +5,11 @@ from pyqwest import Client, SyncClient
 from pyqwest.testing import ASGITransport, WSGITransport
 
 from connectrpc.client import ResponseMetadata
+from connectrpc.compression.brotli import BrotliCompression
+from connectrpc.compression.gzip import GZipCompression
+from connectrpc.compression.zstd import ZstdCompression
 
+from ._util import resolve_compression
 from .haberdasher_connect import (
     Haberdasher,
     HaberdasherASGIApplication,
@@ -35,12 +39,19 @@ async def test_server_compressions_async(
         async def make_hat(self, request, ctx):
             return Hat(size=10, color="blue")
 
-    app = HaberdasherASGIApplication(SimpleHaberdasher(), compressions=compressions)
+    app = HaberdasherASGIApplication(
+        SimpleHaberdasher(), compressions=[resolve_compression(c) for c in compressions]
+    )
     with ResponseMetadata() as meta:
         client = HaberdasherClient(
             "http://localhost",
             http_client=Client(ASGITransport(app)),
-            accept_compression=["zstd", "gzip", "br"],
+            accept_compression=(
+                ZstdCompression(),
+                GZipCompression(),
+                BrotliCompression(),
+            ),
+            send_compression=None,
         )
         res = await client.make_hat(Size(inches=10))
     assert res.size == 10
@@ -63,32 +74,17 @@ def test_server_compressions_sync(compressions: tuple[str], encoding: str) -> No
         def make_hat(self, request, ctx):
             return Hat(size=10, color="blue")
 
-    app = HaberdasherWSGIApplication(SimpleHaberdasher(), compressions=compressions)
+    app = HaberdasherWSGIApplication(
+        SimpleHaberdasher(), compressions=[resolve_compression(c) for c in compressions]
+    )
     client = HaberdasherClientSync(
         "http://localhost",
         http_client=SyncClient(WSGITransport(app)),
-        accept_compression=["zstd", "gzip", "br"],
+        accept_compression=(ZstdCompression(), GZipCompression(), BrotliCompression()),
+        send_compression=None,
     )
     with ResponseMetadata() as meta:
         res = client.make_hat(Size(inches=10))
     assert res.size == 10
     assert res.color == "blue"
     assert meta.headers().get("content-encoding") == encoding
-
-
-def test_server_unsupported_compression_async() -> None:
-    class SimpleHaberdasher(HaberdasherSync):
-        def make_hat(self, request, ctx):
-            return Hat(size=10, color="blue")
-
-    with pytest.raises(ValueError, match="unknown compression"):
-        HaberdasherWSGIApplication(SimpleHaberdasher(), compressions=("unknown",))
-
-
-def test_server_unsupported_compression_sync() -> None:
-    class SimpleHaberdasher(Haberdasher):
-        async def make_hat(self, request, ctx):
-            return Hat(size=10, color="blue")
-
-    with pytest.raises(ValueError, match="unknown compression"):
-        HaberdasherASGIApplication(SimpleHaberdasher(), compressions=("unknown",))

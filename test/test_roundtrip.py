@@ -9,6 +9,7 @@ from pyqwest.testing import ASGITransport, WSGITransport
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
 
+from ._util import resolve_compression
 from .haberdasher_connect import (
     Haberdasher,
     HaberdasherASGIApplication,
@@ -24,19 +25,22 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.parametrize("proto_json", [False, True])
-@pytest.mark.parametrize("compression", ["gzip", "br", "zstd", "identity", None])
-def test_roundtrip_sync(proto_json: bool, compression: str) -> None:
+@pytest.mark.parametrize("compression_name", ["gzip", "br", "zstd", "identity"])
+def test_roundtrip_sync(proto_json: bool, compression_name: str) -> None:
     class RoundtripHaberdasherSync(HaberdasherSync):
         def make_hat(self, request, ctx):
             return Hat(size=request.inches, color="green")
 
-    app = HaberdasherWSGIApplication(RoundtripHaberdasherSync())
+    compression = resolve_compression(compression_name)
+    app = HaberdasherWSGIApplication(
+        RoundtripHaberdasherSync(), compressions=[compression]
+    )
     with HaberdasherClientSync(
         "http://localhost",
         http_client=SyncClient(WSGITransport(app=app)),
         proto_json=proto_json,
         send_compression=compression,
-        accept_compression=[compression] if compression else None,
+        accept_compression=[compression],
     ) as client:
         response = client.make_hat(request=Size(inches=10))
     assert response.size == 10
@@ -44,21 +48,22 @@ def test_roundtrip_sync(proto_json: bool, compression: str) -> None:
 
 
 @pytest.mark.parametrize("proto_json", [False, True])
-@pytest.mark.parametrize("compression", ["gzip", "br", "zstd", "identity"])
+@pytest.mark.parametrize("compression_name", ["gzip", "br", "zstd", "identity"])
 @pytest.mark.asyncio
-async def test_roundtrip_async(proto_json: bool, compression: str) -> None:
+async def test_roundtrip_async(proto_json: bool, compression_name: str) -> None:
     class DetailsHaberdasher(Haberdasher):
         async def make_hat(self, request, ctx):
             return Hat(size=request.inches, color="green")
 
-    app = HaberdasherASGIApplication(DetailsHaberdasher())
+    compression = resolve_compression(compression_name)
+    app = HaberdasherASGIApplication(DetailsHaberdasher(), compressions=[compression])
     transport = ASGITransport(app)
     async with HaberdasherClient(
         "http://localhost",
         http_client=Client(transport),
         proto_json=proto_json,
         send_compression=compression,
-        accept_compression=[compression] if compression else None,
+        accept_compression=[compression],
     ) as client:
         response = await client.make_hat(request=Size(inches=10))
     assert response.size == 10
@@ -66,10 +71,10 @@ async def test_roundtrip_async(proto_json: bool, compression: str) -> None:
 
 
 @pytest.mark.parametrize("proto_json", [False, True])
-@pytest.mark.parametrize("compression", ["gzip", "br", "zstd", "identity"])
+@pytest.mark.parametrize("compression_name", ["gzip", "br", "zstd", "identity"])
 @pytest.mark.asyncio
 async def test_roundtrip_response_stream_async(
-    proto_json: bool, compression: str
+    proto_json: bool, compression_name: str
 ) -> None:
     class StreamingHaberdasher(Haberdasher):
         async def make_similar_hats(self, request, ctx):
@@ -78,7 +83,8 @@ async def test_roundtrip_response_stream_async(
             yield Hat(size=request.inches, color="blue")
             raise ConnectError(Code.RESOURCE_EXHAUSTED, "No more hats available")
 
-    app = HaberdasherASGIApplication(StreamingHaberdasher())
+    compression = resolve_compression(compression_name)
+    app = HaberdasherASGIApplication(StreamingHaberdasher(), compressions=[compression])
     transport = ASGITransport(app)
 
     hats: list[Hat] = []
@@ -87,7 +93,7 @@ async def test_roundtrip_response_stream_async(
         http_client=Client(transport=transport),
         proto_json=proto_json,
         send_compression=compression,
-        accept_compression=[compression] if compression else None,
+        accept_compression=[compression],
     ) as client:
         with pytest.raises(ConnectError) as exc_info:
             async for h in client.make_similar_hats(request=Size(inches=10)):
@@ -104,8 +110,8 @@ async def test_roundtrip_response_stream_async(
 
 
 @pytest.mark.parametrize("client_bad", [False, True])
-@pytest.mark.parametrize("compression", ["gzip", "br", "zstd", "identity"])
-def test_message_limit_sync(client_bad: bool, compression: str) -> None:
+@pytest.mark.parametrize("compression_name", ["gzip", "br", "zstd", "identity"])
+def test_message_limit_sync(client_bad: bool, compression_name: str) -> None:
     requests: list[Size] = []
     responses: list[Hat] = []
 
@@ -125,13 +131,16 @@ def test_message_limit_sync(client_bad: bool, compression: str) -> None:
             yield Hat(color="good")
             yield good_hat if client_bad else bad_hat
 
-    app = HaberdasherWSGIApplication(LargeHaberdasher(), read_max_bytes=100)
+    compression = resolve_compression(compression_name)
+    app = HaberdasherWSGIApplication(
+        LargeHaberdasher(), read_max_bytes=100, compressions=[compression]
+    )
     transport = WSGITransport(app)
     with HaberdasherClientSync(
         "http://localhost",
         http_client=SyncClient(transport),
         send_compression=compression,
-        accept_compression=[compression] if compression else None,
+        accept_compression=[compression],
         read_max_bytes=100,
     ) as client:
         with pytest.raises(ConnectError) as exc_info:
@@ -166,9 +175,9 @@ def test_message_limit_sync(client_bad: bool, compression: str) -> None:
 
 
 @pytest.mark.parametrize("client_bad", [False, True])
-@pytest.mark.parametrize("compression", ["gzip", "br", "zstd", "identity"])
+@pytest.mark.parametrize("compression_name", ["gzip", "br", "zstd", "identity"])
 @pytest.mark.asyncio
-async def test_message_limit_async(client_bad: bool, compression: str) -> None:
+async def test_message_limit_async(client_bad: bool, compression_name: str) -> None:
     requests: list[Size] = []
     responses: list[Hat] = []
 
@@ -190,13 +199,16 @@ async def test_message_limit_async(client_bad: bool, compression: str) -> None:
             yield Hat(color="good")
             yield good_hat if client_bad else bad_hat
 
-    app = HaberdasherASGIApplication(LargeHaberdasher(), read_max_bytes=100)
+    compression = resolve_compression(compression_name)
+    app = HaberdasherASGIApplication(
+        LargeHaberdasher(), read_max_bytes=100, compressions=[compression]
+    )
     transport = ASGITransport(app)
     async with HaberdasherClient(
         "http://localhost",
         http_client=Client(transport=transport),
         send_compression=compression,
-        accept_compression=[compression] if compression else None,
+        accept_compression=[compression],
         read_max_bytes=100,
     ) as client:
         with pytest.raises(ConnectError) as exc_info:
