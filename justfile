@@ -15,7 +15,7 @@ lint:
     uv run ruff format --check .
     uv run ruff check .
 
-# Typecheck Python filesno
+# Typecheck Python files
 typecheck:
     uv run pyright
 
