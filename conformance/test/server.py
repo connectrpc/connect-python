@@ -13,6 +13,8 @@ from contextlib import ExitStack, closing
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Literal, TypeVar, get_args
 
+# Needs to run before importing from connectrpc
+import _cov_embed  # noqa: F401
 from _util import create_standard_streams
 from gen.connectrpc.conformance.v1.config_pb2 import Code as ConformanceCode
 from gen.connectrpc.conformance.v1.server_compat_pb2 import (

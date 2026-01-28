@@ -5,8 +5,9 @@ import sys
 from pathlib import Path
 
 import pytest
+from coverage import Coverage
 
-from ._util import VERSION_CONFORMANCE, maybe_patch_args_with_debug
+from ._util import VERSION_CONFORMANCE, coverage_env, maybe_patch_args_with_debug
 
 _current_dir = Path(__file__).parent
 _client_py_path = str(_current_dir / "client.py")
@@ -19,7 +20,7 @@ _skipped_tests_sync = [
 ]
 
 
-def test_client_sync() -> None:
+def test_client_sync(cov: Coverage | None) -> None:
     args = maybe_patch_args_with_debug(
         [sys.executable, _client_py_path, "--mode", "sync"]
     )
@@ -40,12 +41,13 @@ def test_client_sync() -> None:
         capture_output=True,
         text=True,
         check=False,
+        env=coverage_env(cov),
     )
     if result.returncode != 0:
         pytest.fail(f"\n{result.stdout}\n{result.stderr}")
 
 
-def test_client_async() -> None:
+def test_client_async(cov: Coverage | None) -> None:
     args = maybe_patch_args_with_debug(
         [sys.executable, _client_py_path, "--mode", "async"]
     )
@@ -65,6 +67,7 @@ def test_client_async() -> None:
         capture_output=True,
         text=True,
         check=False,
+        env=coverage_env(cov),
     )
     if result.returncode != 0:
         pytest.fail(f"\n{result.stdout}\n{result.stderr}")
