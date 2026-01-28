@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from connectrpc._compression import IdentityCompression
 from connectrpc.compression.brotli import BrotliCompression
-from connectrpc.compression.gzip import GZipCompression
+from connectrpc.compression.gzip import GzipCompression
 from connectrpc.compression.zstd import ZstdCompression
 
 if TYPE_CHECKING:
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 def resolve_compression(encoding: str) -> Compression:
     match encoding:
         case "gzip":
-            return GZipCompression()
+            return GzipCompression()
         case "br":
             return BrotliCompression()
         case "zstd":

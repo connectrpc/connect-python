@@ -6,7 +6,7 @@ from pyqwest.testing import ASGITransport, WSGITransport
 
 from connectrpc.client import ResponseMetadata
 from connectrpc.compression.brotli import BrotliCompression
-from connectrpc.compression.gzip import GZipCompression
+from connectrpc.compression.gzip import GzipCompression
 from connectrpc.compression.zstd import ZstdCompression
 
 from ._util import resolve_compression
@@ -48,7 +48,7 @@ async def test_server_compressions_async(
             http_client=Client(ASGITransport(app)),
             accept_compression=(
                 ZstdCompression(),
-                GZipCompression(),
+                GzipCompression(),
                 BrotliCompression(),
             ),
             send_compression=None,
@@ -80,7 +80,7 @@ def test_server_compressions_sync(compressions: tuple[str], encoding: str) -> No
     client = HaberdasherClientSync(
         "http://localhost",
         http_client=SyncClient(WSGITransport(app)),
-        accept_compression=(ZstdCompression(), GZipCompression(), BrotliCompression()),
+        accept_compression=(ZstdCompression(), GzipCompression(), BrotliCompression()),
         send_compression=None,
     )
     with ResponseMetadata() as meta:

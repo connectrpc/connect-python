@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from connectrpc.compression.gzip import GZipCompression
+from connectrpc.compression.gzip import GzipCompression
 
 from .compression import Compression
 
@@ -25,7 +25,7 @@ class IdentityCompression(Compression):
 
 _identity = IdentityCompression()
 
-_gzip = GZipCompression()
+_gzip = GzipCompression()
 _default_compressions = {"gzip": _gzip, "identity": _identity}
 
 

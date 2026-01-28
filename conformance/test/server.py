@@ -44,7 +44,7 @@ from google.protobuf.any_pb2 import Any
 
 from connectrpc.code import Code
 from connectrpc.compression.brotli import BrotliCompression
-from connectrpc.compression.gzip import GZipCompression
+from connectrpc.compression.gzip import GzipCompression
 from connectrpc.compression.zstd import ZstdCompression
 from connectrpc.errors import ConnectError
 
@@ -401,12 +401,12 @@ if read_max_bytes is not None:
 asgi_app = ConformanceServiceASGIApplication(
     TestService(),
     read_max_bytes=read_max_bytes,
-    compressions=(GZipCompression(), ZstdCompression(), BrotliCompression()),
+    compressions=(GzipCompression(), ZstdCompression(), BrotliCompression()),
 )
 wsgi_app = ConformanceServiceWSGIApplication(
     TestServiceSync(),
     read_max_bytes=read_max_bytes,
-    compressions=(GZipCompression(), ZstdCompression(), BrotliCompression()),
+    compressions=(GzipCompression(), ZstdCompression(), BrotliCompression()),
 )
 
 

@@ -5,12 +5,11 @@ import gzip
 from . import Compression
 
 
-class GZipCompression(Compression):
+class GzipCompression(Compression):
     """Compression implementation using GZip."""
 
     def __init__(self, level: int = 6) -> None:
-        """Creates a new GZipCompression.
-
+        """Creates a new GzipCompression.
         Args:
             level: Compression level to use.
         """

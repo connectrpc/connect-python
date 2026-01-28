@@ -45,7 +45,7 @@ from pyqwest import HTTPVersion as PyQwestHTTPVersion
 from connectrpc.client import ResponseMetadata
 from connectrpc.code import Code
 from connectrpc.compression.brotli import BrotliCompression
-from connectrpc.compression.gzip import GZipCompression
+from connectrpc.compression.gzip import GzipCompression
 from connectrpc.compression.zstd import ZstdCompression
 from connectrpc.errors import ConnectError
 from connectrpc.request import Headers
@@ -99,7 +99,7 @@ def _convert_compression(compression: ConformanceCompression) -> Compression | N
         case ConformanceCompression.COMPRESSION_IDENTITY:
             return None
         case ConformanceCompression.COMPRESSION_GZIP:
-            return GZipCompression()
+            return GzipCompression()
         case ConformanceCompression.COMPRESSION_BR:
             return BrotliCompression()
         case ConformanceCompression.COMPRESSION_ZSTD:
@@ -156,7 +156,7 @@ async def client_sync(
             f"{scheme}://{test_request.host}:{test_request.port}",
             http_client=http_client,
             accept_compression=[
-                GZipCompression(),
+                GzipCompression(),
                 BrotliCompression(),
                 ZstdCompression(),
             ],
@@ -195,7 +195,7 @@ async def client_async(
             f"{scheme}://{test_request.host}:{test_request.port}",
             http_client=http_client,
             accept_compression=[
-                GZipCompression(),
+                GzipCompression(),
                 BrotliCompression(),
                 ZstdCompression(),
             ],
