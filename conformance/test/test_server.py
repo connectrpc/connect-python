@@ -4,11 +4,14 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from coverage import Coverage
 
 from ._util import VERSION_CONFORMANCE, coverage_env, maybe_patch_args_with_debug
+
+if TYPE_CHECKING:
+    from coverage import Coverage
 
 _current_dir = Path(__file__).parent
 _server_py_path = str(_current_dir / "server.py")

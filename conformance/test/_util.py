@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+from typing import TYPE_CHECKING
 
-from coverage import Coverage
+if TYPE_CHECKING:
+    from coverage import Coverage
 
 VERSION_CONFORMANCE = "v1.0.5"
 
