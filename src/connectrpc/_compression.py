@@ -7,7 +7,7 @@ from connectrpc.compression.gzip import GzipCompression
 from .compression import Compression
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterable
 
 
 class IdentityCompression(Compression):
@@ -30,7 +30,7 @@ _default_compressions = {"gzip": _gzip, "identity": _identity}
 
 
 def resolve_compressions(
-    compressions: Sequence[Compression] | None,
+    compressions: Iterable[Compression] | None,
 ) -> dict[str, Compression]:
     if compressions is None:
         return _default_compressions
