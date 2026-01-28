@@ -89,7 +89,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
         endpoints: Callable[[_SVC], Mapping[str, Endpoint]],
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
-        compressions: Sequence[Compression] | None = None,
+        compressions: Iterable[Compression] | None = None,
     ) -> None:
         """Initialize the ASGI application.
 

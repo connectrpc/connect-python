@@ -38,7 +38,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     import sys
-    from collections.abc import AsyncIterator, Iterable, Mapping, Sequence
+    from collections.abc import AsyncIterator, Iterable, Mapping
     from types import TracebackType
 
     from ._envelope import EnvelopeReader
@@ -93,7 +93,7 @@ class ConnectClient:
         *,
         proto_json: bool = False,
         grpc: bool = False,
-        accept_compression: Sequence[Compression] | None = None,
+        accept_compression: Iterable[Compression] | None = None,
         send_compression: Compression | None = _gzip,
         timeout_ms: int | None = None,
         read_max_bytes: int | None = None,

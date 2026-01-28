@@ -28,7 +28,7 @@ from .errors import ConnectError
 
 if TYPE_CHECKING:
     import sys
-    from collections.abc import Iterable, Iterator, Mapping, Sequence
+    from collections.abc import Iterable, Iterator, Mapping
     from types import TracebackType
 
     from ._envelope import EnvelopeReader
@@ -83,7 +83,7 @@ class ConnectClientSync:
         *,
         proto_json: bool = False,
         grpc: bool = False,
-        accept_compression: Sequence[Compression] | None = None,
+        accept_compression: Iterable[Compression] | None = None,
         send_compression: Compression | None = _gzip,
         timeout_ms: int | None = None,
         read_max_bytes: int | None = None,

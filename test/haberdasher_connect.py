@@ -26,7 +26,6 @@ if TYPE_CHECKING:
         Iterable,
         Iterator,
         Mapping,
-        Sequence,
     )
 
     from connectrpc.compression import Compression
@@ -73,7 +72,7 @@ class HaberdasherASGIApplication(ConnectASGIApplication[Haberdasher]):
         *,
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
-        compressions: Sequence[Compression] | None = None,
+        compressions: Iterable[Compression] | None = None,
     ) -> None:
         super().__init__(
             service=service,
@@ -312,7 +311,7 @@ class HaberdasherWSGIApplication(ConnectWSGIApplication):
         service: HaberdasherSync,
         interceptors: Iterable[InterceptorSync] = (),
         read_max_bytes: int | None = None,
-        compressions: Sequence[Compression] | None = None,
+        compressions: Iterable[Compression] | None = None,
     ) -> None:
         super().__init__(
             endpoints={

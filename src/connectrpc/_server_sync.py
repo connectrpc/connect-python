@@ -168,7 +168,7 @@ class ConnectWSGIApplication(ABC):
         endpoints: Mapping[str, EndpointSync],
         interceptors: Iterable[InterceptorSync] = (),
         read_max_bytes: int | None = None,
-        compressions: Sequence[Compression] | None = None,
+        compressions: Iterable[Compression] | None = None,
     ) -> None:
         """Initialize the WSGI application.
 
