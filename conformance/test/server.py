@@ -547,7 +547,6 @@ async def serve_gunicorn(
         "--workers=4",
         "--worker-class=gthread",
         "--threads=16",
-        "--reuse-port",
         "--keep-alive=0",
     ]
     if certfile:
