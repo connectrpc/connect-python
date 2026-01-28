@@ -13,6 +13,7 @@ from pyqwest import Headers as HTTPHeaders
 from . import _client_shared
 from ._asyncio_timeout import timeout as asyncio_timeout
 from ._codec import Codec, get_proto_binary_codec, get_proto_json_codec
+from ._compression import IdentityCompression, _gzip, resolve_compressions
 from ._interceptor_async import (
     BidiStreamInterceptor,
     ClientStreamInterceptor,
@@ -40,8 +41,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterable, Mapping
     from types import TracebackType
 
-    from ._compression import Compression
     from ._envelope import EnvelopeReader
+    from .compression import Compression
     from .method import MethodInfo
     from .request import Headers, RequestContext
 
@@ -92,8 +93,8 @@ class ConnectClient:
         *,
         proto_json: bool = False,
         grpc: bool = False,
-        accept_compression: Iterable[str] | None = None,
-        send_compression: str | None = None,
+        accept_compression: Iterable[Compression] | None = None,
+        send_compression: Compression | None = _gzip,
         timeout_ms: int | None = None,
         read_max_bytes: int | None = None,
         interceptors: Iterable[Interceptor] = (),
@@ -104,8 +105,10 @@ class ConnectClient:
         Args:
             address: The address of the server to connect to, including scheme.
             proto_json: Whether to use JSON for the protocol
-            accept_compression: A list of compression algorithms to accept from the server
-            send_compression: The compression algorithm to use for sending requests
+            accept_compression: Compression algorithms to accept from the server. If unset,
+                                defaults to gzip. If set to empty, disables response compression.
+            send_compression: Compression algorithm to use for sending requests. If unset,
+                              defaults to gzip. If set to None, disables request compression.
             timeout_ms: The timeout for requests in milliseconds
             read_max_bytes: The maximum number of bytes to read from the response
             interceptors: A list of interceptors to apply to requests
@@ -113,10 +116,9 @@ class ConnectClient:
         """
         self._address = address
         self._codec = get_proto_json_codec() if proto_json else get_proto_binary_codec()
-        self._accept_compression = accept_compression
-        self._send_compression = _client_shared.resolve_send_compression(
-            send_compression
-        )
+        self._response_compressions = resolve_compressions(accept_compression)
+        self._accept_compression_header = ",".join(self._response_compressions.keys())
+        self._send_compression = send_compression or IdentityCompression()
         self._timeout_ms = timeout_ms
         self._read_max_bytes = read_max_bytes
         if http_client:
@@ -200,7 +202,7 @@ class ConnectClient:
             timeout_ms=timeout_ms or self._timeout_ms,
             codec=self._codec,
             stream=False,
-            accept_compression=self._accept_compression,
+            accept_compression=self._accept_compression_header,
             send_compression=self._send_compression,
         )
         return await self._execute_unary(request, ctx)
@@ -220,7 +222,7 @@ class ConnectClient:
             timeout_ms=timeout_ms or self._timeout_ms,
             codec=self._codec,
             stream=True,
-            accept_compression=self._accept_compression,
+            accept_compression=self._accept_compression_header,
             send_compression=self._send_compression,
         )
         return await self._execute_client_stream(request, ctx)
@@ -240,7 +242,7 @@ class ConnectClient:
             timeout_ms=timeout_ms or self._timeout_ms,
             codec=self._codec,
             stream=True,
-            accept_compression=self._accept_compression,
+            accept_compression=self._accept_compression_header,
             send_compression=self._send_compression,
         )
         return self._execute_server_stream(request, ctx)
@@ -260,7 +262,7 @@ class ConnectClient:
             timeout_ms=timeout_ms or self._timeout_ms,
             codec=self._codec,
             stream=True,
-            accept_compression=self._accept_compression,
+            accept_compression=self._accept_compression_header,
             send_compression=self._send_compression,
         )
         return self._execute_bidi_stream(request, ctx)
@@ -308,7 +310,9 @@ class ConnectClient:
             )
             # Decompression itself is handled by pyqwest, but we validate it
             # by resolving it.
-            self._protocol.handle_response_compression(resp.headers, stream=False)
+            self._protocol.handle_response_compression(
+                resp.headers, self._response_compressions, stream=False
+            )
             handle_response_headers(resp.headers)
 
             if resp.status == 200:
@@ -375,7 +379,7 @@ class ConnectClient:
                         self._codec.name(), resp.headers.get("content-type", "")
                     )
                     compression = self._protocol.handle_response_compression(
-                        resp.headers, stream=True
+                        resp.headers, self._response_compressions, stream=True
                     )
                     reader = self._protocol.create_envelope_reader(
                         ctx.method().output,

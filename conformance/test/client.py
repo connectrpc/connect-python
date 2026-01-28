@@ -18,10 +18,12 @@ from gen.connectrpc.conformance.v1.client_compat_pb2 import (
 from gen.connectrpc.conformance.v1.config_pb2 import Code as ConformanceCode
 from gen.connectrpc.conformance.v1.config_pb2 import (
     Codec,
-    Compression,
     HTTPVersion,
     Protocol,
     StreamType,
+)
+from gen.connectrpc.conformance.v1.config_pb2 import (
+    Compression as ConformanceCompression,
 )
 from gen.connectrpc.conformance.v1.service_connect import (
     ConformanceServiceClient,
@@ -42,6 +44,9 @@ from pyqwest import HTTPVersion as PyQwestHTTPVersion
 
 from connectrpc.client import ResponseMetadata
 from connectrpc.code import Code
+from connectrpc.compression.brotli import BrotliCompression
+from connectrpc.compression.gzip import GzipCompression
+from connectrpc.compression.zstd import ZstdCompression
 from connectrpc.errors import ConnectError
 from connectrpc.request import Headers
 
@@ -49,6 +54,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator
 
     from google.protobuf.any_pb2 import Any
+
+    from connectrpc.compression import Compression
 
 
 def _convert_code(error: Code) -> ConformanceCode:
@@ -87,20 +94,16 @@ def _convert_code(error: Code) -> ConformanceCode:
             return ConformanceCode.CODE_UNAUTHENTICATED
 
 
-def _convert_compression(compression: Compression) -> str:
+def _convert_compression(compression: ConformanceCompression) -> Compression | None:
     match compression:
-        case Compression.COMPRESSION_IDENTITY:
-            return "identity"
-        case Compression.COMPRESSION_GZIP:
-            return "gzip"
-        case Compression.COMPRESSION_BR:
-            return "br"
-        case Compression.COMPRESSION_ZSTD:
-            return "zstd"
-        case Compression.COMPRESSION_DEFLATE:
-            return "deflate"
-        case Compression.COMPRESSION_SNAPPY:
-            return "snappy"
+        case ConformanceCompression.COMPRESSION_IDENTITY:
+            return None
+        case ConformanceCompression.COMPRESSION_GZIP:
+            return GzipCompression()
+        case ConformanceCompression.COMPRESSION_BR:
+            return BrotliCompression()
+        case ConformanceCompression.COMPRESSION_ZSTD:
+            return ZstdCompression()
         case _:
             msg = f"Unsupported compression: {compression}"
             raise ValueError(msg)
@@ -152,6 +155,11 @@ async def client_sync(
         ConformanceServiceClientSync(
             f"{scheme}://{test_request.host}:{test_request.port}",
             http_client=http_client,
+            accept_compression=[
+                GzipCompression(),
+                BrotliCompression(),
+                ZstdCompression(),
+            ],
             send_compression=_convert_compression(test_request.compression),
             proto_json=test_request.codec == Codec.CODEC_JSON,
             grpc=test_request.protocol == Protocol.PROTOCOL_GRPC,
@@ -186,6 +194,11 @@ async def client_async(
         ConformanceServiceClient(
             f"{scheme}://{test_request.host}:{test_request.port}",
             http_client=http_client,
+            accept_compression=[
+                GzipCompression(),
+                BrotliCompression(),
+                ZstdCompression(),
+            ],
             send_compression=_convert_compression(test_request.compression),
             proto_json=test_request.codec == Codec.CODEC_JSON,
             grpc=test_request.protocol == Protocol.PROTOCOL_GRPC,

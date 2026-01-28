@@ -26,6 +26,7 @@ if TYPE_CHECKING:
         Mapping,
     )
 
+    from connectrpc.compression import Compression
     from connectrpc.interceptor import Interceptor, InterceptorSync
     from connectrpc.request import Headers, RequestContext
 
@@ -56,7 +57,7 @@ class ElizaServiceASGIApplication(ConnectASGIApplication[ElizaService]):
         *,
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
-        compressions: Iterable[str] | None = None,
+        compressions: Iterable[Compression] | None = None,
     ) -> None:
         super().__init__(
             service=service,
@@ -192,7 +193,7 @@ class ElizaServiceWSGIApplication(ConnectWSGIApplication):
         service: ElizaServiceSync,
         interceptors: Iterable[InterceptorSync] = (),
         read_max_bytes: int | None = None,
-        compressions: Iterable[str] | None = None,
+        compressions: Iterable[Compression] | None = None,
     ) -> None:
         super().__init__(
             endpoints={

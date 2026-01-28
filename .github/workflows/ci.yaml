@@ -87,10 +87,6 @@ jobs:
         run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
         working-directory: conformance
 
-      - name: run tests with minimal dependencies
-        run: uv run --exact pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
-        working-directory: noextras
-
       - name: run Go tests
         run: go test ./...
         working-directory: protoc-gen-connect-python

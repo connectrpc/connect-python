@@ -6,13 +6,7 @@ from base64 import b64decode, b64encode
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from ._compression import (
-    IdentityCompression,
-    get_accept_encoding,
-    get_available_compressions,
-    get_compression,
-    negotiate_compression,
-)
+from ._compression import IdentityCompression, negotiate_compression
 from ._envelope import EnvelopeReader, EnvelopeWriter
 from ._gen.status_pb2 import Status
 from ._protocol import ConnectWireError, HTTPException
@@ -23,7 +17,7 @@ from .errors import ConnectError
 from .request import Headers, RequestContext
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Mapping
 
     from pyqwest import Headers as HTTPHeaders
     from pyqwest import Response, SyncResponse
@@ -82,10 +76,10 @@ class GRPCServerProtocol:
         return "proto"
 
     def negotiate_stream_compression(
-        self, headers: Headers, compressions: dict[str, Compression] | None
+        self, headers: Headers, compressions: dict[str, Compression]
     ) -> tuple[Compression | None, Compression]:
         req_compression_name = headers.get(GRPC_HEADER_COMPRESSION, "identity")
-        req_compression = get_compression(req_compression_name)
+        req_compression = compressions.get(req_compression_name)
         accept_compression = headers.get(GRPC_HEADER_ACCEPT_COMPRESSION, "")
         resp_compression = negotiate_compression(accept_compression, compressions)
         return req_compression, resp_compression
@@ -160,7 +154,7 @@ class GRPCClientProtocol:
         timeout_ms: int | None,
         codec: Codec,
         stream: bool,
-        accept_compression: Iterable[str] | None,
+        accept_compression: str,
         send_compression: Compression | None,
     ) -> RequestContext[REQ, RES]:
         match user_headers:
@@ -176,10 +170,7 @@ class GRPCClientProtocol:
         if "user-agent" not in headers:
             headers["user-agent"] = _DEFAULT_GRPC_USER_AGENT
 
-        if accept_compression is not None:
-            headers[GRPC_HEADER_ACCEPT_COMPRESSION] = ",".join(accept_compression)
-        else:
-            headers[GRPC_HEADER_ACCEPT_COMPRESSION] = get_accept_encoding()
+        headers[GRPC_HEADER_ACCEPT_COMPRESSION] = accept_compression
         if send_compression is not None:
             headers[GRPC_HEADER_COMPRESSION] = send_compression.name()
         else:
@@ -222,16 +213,16 @@ class GRPCClientProtocol:
             )
 
     def handle_response_compression(
-        self, headers: HTTPHeaders, *, stream: bool
+        self, headers: HTTPHeaders, compressions: dict[str, Compression], stream: bool
     ) -> Compression:
         encoding = headers.get(GRPC_HEADER_COMPRESSION)
         if not encoding:
             return IdentityCompression()
-        res = get_compression(encoding)
+        res = compressions.get(encoding)
         if not res:
             raise ConnectError(
                 Code.INTERNAL,
-                f"unknown encoding '{encoding}'; accepted encodings are {', '.join(get_available_compressions())}",
+                f"unknown encoding '{encoding}'; accepted encodings are {', '.join(compressions.keys())}",
             )
         return res
 

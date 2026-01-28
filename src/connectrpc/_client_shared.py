@@ -8,9 +8,7 @@ from typing import TYPE_CHECKING, TypeVar
 from pyqwest import Headers as HTTPHeaders
 from pyqwest import StreamError, StreamErrorCode
 
-from . import _compression
 from ._codec import CODEC_NAME_JSON, CODEC_NAME_JSON_CHARSET_UTF8, Codec
-from ._compression import Compression, get_available_compressions, get_compression
 from ._protocol import ConnectWireError
 from ._protocol_connect import (
     CONNECT_PROTOCOL_VERSION,
@@ -29,19 +27,6 @@ REQ = TypeVar("REQ")
 RES = TypeVar("RES")
 
 
-def resolve_send_compression(compression_name: str | None) -> Compression | None:
-    if compression_name is None:
-        return None
-    compression = get_compression(compression_name)
-    if compression is None:
-        msg = (
-            f"Unsupported compression method: {compression_name}. "
-            f"Available methods: {', '.join(get_available_compressions())}"
-        )
-        raise ValueError(msg)
-    return compression
-
-
 def prepare_get_params(
     codec: Codec, request_data: bytes, headers: HTTPHeaders
 ) -> dict[str, str]:
@@ -53,20 +38,6 @@ def prepare_get_params(
     if "content-encoding" in headers:
         params["compression"] = headers.pop("content-encoding")
     return params
-
-
-def validate_response_content_encoding(
-    encoding: str | None,
-) -> _compression.Compression:
-    if not encoding:
-        return _compression.IdentityCompression()
-    res = _compression.get_compression(encoding.lower())
-    if not res:
-        raise ConnectError(
-            Code.INTERNAL,
-            f"unknown encoding '{encoding}'; accepted encodings are {', '.join(_compression.get_available_compressions())}",
-        )
-    return res
 
 
 def validate_unary_response(
