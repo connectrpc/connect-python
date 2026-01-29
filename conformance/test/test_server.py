@@ -4,10 +4,14 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
-from ._util import VERSION_CONFORMANCE, maybe_patch_args_with_debug
+from ._util import VERSION_CONFORMANCE, coverage_env, maybe_patch_args_with_debug
+
+if TYPE_CHECKING:
+    from coverage import Coverage
 
 _current_dir = Path(__file__).parent
 _server_py_path = str(_current_dir / "server.py")
@@ -40,7 +44,7 @@ _known_flaky = [
 
 
 @pytest.mark.parametrize("server", ["gunicorn", "pyvoy"])
-def test_server_sync(server: str) -> None:
+def test_server_sync(server: str, cov: Coverage) -> None:
     args = maybe_patch_args_with_debug(
         [sys.executable, _server_py_path, "--mode", "sync", "--server", server]
     )
@@ -67,13 +71,14 @@ def test_server_sync(server: str) -> None:
         capture_output=True,
         text=True,
         check=False,
+        env=coverage_env(cov),
     )
     if result.returncode != 0:
         pytest.fail(f"\n{result.stdout}\n{result.stderr}")
 
 
 @pytest.mark.parametrize("server", ["daphne", "pyvoy", "uvicorn"])
-def test_server_async(server: str) -> None:
+def test_server_async(server: str, cov: Coverage) -> None:
     args = maybe_patch_args_with_debug(
         [sys.executable, _server_py_path, "--mode", "async", "--server", server]
     )
@@ -117,6 +122,7 @@ def test_server_async(server: str) -> None:
         capture_output=True,
         text=True,
         check=False,
+        env=coverage_env(cov),
     )
     if result.returncode != 0:
         pytest.fail(f"\n{result.stdout}\n{result.stderr}")
