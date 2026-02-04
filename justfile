@@ -61,7 +61,7 @@ generate: generate-conformance generate-example generate-status generate-test fo
 checkgenerate: generate
     test -z "$(git status --porcelain | tee /dev/stderr)"
 
-bump *args:
-    uv run bump-my-version bump {{ args }}
-    uv lock
-    cd protoc-gen-connect-python && uv lock
+# Bump the version based on the given semver change (e.g., `minor` or `patch`).
+bump semver:
+    uv version --bump={{ semver }}
+    uv version --bump={{ semver }} --directory protoc-gen-connect-python
