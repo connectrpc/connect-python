@@ -1,9 +1,12 @@
 package generator
 
 import (
+	"bytes"
+	"io"
 	"strings"
 	"testing"
 
+	"github.com/bufbuild/protoplugin"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -11,6 +14,8 @@ import (
 )
 
 func TestGenerateConnectFile(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		input    *descriptorpb.FileDescriptorProto
@@ -95,17 +100,17 @@ func TestGenerateConnectFile(t *testing.T) {
 				t.Fatalf("Failed to create FileDescriptorProto: %v", err)
 				return
 			}
-			got, err := GenerateConnectFile(fd, Config{})
+			gotName, gotContent, err := generateConnectFile(fd, Config{})
 			if (err != nil) != tt.wantErr {
-				t.Errorf("GenerateConnectFile() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("generateConnectFile() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if err == nil {
-				if got.GetName() != tt.wantFile {
-					t.Errorf("GenerateConnectFile() got filename = %v, want %v", got.GetName(), tt.wantFile)
+				if gotName != tt.wantFile {
+					t.Errorf("generateConnectFile() got filename = %v, want %v", gotName, tt.wantFile)
 				}
 
-				content := got.GetContent()
+				content := gotContent
 				if !strings.Contains(content, "from collections.abc import AsyncGenerator, AsyncIterator, Iterable, Iterator, Mapping") {
 					t.Error("Generated code missing required imports")
 				}
@@ -118,6 +123,8 @@ func TestGenerateConnectFile(t *testing.T) {
 }
 
 func TestGenerate(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		req         *pluginpb.CodeGeneratorRequest
@@ -193,21 +200,21 @@ func TestGenerate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp := Generate(tt.req)
+			resp := generate(t, tt.req)
 			if tt.wantErr {
 				if resp.GetError() == "" {
-					t.Error("Generate() expected error but got none")
+					t.Error("generate() expected error but got none")
 				}
 			} else {
 				if resp.GetError() != "" {
-					t.Errorf("Generate() unexpected error: %v", resp.GetError())
+					t.Errorf("generate() unexpected error: %v", resp.GetError())
 				}
 				if len(resp.GetFile()) == 0 {
-					t.Error("Generate() returned no files")
+					t.Error("generate() returned no files")
 				}
 				for _, s := range tt.wantStrings {
 					if !strings.Contains(resp.GetFile()[0].GetContent(), s) {
-						t.Errorf("Generate() missing expected string: %v", s)
+						t.Errorf("generate() missing expected string: %v", s)
 					}
 				}
 			}
@@ -216,6 +223,8 @@ func TestGenerate(t *testing.T) {
 }
 
 func TestEdition2023Support(t *testing.T) {
+	t.Parallel()
+
 	// Create a request with an Edition 2023 proto file
 	edition2023 := descriptorpb.Edition_EDITION_2023
 
@@ -274,11 +283,11 @@ func TestEdition2023Support(t *testing.T) {
 	}
 
 	// Call Generate
-	resp := Generate(req)
+	resp := generate(t, req)
 
 	// Verify no error occurred
 	if resp.GetError() != "" {
-		t.Fatalf("Generate() failed for Edition 2023 proto: %v", resp.GetError())
+		t.Fatalf("generate() failed for Edition 2023 proto: %v", resp.GetError())
 	}
 
 	// Verify the generator declared Edition support
@@ -309,4 +318,48 @@ func TestEdition2023Support(t *testing.T) {
 			t.Error("Generated code missing Edition2023Service class")
 		}
 	}
+}
+
+// generate is a test helper that runs the plugin handler using [protoplugin.Run].
+func generate(t *testing.T, req *pluginpb.CodeGeneratorRequest) *pluginpb.CodeGeneratorResponse {
+	t.Helper()
+
+	// Marshal request to bytes for stdin
+	reqBytes, err := proto.Marshal(req)
+	if err != nil {
+		resp := &pluginpb.CodeGeneratorResponse{}
+		resp.Error = proto.String("failed to marshal request: " + err.Error())
+		return resp
+	}
+
+	// Prepare stdin and stdout
+	stdin := bytes.NewReader(reqBytes)
+	stdout := &bytes.Buffer{}
+
+	// Run the plugin
+	err = protoplugin.Run(
+		t.Context(),
+		protoplugin.Env{
+			Args:    nil,
+			Environ: nil,
+			Stdin:   stdin,
+			Stdout:  stdout,
+			Stderr:  io.Discard,
+		},
+		protoplugin.HandlerFunc(Handle),
+	)
+	if err != nil {
+		resp := &pluginpb.CodeGeneratorResponse{}
+		resp.Error = proto.String("failed to run plugin: " + err.Error())
+		return resp
+	}
+
+	// Unmarshal response
+	resp := &pluginpb.CodeGeneratorResponse{}
+	if err := proto.Unmarshal(stdout.Bytes(), resp); err != nil {
+		errorResp := &pluginpb.CodeGeneratorResponse{}
+		errorResp.Error = proto.String("failed to unmarshal response: " + err.Error())
+		return errorResp
+	}
+	return resp
 }
