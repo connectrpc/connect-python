@@ -23,20 +23,20 @@ func Handle(ctx context.Context, _ protoplugin.PluginEnv, responseWriter protopl
 
 	conf := parseConfig(request.Parameter())
 
-	files, err := request.FileDescriptorsToGenerate()
+	fileDescriptors, err := request.FileDescriptorsToGenerate()
 	if err != nil {
 		return fmt.Errorf("failed to get file descriptors to generate: %w", err)
 	}
 
-	for _, file := range files {
+	for _, fileDescriptor := range fileDescriptors {
 		// We don't generate any code for non-services
-		if file.Services().Len() == 0 {
+		if fileDescriptor.Services().Len() == 0 {
 			continue
 		}
 
-		name, content, err := generateConnectFile(file, conf)
+		name, content, err := generateConnectFile(fileDescriptor, conf)
 		if err != nil {
-			return fmt.Errorf("failed to generate file %q: %w", file.Path(), err)
+			return fmt.Errorf("failed to generate file %q: %w", fileDescriptor.Path(), err)
 		}
 		responseWriter.AddFile(name, content)
 	}
