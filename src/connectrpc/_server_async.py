@@ -194,7 +194,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
 
             if http_method == "GET":
                 query_string = scope.get("query_string", b"").decode("utf-8")
-                query_params = parse_qs(query_string)
+                query_params = parse_qs(query_string, keep_blank_values=True)
                 codec_name = query_params.get("encoding", ("",))[0]
             else:
                 query_params = _UNSET_QUERY_PARAMS
