@@ -6,3 +6,7 @@ coverage:
   status:
     project: off
     patch: off
+ignore:
+  - "conformance/**"
+  - "src/connectrpc/_gen/**"
+  - "test/**"
