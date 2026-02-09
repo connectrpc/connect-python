@@ -36,18 +36,18 @@ Issues = "https://github.com/connectrpc/connect-python/issues"
 
 [dependency-groups]
 dev = [
-    "asgiref==3.11.0",
+    "asgiref==3.11.1",
     "brotli==1.2.0",
     "connect-python-example",
     "daphne==4.2.1",
     "hypercorn==0.18.0",
-    "granian==2.6.1",
-    "grpcio-tools==1.76.0",
-    "gunicorn==25.0.0",
+    "granian==2.7.1",
+    "grpcio-tools==1.78.0",
+    "gunicorn==25.0.3",
     "just-bin==1.46.0; sys_platform != 'win32'",
     "pyright[nodejs]==1.1.408",
     "pyvoy==0.3.0",
-    "ruff~=0.14.13",
+    "ruff~=0.15.0",
     "uvicorn==0.40.0",
     # Needed to enable HTTP/2 in daphne
     "Twisted[tls,http2]==25.5.0",
@@ -62,7 +62,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["uv_build>=0.9.28,<0.10.0"]
+requires = ["uv_build>=0.10.0,<0.11.0"]
 build-backend = "uv_build"
 
 [tool.uv]
