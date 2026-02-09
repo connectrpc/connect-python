@@ -383,10 +383,10 @@ When exceeded, returns `RESOURCE_EXHAUSTED` error.
 
 ### Proto Editions Support
 
-connect-python supports Proto Editions 2023:
+`protoc-gen-connect-python` supports up to [Protobuf Editions](https://protobuf.dev/editions/overview/) 2024:
 
 ```proto
-edition = "2023";
+edition = "2024";
 
 package your.service;
 

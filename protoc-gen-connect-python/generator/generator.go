@@ -18,7 +18,7 @@ func Handle(ctx context.Context, _ protoplugin.PluginEnv, responseWriter protopl
 	responseWriter.SetFeatureProto3Optional()
 	responseWriter.SetFeatureSupportsEditions(
 		descriptorpb.Edition_EDITION_PROTO3,
-		descriptorpb.Edition_EDITION_2023,
+		descriptorpb.Edition_EDITION_2024,
 	)
 
 	conf := parseConfig(request.Parameter())
