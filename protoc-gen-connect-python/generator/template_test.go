@@ -7,6 +7,7 @@ import (
 )
 
 func TestConnectTemplate(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		vars     ConnectTemplateVariables
@@ -73,6 +74,7 @@ func TestConnectTemplate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			var buf bytes.Buffer
 			err := ConnectTemplate.Execute(&buf, tt.vars)
 			if err != nil {

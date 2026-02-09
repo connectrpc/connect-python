@@ -2,65 +2,49 @@ package generator
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"path"
 	"slices"
 	"strings"
 	"unicode"
 
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protodesc"
+	"github.com/bufbuild/protoplugin"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
-	"google.golang.org/protobuf/types/pluginpb"
 )
 
-func Generate(r *pluginpb.CodeGeneratorRequest) *pluginpb.CodeGeneratorResponse {
-	resp := &pluginpb.CodeGeneratorResponse{}
+func Handle(ctx context.Context, _ protoplugin.PluginEnv, responseWriter protoplugin.ResponseWriter, request protoplugin.Request) error {
+	responseWriter.SetFeatureProto3Optional()
+	responseWriter.SetFeatureSupportsEditions(
+		descriptorpb.Edition_EDITION_PROTO3,
+		descriptorpb.Edition_EDITION_2023,
+	)
 
-	resp.SupportedFeatures = proto.Uint64(uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL) | uint64(pluginpb.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS))
-	resp.MinimumEdition = proto.Int32(int32(descriptorpb.Edition_EDITION_PROTO3))
-	resp.MaximumEdition = proto.Int32(int32(descriptorpb.Edition_EDITION_2023))
+	conf := parseConfig(request.Parameter())
 
-	conf := parseConfig(r.GetParameter())
-
-	files := r.GetFileToGenerate()
-	if len(files) == 0 {
-		resp.Error = proto.String("no files to generate")
-		return resp
-	}
-
-	fds := &descriptorpb.FileDescriptorSet{
-		File: r.GetProtoFile(),
-	}
-	reg, err := protodesc.NewFiles(fds)
+	fileDescriptors, err := request.FileDescriptorsToGenerate()
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to get file descriptors to generate: %w", err)
 	}
 
-	reg.RangeFiles(func(fd protoreflect.FileDescriptor) bool {
-		if !slices.Contains(files, string(fd.Path())) {
-			return true
-		}
-
+	for _, fileDescriptor := range fileDescriptors {
 		// We don't generate any code for non-services
-		if fd.Services().Len() == 0 {
-			return true
+		if fileDescriptor.Services().Len() == 0 {
+			continue
 		}
 
-		connectFile, err := GenerateConnectFile(fd, conf)
+		name, content, err := generateConnectFile(fileDescriptor, conf)
 		if err != nil {
-			resp.Error = proto.String("File[" + fd.Path() + "][generate]: " + err.Error())
-			return false
+			return fmt.Errorf("failed to generate file %q: %w", fileDescriptor.Path(), err)
 		}
-		resp.File = append(resp.File, connectFile)
-		return true
-	})
+		responseWriter.AddFile(name, content)
+	}
 
-	return resp
+	return nil
 }
 
-func GenerateConnectFile(fd protoreflect.FileDescriptor, conf Config) (*pluginpb.CodeGeneratorResponse_File, error) {
+func generateConnectFile(fd protoreflect.FileDescriptor, conf Config) (string, string, error) {
 	filename := fd.Path()
 
 	fileNameWithoutSuffix := strings.TrimSuffix(filename, path.Ext(filename))
@@ -128,15 +112,11 @@ func GenerateConnectFile(fd protoreflect.FileDescriptor, conf Config) (*pluginpb
 	var buf = &bytes.Buffer{}
 	err := ConnectTemplate.Execute(buf, vars)
 	if err != nil {
-		return nil, err
+		return "", "", fmt.Errorf("failed to execute template: %w", err)
 	}
 
-	resp := &pluginpb.CodeGeneratorResponse_File{
-		Name:    proto.String(strings.TrimSuffix(filename, path.Ext(filename)) + "_connect.py"),
-		Content: proto.String(buf.String()),
-	}
-
-	return resp, nil
+	outputName := strings.TrimSuffix(filename, path.Ext(filename)) + "_connect.py"
+	return outputName, buf.String(), nil
 }
 
 func sanitizePythonName(name string) string {
