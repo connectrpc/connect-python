@@ -353,7 +353,7 @@ class ConnectWSGIApplication(ABC):
         """Handle GET request with query parameters."""
         try:
             query_string = environ.get("QUERY_STRING", "")
-            params = parse_qs(query_string)
+            params = parse_qs(query_string, keep_blank_values=True)
 
             if "message" not in params:
                 raise ConnectError(

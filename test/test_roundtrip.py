@@ -70,6 +70,46 @@ async def test_roundtrip_async(proto_json: bool, compression_name: str) -> None:
     assert response.color == "green"
 
 
+def test_roundtrip_sync_connect_get_empty_request() -> None:
+    class RoundtripHaberdasherSync(HaberdasherSync):
+        def make_hat(self, request, ctx):
+            return Hat(size=request.inches, color="green")
+
+    compression = resolve_compression("identity")
+    app = HaberdasherWSGIApplication(
+        RoundtripHaberdasherSync(), compressions=[compression]
+    )
+    with HaberdasherClientSync(
+        "http://localhost",
+        http_client=SyncClient(WSGITransport(app=app)),
+        send_compression=compression,
+        accept_compression=[compression],
+    ) as client:
+        response = client.make_hat(request=Size(), use_get=True)
+    assert response.size == 0
+    assert response.color == "green"
+
+
+@pytest.mark.asyncio
+async def test_roundtrip_async_connect_get_empty_request() -> None:
+    class RoundtripHaberdasher(Haberdasher):
+        async def make_hat(self, request, ctx):
+            return Hat(size=request.inches, color="green")
+
+    compression = resolve_compression("identity")
+    app = HaberdasherASGIApplication(RoundtripHaberdasher(), compressions=[compression])
+    transport = ASGITransport(app)
+    async with HaberdasherClient(
+        "http://localhost",
+        http_client=Client(transport=transport),
+        send_compression=compression,
+        accept_compression=[compression],
+    ) as client:
+        response = await client.make_hat(request=Size(), use_get=True)
+    assert response.size == 0
+    assert response.color == "green"
+
+
 @pytest.mark.parametrize("proto_json", [False, True])
 @pytest.mark.parametrize("compression_name", ["gzip", "br", "zstd", "identity"])
 @pytest.mark.asyncio
