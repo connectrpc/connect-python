@@ -222,20 +222,20 @@ func TestGenerate(t *testing.T) {
 	}
 }
 
-func TestEdition2023Support(t *testing.T) {
+func TestEditionSupport(t *testing.T) {
 	t.Parallel()
 
-	// Create a request with an Edition 2023 proto file
-	edition2023 := descriptorpb.Edition_EDITION_2023
+	// Create a request with an Edition 2024 proto file
+	edition2024 := descriptorpb.Edition_EDITION_2024
 
 	req := &pluginpb.CodeGeneratorRequest{
-		FileToGenerate: []string{"test_edition2023.proto"},
+		FileToGenerate: []string{"test_edition2024.proto"},
 		ProtoFile: []*descriptorpb.FileDescriptorProto{
 			{
-				Name:    proto.String("test_edition2023.proto"),
-				Package: proto.String("test.edition2023"),
-				Edition: edition2023.Enum(),
-				// Edition 2023 default: field_presence = EXPLICIT
+				Name:    proto.String("test_edition2024.proto"),
+				Package: proto.String("test.edition2024"),
+				Edition: edition2024.Enum(),
+				// Edition 2024 default: field_presence = EXPLICIT
 				Options: &descriptorpb.FileOptions{
 					Features: &descriptorpb.FeatureSet{
 						FieldPresence: descriptorpb.FeatureSet_EXPLICIT.Enum(),
@@ -243,12 +243,12 @@ func TestEdition2023Support(t *testing.T) {
 				},
 				Service: []*descriptorpb.ServiceDescriptorProto{
 					{
-						Name: proto.String("Edition2023Service"),
+						Name: proto.String("Edition2024Service"),
 						Method: []*descriptorpb.MethodDescriptorProto{
 							{
 								Name:       proto.String("TestMethod"),
-								InputType:  proto.String(".test.edition2023.TestRequest"),
-								OutputType: proto.String(".test.edition2023.TestResponse"),
+								InputType:  proto.String(".test.edition2024.TestRequest"),
+								OutputType: proto.String(".test.edition2024.TestResponse"),
 							},
 						},
 					},
@@ -262,7 +262,7 @@ func TestEdition2023Support(t *testing.T) {
 								Number: proto.Int32(1),
 								Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
 								Type:   descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
-								// In Edition 2023, field presence is controlled by features
+								// In Edition 2024, field presence is controlled by features
 							},
 						},
 					},
@@ -287,7 +287,7 @@ func TestEdition2023Support(t *testing.T) {
 
 	// Verify no error occurred
 	if resp.GetError() != "" {
-		t.Fatalf("generate() failed for Edition 2023 proto: %v", resp.GetError())
+		t.Fatalf("generate() failed for Edition 2024 proto: %v", resp.GetError())
 	}
 
 	// Verify the generator declared Edition support
@@ -299,23 +299,23 @@ func TestEdition2023Support(t *testing.T) {
 	if resp.GetMinimumEdition() != int32(descriptorpb.Edition_EDITION_PROTO3) {
 		t.Errorf("Expected minimum edition PROTO3, got %v", resp.GetMinimumEdition())
 	}
-	if resp.GetMaximumEdition() != int32(descriptorpb.Edition_EDITION_2023) {
-		t.Errorf("Expected maximum edition 2023, got %v", resp.GetMaximumEdition())
+	if resp.GetMaximumEdition() != int32(descriptorpb.Edition_EDITION_2024) {
+		t.Errorf("Expected maximum edition 2024, got %v", resp.GetMaximumEdition())
 	}
 
 	// Verify a file was generated
 	if len(resp.GetFile()) == 0 {
-		t.Error("No files generated for Edition 2023 proto")
+		t.Error("No files generated for Edition 2024 proto")
 	} else {
 		generatedFile := resp.GetFile()[0]
-		if generatedFile.GetName() != "test_edition2023_connect.py" {
-			t.Errorf("Expected filename test_edition2023_connect.py, got %v", generatedFile.GetName())
+		if generatedFile.GetName() != "test_edition2024_connect.py" {
+			t.Errorf("Expected filename test_edition2024_connect.py, got %v", generatedFile.GetName())
 		}
 
 		// Verify the generated content includes the service
 		content := generatedFile.GetContent()
-		if !strings.Contains(content, "class Edition2023Service") {
-			t.Error("Generated code missing Edition2023Service class")
+		if !strings.Contains(content, "class Edition2024Service") {
+			t.Error("Generated code missing Edition2024Service class")
 		}
 	}
 }
