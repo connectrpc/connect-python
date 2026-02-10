@@ -95,6 +95,7 @@ func TestGenerateConnectFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			fd, err := protodesc.NewFile(tt.input, nil)
 			if err != nil {
 				t.Fatalf("Failed to create FileDescriptorProto: %v", err)
@@ -200,6 +201,7 @@ func TestGenerate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			resp := generate(t, tt.req)
 			if tt.wantErr {
 				if resp.GetError() == "" {
@@ -225,98 +227,128 @@ func TestGenerate(t *testing.T) {
 func TestEditionSupport(t *testing.T) {
 	t.Parallel()
 
-	// Create a request with an Edition 2023 proto file
-	edition2023 := descriptorpb.Edition_EDITION_2023
-
-	req := &pluginpb.CodeGeneratorRequest{
-		FileToGenerate: []string{"test_edition2023.proto"},
-		ProtoFile: []*descriptorpb.FileDescriptorProto{
-			{
-				Name:    proto.String("test_edition2023.proto"),
-				Package: proto.String("test.edition2023"),
-				Edition: edition2023.Enum(),
-				// Edition 2023 default: field_presence = EXPLICIT
-				Options: &descriptorpb.FileOptions{
-					Features: &descriptorpb.FeatureSet{
-						FieldPresence: descriptorpb.FeatureSet_EXPLICIT.Enum(),
-					},
-				},
-				Service: []*descriptorpb.ServiceDescriptorProto{
-					{
-						Name: proto.String("Edition2023Service"),
-						Method: []*descriptorpb.MethodDescriptorProto{
-							{
-								Name:       proto.String("TestMethod"),
-								InputType:  proto.String(".test.edition2023.TestRequest"),
-								OutputType: proto.String(".test.edition2023.TestResponse"),
-							},
-						},
-					},
-				},
-				MessageType: []*descriptorpb.DescriptorProto{
-					{
-						Name: proto.String("TestRequest"),
-						Field: []*descriptorpb.FieldDescriptorProto{
-							{
-								Name:   proto.String("message"),
-								Number: proto.Int32(1),
-								Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
-								Type:   descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
-								// In Edition 2023, field presence is controlled by features
-							},
-						},
-					},
-					{
-						Name: proto.String("TestResponse"),
-						Field: []*descriptorpb.FieldDescriptorProto{
-							{
-								Name:   proto.String("result"),
-								Number: proto.Int32(1),
-								Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
-								Type:   descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
-							},
-						},
-					},
-				},
-			},
+	tests := []struct {
+		name              string
+		edition           descriptorpb.Edition
+		protoFileName     string
+		packageName       string
+		serviceName       string
+		wantMinEdition    descriptorpb.Edition
+		wantMaxEdition    descriptorpb.Edition
+		wantGeneratedFile string
+		wantServiceClass  string
+	}{
+		{
+			name:              "edition 2023",
+			edition:           descriptorpb.Edition_EDITION_2023,
+			protoFileName:     "test_edition2023.proto",
+			packageName:       "test.edition2023",
+			serviceName:       "Edition2023Service",
+			wantMinEdition:    descriptorpb.Edition_EDITION_PROTO3,
+			wantMaxEdition:    descriptorpb.Edition_EDITION_2024,
+			wantGeneratedFile: "test_edition2023_connect.py",
+			wantServiceClass:  "class Edition2023Service",
+		},
+		{
+			name:              "edition 2024",
+			edition:           descriptorpb.Edition_EDITION_2024,
+			protoFileName:     "test_edition2024.proto",
+			packageName:       "test.edition2024",
+			serviceName:       "Edition2024Service",
+			wantMinEdition:    descriptorpb.Edition_EDITION_PROTO3,
+			wantMaxEdition:    descriptorpb.Edition_EDITION_2024,
+			wantGeneratedFile: "test_edition2024_connect.py",
+			wantServiceClass:  "class Edition2024Service",
 		},
 	}
 
-	// Call Generate
-	resp := generate(t, req)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := &pluginpb.CodeGeneratorRequest{
+				FileToGenerate: []string{tt.protoFileName},
+				ProtoFile: []*descriptorpb.FileDescriptorProto{
+					{
+						Name:    proto.String(tt.protoFileName),
+						Package: proto.String(tt.packageName),
+						Edition: tt.edition.Enum(),
+						Options: &descriptorpb.FileOptions{
+							Features: &descriptorpb.FeatureSet{
+								FieldPresence: descriptorpb.FeatureSet_EXPLICIT.Enum(),
+							},
+						},
+						Service: []*descriptorpb.ServiceDescriptorProto{
+							{
+								Name: proto.String(tt.serviceName),
+								Method: []*descriptorpb.MethodDescriptorProto{
+									{
+										Name:       proto.String("TestMethod"),
+										InputType:  proto.String("." + tt.packageName + ".TestRequest"),
+										OutputType: proto.String("." + tt.packageName + ".TestResponse"),
+									},
+								},
+							},
+						},
+						MessageType: []*descriptorpb.DescriptorProto{
+							{
+								Name: proto.String("TestRequest"),
+								Field: []*descriptorpb.FieldDescriptorProto{
+									{
+										Name:   proto.String("message"),
+										Number: proto.Int32(1),
+										Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+										Type:   descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
+									},
+								},
+							},
+							{
+								Name: proto.String("TestResponse"),
+								Field: []*descriptorpb.FieldDescriptorProto{
+									{
+										Name:   proto.String("result"),
+										Number: proto.Int32(1),
+										Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+										Type:   descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
+									},
+								},
+							},
+						},
+					},
+				},
+			}
 
-	// Verify no error occurred
-	if resp.GetError() != "" {
-		t.Fatalf("generate() failed for Edition 2023 proto: %v", resp.GetError())
-	}
+			resp := generate(t, req)
 
-	// Verify the generator declared Edition support
-	if resp.GetSupportedFeatures()&uint64(pluginpb.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS) == 0 {
-		t.Error("Generator should declare FEATURE_SUPPORTS_EDITIONS")
-	}
+			if resp.GetError() != "" {
+				t.Fatalf("generate() failed for %s proto: %v", tt.name, resp.GetError())
+			}
 
-	// Verify minimum and maximum editions are set
-	if resp.GetMinimumEdition() != int32(descriptorpb.Edition_EDITION_PROTO3) {
-		t.Errorf("Expected minimum edition PROTO3, got %v", resp.GetMinimumEdition())
-	}
-	if resp.GetMaximumEdition() != int32(descriptorpb.Edition_EDITION_2023) {
-		t.Errorf("Expected maximum edition 2023, got %v", resp.GetMaximumEdition())
-	}
+			if resp.GetSupportedFeatures()&uint64(pluginpb.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS) == 0 {
+				t.Error("Generator should declare FEATURE_SUPPORTS_EDITIONS")
+			}
 
-	// Verify a file was generated
-	if len(resp.GetFile()) == 0 {
-		t.Error("No files generated for Edition 2023 proto")
-	} else {
-		generatedFile := resp.GetFile()[0]
-		if generatedFile.GetName() != "test_edition2023_connect.py" {
-			t.Errorf("Expected filename test_edition2023_connect.py, got %v", generatedFile.GetName())
-		}
+			if resp.GetMinimumEdition() != int32(tt.wantMinEdition) {
+				t.Errorf("Expected minimum edition %v, got %v", tt.wantMinEdition, resp.GetMinimumEdition())
+			}
+			if resp.GetMaximumEdition() != int32(tt.wantMaxEdition) {
+				t.Errorf("Expected maximum edition %v, got %v", tt.wantMaxEdition, resp.GetMaximumEdition())
+			}
 
-		// Verify the generated content includes the service
-		content := generatedFile.GetContent()
-		if !strings.Contains(content, "class Edition2023Service") {
-			t.Error("Generated code missing Edition2023Service class")
-		}
+			if len(resp.GetFile()) == 0 {
+				t.Errorf("No files generated for %s proto", tt.name)
+				return
+			}
+
+			generatedFile := resp.GetFile()[0]
+			if generatedFile.GetName() != tt.wantGeneratedFile {
+				t.Errorf("Expected filename %s, got %v", tt.wantGeneratedFile, generatedFile.GetName())
+			}
+
+			content := generatedFile.GetContent()
+			if !strings.Contains(content, tt.wantServiceClass) {
+				t.Errorf("Generated code missing %s", tt.wantServiceClass)
+			}
+		})
 	}
 }
 
