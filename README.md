@@ -230,7 +230,7 @@ python -m example.eliza_client
 ## Supported Protocols
 
 - ✅ Connect Protocol over HTTP/1.1 and HTTP/2
-- 🚧 gRPC Protocol support is not available
+- ✅ gRPC Protocol support
 - 🚧 gRPC-Web Protocol support is not available
 
 ## Server Runtime Options
