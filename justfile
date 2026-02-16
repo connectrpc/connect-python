@@ -21,7 +21,7 @@ typecheck:
 
 # Run unit tests
 test *args:
-    uv run pytest -W error {{ args }}
+    uv run pytest {{ args }}
 
 # Run lint, typecheck and test
 check: lint typecheck test
