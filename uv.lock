@@ -640,11 +640,11 @@ wheels = [
 
 [[package]]
 name = "find-libpython"
-version = "0.5.0"
+version = "0.5.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f9/46/c466b94830bb77ef1e715d869246b9f8e111f9b2f4de2c60d4de1b986779/find_libpython-0.5.0.tar.gz", hash = "sha256:4e4e0ffcad3bfaf2af9461b359329b8736e3f721dc375da7c167aff383e56be1", size = 9364, upload-time = "2025-10-04T19:50:32.499Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/70/60/951b7ca316ab3ec928ed788de5fcb30b4a0292704e50b872c8edf24c11fe/find_libpython-0.5.1.tar.gz", hash = "sha256:12a0fb39ff8dcc64ad0fd554b1bd142ea4a8c4c18e5da6043a547ce7b25559fe", size = 9402, upload-time = "2026-02-11T03:18:04.844Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a7/3f/0eb94bfca99e54404901536ea8c80ddacff4953257514c6b8fb01f9a75a8/find_libpython-0.5.0-py3-none-any.whl", hash = "sha256:7690dcf6442cdce39c0df191903fd5ecf9af437fa920effb6569fbf2c8ca8ab4", size = 9194, upload-time = "2025-10-04T19:50:31.229Z" },
+    { url = "https://files.pythonhosted.org/packages/34/1f/1d6079f4f0540aaa368aa20d89d98eda42f081c397a822c547340e32d1e3/find_libpython-0.5.1-py3-none-any.whl", hash = "sha256:723a8cfe6fed255a1f58b53c62ed556fb340ec0d456e9863ebc01a5cc047607d", size = 9201, upload-time = "2026-02-11T03:18:03.263Z" },
 ]
 
 [[package]]

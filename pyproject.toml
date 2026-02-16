@@ -83,6 +83,8 @@ module-name = "connectrpc"
 strict = true
 testpaths = ["test"]
 timeout = "1800"     # 30 min
+# Turn all warnings into errors
+filterwarnings = ["error"]
 
 [tool.ruff.format]
 skip-magic-trailing-comma = true
