@@ -413,8 +413,12 @@ Then, use `uv run just` to do development checks, or check out `uv run just --li
 
 ## Status
 
-This project is in alpha and is being actively developed. Expect breaking changes.
+This project is in beta and is being actively developed.
+1.0 will include a new Protobuf implementation built from scratch by Buf, which may introduce breaking changes.
+Join us on [Slack][] if you have questions or feedback.
 
 ## Legal
 
 Offered under the [Apache 2 license](/LICENSE).
+
+[slack]: https://buf.build/links/slack
