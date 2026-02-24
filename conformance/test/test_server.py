@@ -51,8 +51,8 @@ def test_server_sync(server: str, cov: Coverage) -> None:
     opts = []
     match server:
         case "gunicorn":
-            # gunicorn doesn't support HTTP/2
-            opts = ["--skip", "**/HTTPVersion:2/**"]
+            # gunicorn doesn't support HTTP/2 or 3
+            opts = ["--skip", "**/HTTPVersion:2/**", "--skip", "**/HTTPVersion:3/**"]
 
     result = subprocess.run(
         [
@@ -89,6 +89,9 @@ def test_server_async(server: str, cov: Coverage) -> None:
                 # daphne doesn't support h2c
                 "--skip",
                 "**/HTTPVersion:2/**/TLS:false/**",
+                # daphne doesn't support HTTP/3
+                "--skip",
+                "**/HTTPVersion:3/**",
                 # daphne seems to block on the request body so can't do full duplex even with h2,
                 # it only works with websockets
                 "--skip",
@@ -102,8 +105,8 @@ def test_server_async(server: str, cov: Coverage) -> None:
                 "gRPC Unexpected Requests/**",
             ]
         case "uvicorn":
-            # uvicorn doesn't support HTTP/2
-            opts = ["--skip", "**/HTTPVersion:2/**"]
+            # uvicorn doesn't support HTTP/2 or 3
+            opts = ["--skip", "**/HTTPVersion:2/**", "--skip", "**/HTTPVersion:3/**"]
     result = subprocess.run(
         [
             "go",
