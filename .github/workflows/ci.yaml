@@ -92,6 +92,8 @@ jobs:
         # We expect uv.lock to change when matrix.resolution == "highest", so we don't check it there.
         if: ${{ startsWith(matrix.os, 'macos-') && matrix.resolution == 'lowest-direct' }}
         run: uv run just checkgenerate
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
 
       - uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         if: ${{ matrix.coverage == 'cov' }}
