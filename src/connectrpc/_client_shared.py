@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING, TypeVar
 from pyqwest import Headers as HTTPHeaders
 from pyqwest import StreamError, StreamErrorCode
 
-from ._codec import Codec
 from ._protocol_connect import CONNECT_PROTOCOL_VERSION
 from .code import Code
 from .errors import ConnectError
 
 if TYPE_CHECKING:
+    from ._codec import Codec
     from .request import RequestContext
 
 
