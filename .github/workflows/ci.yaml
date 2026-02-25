@@ -91,8 +91,8 @@ jobs:
 
       - name: check running `just generate` does not create a diff
         # NOTE: running on macOS as our sed command only works there
-        # We expect uv.lock to change when matrix.resolution == "highest", so we don't check it there.
-        if: ${{ startsWith(matrix.os, 'macos-') && matrix.resolution == 'lowest-direct' }}
+        # We expect uv.lock to change when matrix.resolution == "lowest-direct", so we don't check it there.
+        if: ${{ startsWith(matrix.os, 'macos-') && matrix.resolution == 'highest' }}
         run: uv run just checkgenerate
 
       - uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
