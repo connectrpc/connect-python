@@ -67,7 +67,6 @@ requires = ["uv_build>=0.10.0,<0.11.0"]
 build-backend = "uv_build"
 
 [tool.uv]
-resolution = "lowest-direct"
 constraint-dependencies = [
     "coverage==7.13.2",
     "pytest==9.0.2",
