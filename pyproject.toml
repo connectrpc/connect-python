@@ -42,7 +42,7 @@ dev = [
     "connect-python-example",
     "daphne==4.2.1",
     "hypercorn==0.18.0",
-    "granian==2.7.1",
+    "granian==2.7.2",
     "grpcio-tools==1.78.0",
     "gunicorn==25.1.0",
     "just-bin==1.46.0; sys_platform != 'win32'",
