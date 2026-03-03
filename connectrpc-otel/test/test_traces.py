@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextvars
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, ParamSpec, cast
 
 import pytest
 from connectrpc_otel import OpenTelemetryInterceptor
@@ -72,11 +72,14 @@ class HostInterceptor(MetadataInterceptorSync, MetadataInterceptor):
         ctx.request_headers()["host"] = self._host
 
 
+_P = ParamSpec("_P")
+
+
 # Work around testing WSGI transport doesn't copy context by default.
 # https://github.com/curioswitch/pyqwest/pull/118
 class ContextCopyingExecutor(ThreadPoolExecutor):
     def submit(
-        self, fn: Callable[..., object], *args: object, **kwargs: object
+        self, fn: Callable[_P, object], *args: _P.args, **kwargs: _P.kwargs
     ) -> Future:
         ctx = contextvars.copy_context()
         return super().submit(lambda: ctx.run(fn, *args, **kwargs))
