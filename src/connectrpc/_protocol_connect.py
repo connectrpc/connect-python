@@ -8,7 +8,12 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from ._codec import CODEC_NAME_JSON, CODEC_NAME_JSON_CHARSET_UTF8, Codec
 from ._compression import IdentityCompression, negotiate_compression
 from ._envelope import EnvelopeReader, EnvelopeWriter
-from ._protocol import ConnectWireError, HTTPException
+from ._protocol import (
+    ConnectWireError,
+    HTTPException,
+    host_to_server_address,
+    url_to_server_address,
+)
 from ._response_metadata import handle_response_trailers
 from ._version import __version__
 from .code import Code
@@ -56,7 +61,12 @@ def codec_name_from_content_type(content_type: str, *, stream: bool) -> str:
 
 class ConnectServerProtocol:
     def create_request_context(
-        self, method: MethodInfo[REQ, RES], http_method: str, headers: Headers
+        self,
+        method: MethodInfo[REQ, RES],
+        http_method: str,
+        http_scheme: str,
+        headers: Headers,
+        client_address: str | None = None,
     ) -> RequestContext[REQ, RES]:
         if method.idempotency_level == IdempotencyLevel.NO_SIDE_EFFECTS:
             if http_method not in ("GET", "POST"):
@@ -92,11 +102,16 @@ class ConnectServerProtocol:
                 ) from e
         else:
             timeout_ms = None
+
+        server_address = host_to_server_address(headers.get("host"), http_scheme)
+
         return RequestContext(
             method=method,
             http_method=http_method,
             request_headers=headers,
             timeout_ms=timeout_ms,
+            server_address=server_address,
+            client_address=client_address,
         )
 
     def create_envelope_writer(
@@ -153,6 +168,7 @@ class ConnectClientProtocol:
         self,
         *,
         method: MethodInfo[REQ, RES],
+        url: str,
         http_method: str,
         user_headers: Headers | Mapping[str, str] | None,
         timeout_ms: int | None,
@@ -197,11 +213,14 @@ class ConnectClientProtocol:
         if timeout_ms is not None:
             headers["connect-timeout-ms"] = str(timeout_ms)
 
+        server_address = url_to_server_address(url)
+
         return RequestContext(
             method=method,
             http_method=http_method,
             request_headers=headers,
             timeout_ms=timeout_ms,
+            server_address=server_address,
         )
 
     def validate_response(

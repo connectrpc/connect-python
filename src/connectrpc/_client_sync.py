@@ -193,6 +193,7 @@ class ConnectClientSync:
     ) -> RES:
         ctx = self._protocol.create_request_context(
             method=method,
+            url=self._address,
             http_method="GET" if use_get else "POST",
             user_headers=headers,
             timeout_ms=timeout_ms or self._timeout_ms,
@@ -213,6 +214,7 @@ class ConnectClientSync:
     ) -> RES:
         ctx = self._protocol.create_request_context(
             method=method,
+            url=self._address,
             http_method="POST",
             user_headers=headers,
             timeout_ms=timeout_ms or self._timeout_ms,
@@ -233,6 +235,7 @@ class ConnectClientSync:
     ) -> Iterator[RES]:
         ctx = self._protocol.create_request_context(
             method=method,
+            url=self._address,
             http_method="POST",
             user_headers=headers,
             timeout_ms=timeout_ms or self._timeout_ms,
@@ -253,6 +256,7 @@ class ConnectClientSync:
     ) -> Iterator[RES]:
         ctx = self._protocol.create_request_context(
             method=method,
+            url=self._address,
             http_method="POST",
             user_headers=headers,
             timeout_ms=timeout_ms or self._timeout_ms,

@@ -231,18 +231,20 @@ exclude = [
     "**/node_modules",
     "**/__pycache__",
     "**/.*",
+    ".venv",
 
     # GRPC python files don't typecheck on their own.
     # See https://github.com/grpc/grpc/issues/39555
     "**/*_pb2_grpc.py",
 
-    # TODO: Work out the import issues to allow it to work.p
+    # TODO: Work out the import issues to allow it to work.
     "conformance/**",
 ]
 
 [tool.uv.workspace]
-members = ["example"]
+members = ["connectrpc-otel", "example"]
 
 [tool.uv.sources]
 connect-python = { workspace = true }
 connect-python-example = { workspace = true }
+connectrpc-otel = { workspace = true }

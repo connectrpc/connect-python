@@ -85,6 +85,10 @@ jobs:
         run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
         working-directory: conformance
 
+      - name: run OTel tests
+        run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
+        working-directory: connectrpc-otel
+
       - name: run Go tests
         run: go test ./...
         working-directory: protoc-gen-connect-python

@@ -9,6 +9,10 @@
       "path": "./conformance",
     },
     {
+      "name": "connectrpc-otel",
+      "path": "./connectrpc-otel",
+    },
+    {
       "name": "example",
       "path": "./example",
     },

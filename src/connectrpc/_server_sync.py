@@ -213,7 +213,13 @@ class ConnectWSGIApplication(ABC):
                 raise HTTPException(HTTPStatus.NOT_FOUND, [])
 
             http_method = environ["REQUEST_METHOD"]
+            http_scheme = environ.get("wsgi.url_scheme", "http")
             headers = _process_headers(_normalize_wsgi_headers(environ))
+            if ra := environ.get("REMOTE_ADDR"):
+                port = environ.get("REMOTE_PORT", "0")
+                client_address = f"{ra}:{port}"
+            else:
+                client_address = None
 
             content_type = headers.get("content-type", "")
             protocol = negotiate_server_protocol(content_type)
@@ -224,7 +230,9 @@ class ConnectWSGIApplication(ABC):
                 if not send_trailers:
                     msg = f"WSGI server does not support WSGI trailers extension but protocol for content-type '{content_type}' requires trailers"
                     raise RuntimeError(msg)
-            ctx = protocol.create_request_context(endpoint.method, http_method, headers)
+            ctx = protocol.create_request_context(
+                endpoint.method, http_method, http_scheme, headers, client_address
+            )
 
             if isinstance(endpoint, EndpointUnarySync) and isinstance(
                 protocol, ConnectServerProtocol
