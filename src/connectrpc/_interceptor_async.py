@@ -136,7 +136,9 @@ class MetadataInterceptor(Protocol[T]):
         """
         ...
 
-    async def on_end(self, token: T, ctx: RequestContext) -> None:
+    async def on_end(
+        self, token: T, ctx: RequestContext, error: Exception | None
+    ) -> None:
         """Called when the RPC ends."""
         return
 
@@ -164,10 +166,14 @@ class MetadataInterceptorInvoker(Generic[T]):
         ctx: RequestContext,
     ) -> RES:
         token = await self._delegate.on_start(ctx)
+        error: Exception | None = None
         try:
             return await call_next(request, ctx)
+        except Exception as e:
+            error = e
+            raise
         finally:
-            await self._delegate.on_end(token, ctx)
+            await self._delegate.on_end(token, ctx, error)
 
     async def intercept_client_stream(
         self,
@@ -176,10 +182,14 @@ class MetadataInterceptorInvoker(Generic[T]):
         ctx: RequestContext,
     ) -> RES:
         token = await self._delegate.on_start(ctx)
+        error: Exception | None = None
         try:
             return await call_next(request, ctx)
+        except Exception as e:
+            error = e
+            raise
         finally:
-            await self._delegate.on_end(token, ctx)
+            await self._delegate.on_end(token, ctx, error)
 
     async def intercept_server_stream(
         self,
@@ -188,11 +198,15 @@ class MetadataInterceptorInvoker(Generic[T]):
         ctx: RequestContext,
     ) -> AsyncIterator[RES]:
         token = await self._delegate.on_start(ctx)
+        error: Exception | None = None
         try:
             async for response in call_next(request, ctx):
                 yield response
+        except Exception as e:
+            error = e
+            raise
         finally:
-            await self._delegate.on_end(token, ctx)
+            await self._delegate.on_end(token, ctx, error)
 
     async def intercept_bidi_stream(
         self,
@@ -201,11 +215,15 @@ class MetadataInterceptorInvoker(Generic[T]):
         ctx: RequestContext,
     ) -> AsyncIterator[RES]:
         token = await self._delegate.on_start(ctx)
+        error: Exception | None = None
         try:
             async for response in call_next(request, ctx):
                 yield response
+        except Exception as e:
+            error = e
+            raise
         finally:
-            await self._delegate.on_end(token, ctx)
+            await self._delegate.on_end(token, ctx, error)
 
 
 def resolve_interceptors(
