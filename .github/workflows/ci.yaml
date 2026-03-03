@@ -67,7 +67,7 @@ jobs:
           go-version-file: protoc-gen-connect-python/go.mod
           cache-dependency-path: "**/go.mod"
 
-      - run: uv sync
+      - run: uv sync --all-packages
 
       - name: run lints
         if: startsWith(matrix.os, 'ubuntu-')
