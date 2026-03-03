@@ -50,12 +50,19 @@ class RequestInterceptor:
 
 
 @pytest.fixture
-def interceptor():
+def client_interceptor():
+    return RequestInterceptor()
+
+
+@pytest.fixture
+def server_interceptor():
     return RequestInterceptor()
 
 
 @pytest_asyncio.fixture
-async def client_async(interceptor: RequestInterceptor):
+async def client_async(
+    client_interceptor: RequestInterceptor, server_interceptor: RequestInterceptor
+):
     class SimpleHaberdasher(Haberdasher):
         async def make_hat(self, request, ctx):
             if request.inches < 0:
@@ -87,11 +94,13 @@ async def client_async(interceptor: RequestInterceptor):
                     )
                 yield Hat(size=s.inches, color=next(colors))
 
-    app = HaberdasherASGIApplication(SimpleHaberdasher(), interceptors=(interceptor,))
+    app = HaberdasherASGIApplication(
+        SimpleHaberdasher(), interceptors=(server_interceptor,)
+    )
     transport = ASGITransport(app)
     async with HaberdasherClient(
         "http://localhost",
-        interceptors=(interceptor,),
+        interceptors=(client_interceptor,),
         http_client=Client(transport=transport),
     ) as client:
         yield client
@@ -99,28 +108,37 @@ async def client_async(interceptor: RequestInterceptor):
 
 @pytest.mark.asyncio
 async def test_intercept_unary_async(
-    client_async: HaberdasherClient, interceptor: RequestInterceptor
+    client_async: HaberdasherClient,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     result = await client_async.make_hat(Size(inches=10))
     assert result == Hat(size=10, color="green")
-    assert interceptor.result == ["Hello MakeHat and goodbye"] * 2
+    assert client_interceptor.result == ["Hello MakeHat and goodbye"]
+    assert server_interceptor.result == ["Hello MakeHat and goodbye"]
 
 
 @pytest.mark.asyncio
 async def test_intercept_unary_async_error(
-    client_async: HaberdasherClient, interceptor: RequestInterceptor
+    client_async: HaberdasherClient,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     with pytest.raises(ConnectError):
         await client_async.make_hat(Size(inches=-10))
-    assert (
-        interceptor.result
-        == ["Hello MakeHat and goodbye with error Size must be non-negative"] * 2
-    )
+    assert client_interceptor.result == [
+        "Hello MakeHat and goodbye with error Size must be non-negative"
+    ]
+    assert server_interceptor.result == [
+        "Hello MakeHat and goodbye with error Size must be non-negative"
+    ]
 
 
 @pytest.mark.asyncio
 async def test_intercept_client_stream_async(
-    client_async: HaberdasherClient, interceptor: RequestInterceptor
+    client_async: HaberdasherClient,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     async def requests():
         yield Size(inches=10)
@@ -128,12 +146,15 @@ async def test_intercept_client_stream_async(
 
     result = await client_async.make_flexible_hat(requests())
     assert result == Hat(size=30, color="red")
-    assert interceptor.result == ["Hello MakeFlexibleHat and goodbye"] * 2
+    assert client_interceptor.result == ["Hello MakeFlexibleHat and goodbye"]
+    assert server_interceptor.result == ["Hello MakeFlexibleHat and goodbye"]
 
 
 @pytest.mark.asyncio
 async def test_intercept_client_stream_async_error(
-    client_async: HaberdasherClient, interceptor: RequestInterceptor
+    client_async: HaberdasherClient,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     async def requests():
         yield Size(inches=-10)
@@ -141,41 +162,50 @@ async def test_intercept_client_stream_async_error(
 
     with pytest.raises(ConnectError):
         await client_async.make_flexible_hat(requests())
-    assert (
-        interceptor.result
-        == ["Hello MakeFlexibleHat and goodbye with error Size must be non-negative"]
-        * 2
-    )
+    assert client_interceptor.result == [
+        "Hello MakeFlexibleHat and goodbye with error Size must be non-negative"
+    ]
+    assert server_interceptor.result == [
+        "Hello MakeFlexibleHat and goodbye with error Size must be non-negative"
+    ]
 
 
 @pytest.mark.asyncio
 async def test_intercept_server_stream_async(
-    client_async: HaberdasherClient, interceptor: RequestInterceptor
+    client_async: HaberdasherClient,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     result = [r async for r in client_async.make_similar_hats(Size(inches=15))]
 
     assert result == [Hat(size=15, color="orange"), Hat(size=15, color="blue")]
-    assert interceptor.result == ["Hello MakeSimilarHats and goodbye"] * 2
+    assert client_interceptor.result == ["Hello MakeSimilarHats and goodbye"]
+    assert server_interceptor.result == ["Hello MakeSimilarHats and goodbye"]
 
 
 @pytest.mark.asyncio
 async def test_intercept_server_stream_async_error(
-    client_async: HaberdasherClient, interceptor: RequestInterceptor
+    client_async: HaberdasherClient,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     with pytest.raises(ConnectError):
         async for _ in client_async.make_similar_hats(Size(inches=-15)):
             pass
 
-    assert (
-        interceptor.result
-        == ["Hello MakeSimilarHats and goodbye with error Size must be non-negative"]
-        * 2
-    )
+    assert client_interceptor.result == [
+        "Hello MakeSimilarHats and goodbye with error Size must be non-negative"
+    ]
+    assert server_interceptor.result == [
+        "Hello MakeSimilarHats and goodbye with error Size must be non-negative"
+    ]
 
 
 @pytest.mark.asyncio
 async def test_intercept_bidi_stream_async(
-    client_async: HaberdasherClient, interceptor: RequestInterceptor
+    client_async: HaberdasherClient,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     async def requests():
         yield Size(inches=25)
@@ -189,12 +219,15 @@ async def test_intercept_bidi_stream_async(
         Hat(size=35, color="white"),
         Hat(size=45, color="gold"),
     ]
-    assert interceptor.result == ["Hello MakeVariousHats and goodbye"] * 2
+    assert client_interceptor.result == ["Hello MakeVariousHats and goodbye"]
+    assert server_interceptor.result == ["Hello MakeVariousHats and goodbye"]
 
 
 @pytest.mark.asyncio
 async def test_intercept_bidi_stream_async_error(
-    client_async: HaberdasherClient, interceptor: RequestInterceptor
+    client_async: HaberdasherClient,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     async def requests():
         yield Size(inches=-25)
@@ -205,15 +238,18 @@ async def test_intercept_bidi_stream_async_error(
         async for _ in client_async.make_various_hats(requests()):
             pass
 
-    assert (
-        interceptor.result
-        == ["Hello MakeVariousHats and goodbye with error Size must be non-negative"]
-        * 2
-    )
+    assert client_interceptor.result == [
+        "Hello MakeVariousHats and goodbye with error Size must be non-negative"
+    ]
+    assert server_interceptor.result == [
+        "Hello MakeVariousHats and goodbye with error Size must be non-negative"
+    ]
 
 
 @pytest.fixture
-def client_sync(interceptor: RequestInterceptor):
+def client_sync(
+    client_interceptor: RequestInterceptor, server_interceptor: RequestInterceptor
+):
     class SimpleHaberdasherSync(HaberdasherSync):
         def make_hat(self, request, ctx):
             if request.inches < 0:
@@ -247,38 +283,47 @@ def client_sync(interceptor: RequestInterceptor):
                 yield Hat(size=s.inches, color=next(colors))
 
     app = HaberdasherWSGIApplication(
-        SimpleHaberdasherSync(), interceptors=(interceptor,)
+        SimpleHaberdasherSync(), interceptors=(server_interceptor,)
     )
     transport = WSGITransport(app)
     with HaberdasherClientSync(
         "http://localhost",
-        interceptors=(interceptor,),
+        interceptors=(client_interceptor,),
         http_client=SyncClient(transport),
     ) as client:
         yield client
 
 
 def test_intercept_unary_sync(
-    client_sync: HaberdasherClientSync, interceptor: RequestInterceptor
+    client_sync: HaberdasherClientSync,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     result = client_sync.make_hat(Size(inches=10))
     assert result == Hat(size=10, color="green")
-    assert interceptor.result == ["Hello MakeHat and goodbye"] * 2
+    assert client_interceptor.result == ["Hello MakeHat and goodbye"]
+    assert server_interceptor.result == ["Hello MakeHat and goodbye"]
 
 
 def test_intercept_unary_sync_error(
-    client_sync: HaberdasherClientSync, interceptor: RequestInterceptor
+    client_sync: HaberdasherClientSync,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     with pytest.raises(ConnectError):
         client_sync.make_hat(Size(inches=-10))
-    assert (
-        interceptor.result
-        == ["Hello MakeHat and goodbye with error Size must be non-negative"] * 2
-    )
+    assert client_interceptor.result == [
+        "Hello MakeHat and goodbye with error Size must be non-negative"
+    ]
+    assert server_interceptor.result == [
+        "Hello MakeHat and goodbye with error Size must be non-negative"
+    ]
 
 
 def test_intercept_client_stream_sync(
-    client_sync: HaberdasherClientSync, interceptor: RequestInterceptor
+    client_sync: HaberdasherClientSync,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     def requests():
         yield Size(inches=10)
@@ -286,11 +331,14 @@ def test_intercept_client_stream_sync(
 
     result = client_sync.make_flexible_hat(requests())
     assert result == Hat(size=30, color="red")
-    assert interceptor.result == ["Hello MakeFlexibleHat and goodbye"] * 2
+    assert client_interceptor.result == ["Hello MakeFlexibleHat and goodbye"]
+    assert server_interceptor.result == ["Hello MakeFlexibleHat and goodbye"]
 
 
 def test_intercept_client_stream_sync_error(
-    client_sync: HaberdasherClientSync, interceptor: RequestInterceptor
+    client_sync: HaberdasherClientSync,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     def requests():
         yield Size(inches=-10)
@@ -298,36 +346,45 @@ def test_intercept_client_stream_sync_error(
 
     with pytest.raises(ConnectError):
         client_sync.make_flexible_hat(requests())
-    assert (
-        interceptor.result
-        == ["Hello MakeFlexibleHat and goodbye with error Size must be non-negative"]
-        * 2
-    )
+    assert client_interceptor.result == [
+        "Hello MakeFlexibleHat and goodbye with error Size must be non-negative"
+    ]
+    assert server_interceptor.result == [
+        "Hello MakeFlexibleHat and goodbye with error Size must be non-negative"
+    ]
 
 
 def test_intercept_server_stream_sync(
-    client_sync: HaberdasherClientSync, interceptor: RequestInterceptor
+    client_sync: HaberdasherClientSync,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     result = list(client_sync.make_similar_hats(Size(inches=15)))
 
     assert result == [Hat(size=15, color="orange"), Hat(size=15, color="blue")]
-    assert interceptor.result == ["Hello MakeSimilarHats and goodbye"] * 2
+    assert client_interceptor.result == ["Hello MakeSimilarHats and goodbye"]
+    assert server_interceptor.result == ["Hello MakeSimilarHats and goodbye"]
 
 
 def test_intercept_server_stream_sync_error(
-    client_sync: HaberdasherClientSync, interceptor: RequestInterceptor
+    client_sync: HaberdasherClientSync,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     with pytest.raises(ConnectError):
         list(client_sync.make_similar_hats(Size(inches=-15)))
-    assert (
-        interceptor.result
-        == ["Hello MakeSimilarHats and goodbye with error Size must be non-negative"]
-        * 2
-    )
+    assert client_interceptor.result == [
+        "Hello MakeSimilarHats and goodbye with error Size must be non-negative"
+    ]
+    assert server_interceptor.result == [
+        "Hello MakeSimilarHats and goodbye with error Size must be non-negative"
+    ]
 
 
 def test_intercept_bidi_stream_sync(
-    client_sync: HaberdasherClientSync, interceptor: RequestInterceptor
+    client_sync: HaberdasherClientSync,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     def requests():
         yield Size(inches=25)
@@ -341,11 +398,14 @@ def test_intercept_bidi_stream_sync(
         Hat(size=35, color="white"),
         Hat(size=45, color="gold"),
     ]
-    assert interceptor.result == ["Hello MakeVariousHats and goodbye"] * 2
+    assert client_interceptor.result == ["Hello MakeVariousHats and goodbye"]
+    assert server_interceptor.result == ["Hello MakeVariousHats and goodbye"]
 
 
 def test_intercept_bidi_stream_sync_error(
-    client_sync: HaberdasherClientSync, interceptor: RequestInterceptor
+    client_sync: HaberdasherClientSync,
+    client_interceptor: RequestInterceptor,
+    server_interceptor: RequestInterceptor,
 ) -> None:
     def requests():
         yield Size(inches=-25)
@@ -355,8 +415,9 @@ def test_intercept_bidi_stream_sync_error(
     with pytest.raises(ConnectError):
         list(client_sync.make_various_hats(requests()))
 
-    assert (
-        interceptor.result
-        == ["Hello MakeVariousHats and goodbye with error Size must be non-negative"]
-        * 2
-    )
+    assert client_interceptor.result == [
+        "Hello MakeVariousHats and goodbye with error Size must be non-negative"
+    ]
+    assert server_interceptor.result == [
+        "Hello MakeVariousHats and goodbye with error Size must be non-negative"
+    ]
