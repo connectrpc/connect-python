@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import os
 import re
 import signal
@@ -10,6 +11,7 @@ import ssl
 import sys
 import time
 from contextlib import ExitStack, closing
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Literal, TypeVar, get_args
 
@@ -17,6 +19,7 @@ from typing import TYPE_CHECKING, Literal, TypeVar, get_args
 import _cov_embed  # noqa: F401
 from _util import create_standard_streams
 from gen.connectrpc.conformance.v1.config_pb2 import Code as ConformanceCode
+from gen.connectrpc.conformance.v1.config_pb2 import HTTPVersion
 from gen.connectrpc.conformance.v1.server_compat_pb2 import (
     ServerCompatRequest,
     ServerCompatResponse,
@@ -43,6 +46,7 @@ from gen.connectrpc.conformance.v1.service_pb2 import (
     UnaryResponseDefinition,
 )
 from google.protobuf.any_pb2 import Any
+from pyvoy import PyvoyServer
 
 from connectrpc.code import Code
 from connectrpc.compression.brotli import BrotliCompression
@@ -635,40 +639,47 @@ async def serve_pyvoy(
     cafile: str | None,
     port_future: asyncio.Future[int],
 ):
-    args = ["--port=0"]
-    if certfile:
-        args.append(f"--tls-cert={certfile}")
-    if keyfile:
-        args.append(f"--tls-key={keyfile}")
-    if cafile:
-        args.append(f"--tls-ca-cert={cafile}")
+    tls_cert = Path(certfile) if certfile else None
+    tls_key = Path(keyfile) if keyfile else None
+    tls_ca_cert = Path(cafile) if cafile else None
+    tls_port = 0 if tls_key else None
 
     if mode == "sync":
-        args.append("--interface=wsgi")
-        args.append("server:wsgi_app")
+        interface = "wsgi"
+        app = "server:wsgi_app"
     else:
-        args.append("server:asgi_app")
+        interface = "asgi"
+        app = "server:asgi_app"
 
-    proc = await asyncio.create_subprocess_exec(
-        "pyvoy",
-        *args,
-        stderr=asyncio.subprocess.STDOUT,
-        stdout=asyncio.subprocess.PIPE,
-        env=_server_env(request),
-    )
-    stdout = proc.stdout
-    assert stdout is not None
-    stdout = _tee_to_stderr(stdout)
+    async def start():
+        # Currently explicit env not accepted but it's safe to set it here.
+        os.environ["READ_MAX_BYTES"] = str(request.message_receive_limit)
+        async with PyvoyServer(
+            app,
+            port=0,
+            tls_port=tls_port,
+            interface=interface,
+            tls_key=tls_key,
+            tls_cert=tls_cert,
+            tls_ca_cert=tls_ca_cert,
+        ) as server:
+            if (
+                request.http_version == HTTPVersion.HTTP_VERSION_3
+                and server.listener_port_quic
+            ):
+                port = server.listener_port_quic
+            else:
+                port = server.listener_port_tls or server.listener_port
+            port_future.set_result(port)
+            await asyncio.Future()  # run until cancelled
+
+    task = asyncio.create_task(start())
     try:
-        async for line in stdout:
-            if b"listening on" in line:
-                port = int(line.strip().split(b"127.0.0.1:")[1])
-                port_future.set_result(port)
-                break
-        await _consume_log(stdout)
+        await task
     except asyncio.CancelledError:
-        proc.terminate()
-        await proc.wait()
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
 
 
 async def serve_uvicorn(
