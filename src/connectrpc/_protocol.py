@@ -6,7 +6,9 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Protocol, TypeVar, cast
 
+from google.protobuf import symbol_database
 from google.protobuf.any_pb2 import Any
+from google.protobuf.json_format import MessageToDict
 
 from ._compression import Compression
 from .code import Code
@@ -157,19 +159,29 @@ class ConnectWireError:
     def to_dict(self) -> dict:
         data: dict = {"code": self.code.value, "message": self.message}
         if self.details:
-            details: list[dict[str, str]] = []
+            details: list[dict] = []
             for detail in self.details:
                 if detail.type_url.startswith("type.googleapis.com/"):
                     detail_type = detail.type_url[len("type.googleapis.com/") :]
                 else:
                     detail_type = detail.type_url
-                details.append(
-                    {
-                        "type": detail_type,
-                        # Connect requires unpadded base64
-                        "value": b64encode(detail.value).decode("utf-8").rstrip("="),
-                    }
-                )
+                detail_dict: dict = {
+                    "type": detail_type,
+                    # Connect requires unpadded base64
+                    "value": b64encode(detail.value).decode("utf-8").rstrip("="),
+                }
+                # Try to produce debug info, but expect failure when we don't
+                # have descriptors for the message type.
+                debug = None
+                try:
+                    msg_instance = symbol_database.Default().GetSymbol(detail_type)()
+                    if detail.Unpack(msg_instance):
+                        debug = MessageToDict(msg_instance)
+                except Exception:
+                    debug = None
+                if debug is not None:
+                    detail_dict["debug"] = debug
+                details.append(detail_dict)
             data["details"] = details
         return data
 

@@ -136,7 +136,9 @@ class MetadataInterceptorSync(Protocol[T]):
         """
         ...
 
-    def on_end_sync(self, token: T, ctx: RequestContext) -> None:
+    def on_end_sync(
+        self, token: T, ctx: RequestContext, error: Exception | None
+    ) -> None:
         """Called when the RPC ends."""
         return
 
@@ -164,10 +166,14 @@ class MetadataInterceptorInvokerSync(Generic[T]):
         ctx: RequestContext,
     ) -> RES:
         token = self._delegate.on_start_sync(ctx)
+        error: Exception | None = None
         try:
             return call_next(request, ctx)
+        except Exception as e:
+            error = e
+            raise
         finally:
-            self._delegate.on_end_sync(token, ctx)
+            self._delegate.on_end_sync(token, ctx, error)
 
     def intercept_client_stream_sync(
         self,
@@ -176,10 +182,14 @@ class MetadataInterceptorInvokerSync(Generic[T]):
         ctx: RequestContext,
     ) -> RES:
         token = self._delegate.on_start_sync(ctx)
+        error: Exception | None = None
         try:
             return call_next(request, ctx)
+        except Exception as e:
+            error = e
+            raise
         finally:
-            self._delegate.on_end_sync(token, ctx)
+            self._delegate.on_end_sync(token, ctx, error)
 
     def intercept_server_stream_sync(
         self,
@@ -188,10 +198,14 @@ class MetadataInterceptorInvokerSync(Generic[T]):
         ctx: RequestContext,
     ) -> Iterator[RES]:
         token = self._delegate.on_start_sync(ctx)
+        error: Exception | None = None
         try:
             yield from call_next(request, ctx)
+        except Exception as e:
+            error = e
+            raise
         finally:
-            self._delegate.on_end_sync(token, ctx)
+            self._delegate.on_end_sync(token, ctx, error)
 
     def intercept_bidi_stream_sync(
         self,
@@ -200,10 +214,14 @@ class MetadataInterceptorInvokerSync(Generic[T]):
         ctx: RequestContext,
     ) -> Iterator[RES]:
         token = self._delegate.on_start_sync(ctx)
+        error: Exception | None = None
         try:
             yield from call_next(request, ctx)
+        except Exception as e:
+            error = e
+            raise
         finally:
-            self._delegate.on_end_sync(token, ctx)
+            self._delegate.on_end_sync(token, ctx, error)
 
 
 def resolve_interceptors(

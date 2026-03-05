@@ -2,6 +2,7 @@ features:
   versions:
     - HTTP_VERSION_1
     - HTTP_VERSION_2
+    - HTTP_VERSION_3
   protocols:
     - PROTOCOL_CONNECT
     - PROTOCOL_GRPC

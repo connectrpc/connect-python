@@ -125,6 +125,8 @@ def pyqwest_client_kwargs(test_request: ClientCompatRequest) -> dict:
             kwargs["http_version"] = PyQwestHTTPVersion.HTTP1
         case HTTPVersion.HTTP_VERSION_2:
             kwargs["http_version"] = PyQwestHTTPVersion.HTTP2
+        case HTTPVersion.HTTP_VERSION_3:
+            kwargs["http_version"] = PyQwestHTTPVersion.HTTP3
     if test_request.server_tls_cert:
         kwargs["tls_ca_cert"] = test_request.server_tls_cert
         if test_request.HasField("client_tls_creds"):
