@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-from typing import TYPE_CHECKING, TypeVar, cast
+from contextlib import AbstractContextManager, contextmanager
+from typing import TYPE_CHECKING, TypeAlias, TypeVar, cast
 
 from opentelemetry.propagate import get_global_textmap
 from opentelemetry.propagators.textmap import Setter, TextMapPropagator, default_setter
@@ -29,13 +29,7 @@ from ._semconv import (
 from ._version import __version__
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        AsyncIterator,
-        Awaitable,
-        Callable,
-        Iterator,
-        MutableMapping,
-    )
+    from collections.abc import Iterator, MutableMapping
 
     from opentelemetry.util.types import AttributeValue
 
@@ -43,6 +37,8 @@ if TYPE_CHECKING:
 
 REQ = TypeVar("REQ")
 RES = TypeVar("RES")
+
+Token: TypeAlias = tuple[AbstractContextManager, Span]
 
 # Workaround bad typing
 _DEFAULT_TEXTMAP_SETTER = cast("Setter[MutableMapping[str, str]]", default_setter)
@@ -72,135 +68,28 @@ class OpenTelemetryInterceptor:
         self._tracer = tracer_provider.get_tracer("connectrpc-otel", __version__)
         self._propagator = propagator or get_global_textmap()
 
-    async def intercept_unary(
-        self,
-        call_next: Callable[[REQ, RequestContext], Awaitable[RES]],
-        request: REQ,
-        ctx: RequestContext,
-    ) -> RES:
-        error: Exception | None = None
-        with self._start_span(ctx) as span:
-            try:
-                return await call_next(request, ctx)
-            except Exception as e:
-                error = e
-                raise
-            finally:
-                self._finish_span(span, error)
+    async def on_start(self, ctx: RequestContext) -> Token:
+        return self.on_start_sync(ctx)
 
-    async def intercept_client_stream(
-        self,
-        call_next: Callable[[AsyncIterator[REQ], RequestContext], Awaitable[RES]],
-        request: AsyncIterator[REQ],
-        ctx: RequestContext,
-    ) -> RES:
-        error: Exception | None = None
-        with self._start_span(ctx) as span:
-            try:
-                return await call_next(request, ctx)
-            except Exception as e:
-                error = e
-                raise
-            finally:
-                self._finish_span(span, error)
+    def on_start_sync(self, ctx: RequestContext) -> Token:
+        cm = self._start_span(ctx)
+        span = cm.__enter__()
+        return cm, span
 
-    async def intercept_server_stream(
-        self,
-        call_next: Callable[[REQ, RequestContext], AsyncIterator[RES]],
-        request: REQ,
-        ctx: RequestContext,
-    ) -> AsyncIterator[RES]:
-        error: Exception | None = None
-        with self._start_span(ctx) as span:
-            try:
-                async for response in call_next(request, ctx):
-                    yield response
-            except Exception as e:
-                error = e
-                raise
-            finally:
-                self._finish_span(span, error)
+    async def on_end(
+        self, token: Token, ctx: RequestContext, error: Exception | None
+    ) -> None:
+        self.on_end_sync(token, ctx, error)
 
-    async def intercept_bidi_stream(
-        self,
-        call_next: Callable[[AsyncIterator[REQ], RequestContext], AsyncIterator[RES]],
-        request: AsyncIterator[REQ],
-        ctx: RequestContext,
-    ) -> AsyncIterator[RES]:
-        error: Exception | None = None
-        with self._start_span(ctx) as span:
-            try:
-                async for response in call_next(request, ctx):
-                    yield response
-            except Exception as e:
-                error = e
-                raise
-            finally:
-                self._finish_span(span, error)
-
-    def intercept_unary_sync(
-        self,
-        call_next: Callable[[REQ, RequestContext], RES],
-        request: REQ,
-        ctx: RequestContext,
-    ) -> RES:
-        error: Exception | None = None
-        with self._start_span(ctx) as span:
-            try:
-                return call_next(request, ctx)
-            except Exception as e:
-                error = e
-                raise
-            finally:
-                self._finish_span(span, error)
-
-    def intercept_client_stream_sync(
-        self,
-        call_next: Callable[[Iterator[REQ], RequestContext], RES],
-        request: Iterator[REQ],
-        ctx: RequestContext,
-    ) -> RES:
-        error: Exception | None = None
-        with self._start_span(ctx) as span:
-            try:
-                return call_next(request, ctx)
-            except Exception as e:
-                error = e
-                raise
-            finally:
-                self._finish_span(span, error)
-
-    def intercept_server_stream_sync(
-        self,
-        call_next: Callable[[REQ, RequestContext], Iterator[RES]],
-        request: REQ,
-        ctx: RequestContext,
-    ) -> Iterator[RES]:
-        error: Exception | None = None
-        with self._start_span(ctx) as span:
-            try:
-                yield from call_next(request, ctx)
-            except Exception as e:
-                error = e
-                raise
-            finally:
-                self._finish_span(span, error)
-
-    def intercept_bidi_stream_sync(
-        self,
-        call_next: Callable[[Iterator[REQ], RequestContext], Iterator[RES]],
-        request: Iterator[REQ],
-        ctx: RequestContext,
-    ) -> Iterator[RES]:
-        error: Exception | None = None
-        with self._start_span(ctx) as span:
-            try:
-                yield from call_next(request, ctx)
-            except Exception as e:
-                error = e
-                raise
-            finally:
-                self._finish_span(span, error)
+    def on_end_sync(
+        self, token: Token, ctx: RequestContext, error: Exception | None
+    ) -> None:
+        cm, span = token
+        self._finish_span(span, error)
+        if error:
+            cm.__exit__(type(error), error, error.__traceback__)
+        else:
+            cm.__exit__(None, None, None)
 
     @contextmanager
     def _start_span(self, ctx: RequestContext) -> Iterator[Span]:
