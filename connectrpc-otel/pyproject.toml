@@ -1,7 +1,7 @@
 [project]
 name = "connectrpc-otel"
-version = "0.8.1"
-description = "OpenTelemetry middleware for connectrpc"
+version = "0.1.0"
+description = "OpenTelemetry instrumentation for connectrpc"
 maintainers = [
     { name = "Anuraag Agrawal", email = "anuraaga@gmail.com" },
     { name = "Spencer Nelson", email = "spencer@firetiger.com" },
