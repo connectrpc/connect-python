@@ -105,8 +105,6 @@ class OpenTelemetryInterceptor:
                 carrier = ctx.request_headers()
                 parent_otel_ctx = self._propagator.extract(carrier)
 
-        span_kind = SpanKind.CLIENT if self._client else SpanKind.SERVER
-
         rpc_method = f"{ctx.method().service_name}/{ctx.method().name}"
 
         attrs: MutableMapping[str, AttributeValue] = {
