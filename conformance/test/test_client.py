@@ -22,6 +22,13 @@ _skipped_tests_sync = [
     "Client Cancellation/**",
 ]
 
+_flaky_tests = []
+if sys.platform == "darwin":
+    # TODO: Investigate HTTP/3 conformance test failures on macOS more.
+    # Currently, it seems to be an issue with the conformance runner itself and we see this log message.
+    # 2026/03/05 01:54:19 failed to sufficiently increase receive buffer size (was: 768 kiB, wanted: 7168 kiB, got: 6144 kiB). See https://github.com/quic-go/quic-go/wiki/UDP-Buffer-Sizes for details.
+    _flaky_tests += ["--known-flaky", "**/HTTPVersion:3/**"]
+
 
 def test_client_sync(cov: Coverage | None) -> None:
     args = maybe_patch_args_with_debug(
@@ -38,6 +45,7 @@ def test_client_sync(cov: Coverage | None) -> None:
             "--mode",
             "client",
             *_skipped_tests_sync,
+            *_flaky_tests,
             "--",
             *args,
         ],
@@ -64,6 +72,7 @@ def test_client_async(cov: Coverage | None) -> None:
             _config_path,
             "--mode",
             "client",
+            *_flaky_tests,
             "--",
             *args,
         ],
