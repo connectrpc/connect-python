@@ -178,7 +178,9 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                 raise HTTPException(HTTPStatus.NOT_FOUND, [])
 
             http_method = scope["method"]
+            http_scheme = scope.get("scheme", "http")
             headers = _process_headers(scope.get("headers", ()))
+            client_address = f"{ca[0]}:{ca[1]}" if (ca := scope.get("client")) else None
 
             content_type = headers.get("content-type", "")
             protocol = negotiate_server_protocol(content_type)
@@ -188,7 +190,9 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                 msg = f"ASGI server does not support ASGI trailers extension but protocol for content-type '{content_type}' requires trailers"
                 raise RuntimeError(msg)
 
-            ctx = protocol.create_request_context(endpoint.method, http_method, headers)
+            ctx = protocol.create_request_context(
+                endpoint.method, http_method, http_scheme, headers, client_address
+            )
 
             is_unary = isinstance(endpoint, EndpointUnary)
 

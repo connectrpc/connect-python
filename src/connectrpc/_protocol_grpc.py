@@ -9,7 +9,12 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from ._compression import IdentityCompression, negotiate_compression
 from ._envelope import EnvelopeReader, EnvelopeWriter
 from ._gen.status_pb2 import Status
-from ._protocol import ConnectWireError, HTTPException
+from ._protocol import (
+    ConnectWireError,
+    HTTPException,
+    host_to_server_address,
+    url_to_server_address,
+)
 from ._response_metadata import handle_response_trailers
 from ._version import __version__
 from .code import Code
@@ -41,7 +46,12 @@ _DEFAULT_GRPC_USER_AGENT = f"grpc-python-connect/{__version__} ({sys.version})"
 
 class GRPCServerProtocol:
     def create_request_context(
-        self, method: MethodInfo[REQ, RES], http_method: str, headers: Headers
+        self,
+        method: MethodInfo[REQ, RES],
+        http_method: str,
+        http_scheme: str,
+        headers: Headers,
+        client_address: str | None = None,
     ) -> RequestContext[REQ, RES]:
         if http_method != "POST":
             raise HTTPException(HTTPStatus.METHOD_NOT_ALLOWED, [("allow", "POST")])
@@ -49,11 +59,15 @@ class GRPCServerProtocol:
         timeout_header = headers.get(GRPC_HEADER_TIMEOUT)
         timeout_ms = _parse_timeout(timeout_header) if timeout_header else None
 
+        server_address = host_to_server_address(headers.get("host"), http_scheme)
+
         return RequestContext(
             method=method,
             http_method=http_method,
             request_headers=headers,
             timeout_ms=timeout_ms,
+            server_address=server_address,
+            client_address=client_address,
         )
 
     def create_envelope_writer(
@@ -149,6 +163,7 @@ class GRPCClientProtocol:
         self,
         *,
         method: MethodInfo[REQ, RES],
+        url: str,
         http_method: str,
         user_headers: Headers | Mapping[str, str] | None,
         timeout_ms: int | None,
@@ -179,11 +194,14 @@ class GRPCClientProtocol:
         if timeout_ms is not None:
             headers[GRPC_HEADER_TIMEOUT] = _serialize_timeout(timeout_ms)
 
+        server_address = url_to_server_address(url)
+
         return RequestContext(
             method=method,
             http_method=http_method,
             request_headers=headers,
             timeout_ms=timeout_ms,
+            server_address=server_address,
         )
 
     def validate_response(

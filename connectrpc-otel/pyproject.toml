@@ -1,0 +1,61 @@
+[project]
+name = "connectrpc-otel"
+version = "0.1.0"
+description = "OpenTelemetry instrumentation for connectrpc"
+maintainers = [
+    { name = "Anuraag Agrawal", email = "anuraaga@gmail.com" },
+    { name = "Spencer Nelson", email = "spencer@firetiger.com" },
+    { name = "Stefan VanBuren", email = "svanburen@buf.build" },
+    { name = "Yasushi Itoh", email = "i2y.may.roku@gmail.com" },
+]
+requires-python = ">= 3.10"
+readme = "README.md"
+license = "Apache-2.0"
+keywords = [
+    "opentelemetry",
+    "otel",
+    "connectrpc",
+    "connect-python",
+    "middleware",
+    "tracing",
+    "observability",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: System :: Networking",
+]
+dependencies = ["connect-python>=0.8.0", "opentelemetry-api>=1.39.1"]
+
+[dependency-groups]
+dev = [
+    "opentelemetry-sdk==1.39.1",
+    "opentelemetry-instrumentation-asgi==0.60b1",
+    "opentelemetry-instrumentation-wsgi==0.60b1",
+
+    "connect-python-example",
+    "pytest",
+]
+
+[project.urls]
+Homepage = "https://github.com/connectrpc/connect-python"
+Repository = "https://github.com/connectrpc/connect-python"
+Issues = "https://github.com/connectrpc/connect-python/issues"
+
+[build-system]
+requires = ["uv_build>=0.10.0,<0.11.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "connectrpc_otel"
+module-root = ""

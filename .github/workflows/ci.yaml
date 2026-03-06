@@ -67,7 +67,7 @@ jobs:
           go-version-file: protoc-gen-connect-python/go.mod
           cache-dependency-path: "**/go.mod"
 
-      - run: uv sync
+      - run: uv sync --all-packages
 
       - name: run lints
         if: startsWith(matrix.os, 'ubuntu-')
@@ -84,6 +84,10 @@ jobs:
         if: ${{ !startsWith(matrix.os, 'windows-') }}
         run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
         working-directory: conformance
+
+      - name: run OTel tests
+        run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
+        working-directory: connectrpc-otel
 
       - name: run Go tests
         run: go test ./...

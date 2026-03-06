@@ -191,7 +191,12 @@ class ConnectWireError:
 
 class ServerProtocol(Protocol):
     def create_request_context(
-        self, method: MethodInfo[REQ, RES], http_method: str, headers: Headers
+        self,
+        method: MethodInfo[REQ, RES],
+        http_method: str,
+        http_scheme: str,
+        headers: Headers,
+        client_address: str | None = None,
     ) -> RequestContext[REQ, RES]:
         """Creates a RequestContext from the HTTP method and headers."""
         ...
@@ -230,6 +235,7 @@ class ClientProtocol(Protocol):
         self,
         *,
         method: MethodInfo[REQ, RES],
+        address: str,
         http_method: str,
         user_headers: Headers | Mapping[str, str] | None,
         timeout_ms: int | None,
@@ -276,3 +282,26 @@ class HTTPException(Exception):
     def __init__(self, status: HTTPStatus, headers: list[tuple[str, str]]) -> None:
         self.status = status
         self.headers = headers
+
+
+def host_to_server_address(host: str | None, http_scheme: str) -> str | None:
+    if host is None:
+        return None
+    if ":" not in host:
+        match http_scheme:
+            case "https":
+                host += ":443"
+            case "http":
+                host += ":80"
+    return host
+
+
+def url_to_server_address(address: str) -> str | None:
+    if address.startswith("https://"):
+        scheme = "https"
+        address = address[len("https://") :]
+    else:
+        scheme = "http"
+        address = address[len("http://") :]
+
+    return host_to_server_address(address, scheme)
