@@ -6,7 +6,10 @@ from ._protocol_connect import ConnectServerProtocol
 from ._protocol_grpc import (
     GRPC_CONTENT_TYPE_DEFAULT,
     GRPC_CONTENT_TYPE_PREFIX,
+    GRPC_WEB_CONTENT_TYPE_DEFAULT,
+    GRPC_WEB_CONTENT_TYPE_PREFIX,
     GRPCServerProtocol,
+    GRPCWebServerProtocol,
 )
 
 if TYPE_CHECKING:
@@ -18,4 +21,8 @@ def negotiate_server_protocol(content_type: str) -> ServerProtocol:
         GRPC_CONTENT_TYPE_PREFIX
     ):
         return GRPCServerProtocol()
+    if content_type == GRPC_WEB_CONTENT_TYPE_DEFAULT or content_type.startswith(
+        GRPC_WEB_CONTENT_TYPE_PREFIX
+    ):
+        return GRPCWebServerProtocol()
     return ConnectServerProtocol()

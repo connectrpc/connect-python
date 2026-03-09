@@ -49,6 +49,7 @@ from connectrpc.compression.brotli import BrotliCompression
 from connectrpc.compression.gzip import GzipCompression
 from connectrpc.compression.zstd import ZstdCompression
 from connectrpc.errors import ConnectError
+from connectrpc.protocol import ProtocolType
 from connectrpc.request import Headers
 
 if TYPE_CHECKING:
@@ -153,6 +154,14 @@ async def client_sync(
     else:
         http_client = None
 
+    match test_request.protocol:
+        case Protocol.PROTOCOL_CONNECT:
+            protocol = ProtocolType.CONNECT
+        case Protocol.PROTOCOL_GRPC:
+            protocol = ProtocolType.GRPC
+        case Protocol.PROTOCOL_GRPC_WEB:
+            protocol = ProtocolType.GRPC_WEB
+
     with (
         cleanup,
         ConformanceServiceClientSync(
@@ -165,7 +174,7 @@ async def client_sync(
             ],
             send_compression=_convert_compression(test_request.compression),
             proto_json=test_request.codec == Codec.CODEC_JSON,
-            grpc=test_request.protocol == Protocol.PROTOCOL_GRPC,
+            protocol=protocol,
             read_max_bytes=read_max_bytes,
         ) as client,
     ):
@@ -192,6 +201,14 @@ async def client_async(
     else:
         http_client = None
 
+    match test_request.protocol:
+        case Protocol.PROTOCOL_CONNECT:
+            protocol = ProtocolType.CONNECT
+        case Protocol.PROTOCOL_GRPC:
+            protocol = ProtocolType.GRPC
+        case Protocol.PROTOCOL_GRPC_WEB:
+            protocol = ProtocolType.GRPC_WEB
+
     async with (
         cleanup,
         ConformanceServiceClient(
@@ -204,7 +221,7 @@ async def client_async(
             ],
             send_compression=_convert_compression(test_request.compression),
             proto_json=test_request.codec == Codec.CODEC_JSON,
-            grpc=test_request.protocol == Protocol.PROTOCOL_GRPC,
+            protocol=protocol,
             read_max_bytes=read_max_bytes,
         ) as client,
     ):

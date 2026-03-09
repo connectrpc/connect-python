@@ -24,10 +24,11 @@ from ._interceptor_async import (
 )
 from ._protocol import ConnectWireError
 from ._protocol_connect import ConnectClientProtocol, ConnectEnvelopeWriter
-from ._protocol_grpc import GRPCClientProtocol
+from ._protocol_grpc import GRPCClientProtocol, GRPCWebClientProtocol
 from ._response_metadata import handle_response_headers
 from .code import Code
 from .errors import ConnectError
+from .protocol import ProtocolType
 
 try:
     from asyncio import (
@@ -92,7 +93,7 @@ class ConnectClient:
         address: str,
         *,
         proto_json: bool = False,
-        grpc: bool = False,
+        protocol: ProtocolType = ProtocolType.CONNECT,
         accept_compression: Iterable[Compression] | None = None,
         send_compression: Compression | None = _gzip,
         timeout_ms: int | None = None,
@@ -128,10 +129,13 @@ class ConnectClient:
             self._http_client = HTTPClient()
         self._closed = False
 
-        if grpc:
-            self._protocol = GRPCClientProtocol()
-        else:
-            self._protocol = ConnectClientProtocol()
+        match protocol:
+            case ProtocolType.CONNECT:
+                self._protocol = ConnectClientProtocol()
+            case ProtocolType.GRPC:
+                self._protocol = GRPCClientProtocol()
+            case ProtocolType.GRPC_WEB:
+                self._protocol = GRPCWebClientProtocol()
 
         interceptors = resolve_interceptors(interceptors)
         execute_unary = self._send_request_unary

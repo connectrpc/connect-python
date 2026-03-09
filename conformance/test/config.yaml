@@ -6,6 +6,7 @@ features:
   protocols:
     - PROTOCOL_CONNECT
     - PROTOCOL_GRPC
+    - PROTOCOL_GRPC_WEB
   codecs:
     - CODEC_PROTO
     - CODEC_JSON
