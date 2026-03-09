@@ -22,7 +22,12 @@ _skipped_tests_sync = [
     "Client Cancellation/**",
 ]
 
-_flaky_tests = []
+# TODO: Investigate if this is an issue with the client.
+# "http: invalid Read on closed Body" is common for issues with body handling in Go code,
+# and the test itself is using an old, hacky approach to serve HTTP/1 with gRPC which
+# expects HTTP/2. It seems reasonable the conformance runner may have some issues here
+# but we don't seem to see failures in other repos so maybe not.
+_flaky_tests = ["--known-flaky", "**/HTTPVersion:1/**/(grpc server impl)/**"]
 if sys.platform == "darwin":
     # TODO: Investigate HTTP/3 conformance test failures on macOS more.
     # Currently, it seems to be an issue with the conformance runner itself and we see this log message.
