@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 from pyqwest import FullResponse, SyncClient, SyncResponse
 from pyqwest import Headers as HTTPHeaders
 
-from connectrpc._protocol_grpc import GRPCClientProtocol
+from connectrpc._protocol_grpc import GRPCClientProtocol, GRPCWebClientProtocol
 
 from . import _client_shared
 from ._codec import Codec, get_proto_binary_codec, get_proto_json_codec
@@ -25,6 +25,7 @@ from ._protocol_connect import ConnectClientProtocol, ConnectEnvelopeWriter
 from ._response_metadata import handle_response_headers
 from .code import Code
 from .errors import ConnectError
+from .protocol import ProtocolType
 
 if TYPE_CHECKING:
     import sys
@@ -82,7 +83,7 @@ class ConnectClientSync:
         address: str,
         *,
         proto_json: bool = False,
-        grpc: bool = False,
+        protocol: ProtocolType = ProtocolType.CONNECT,
         accept_compression: Iterable[Compression] | None = None,
         send_compression: Compression | None = _gzip,
         timeout_ms: int | None = None,
@@ -118,10 +119,13 @@ class ConnectClientSync:
             self._http_client = SyncClient()
         self._closed = False
 
-        if grpc:
-            self._protocol = GRPCClientProtocol()
-        else:
-            self._protocol = ConnectClientProtocol()
+        match protocol:
+            case ProtocolType.CONNECT:
+                self._protocol = ConnectClientProtocol()
+            case ProtocolType.GRPC:
+                self._protocol = GRPCClientProtocol()
+            case ProtocolType.GRPC_WEB:
+                self._protocol = GRPCWebClientProtocol()
 
         interceptors = resolve_interceptors(interceptors)
         execute_unary = self._send_request_unary

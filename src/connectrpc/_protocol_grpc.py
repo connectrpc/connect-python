@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import struct
 import sys
 import urllib.parse
 from base64 import b64decode, b64encode
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, TypeVar
+
+from pyqwest import Headers as HTTPHeaders
 
 from ._compression import IdentityCompression, negotiate_compression
 from ._envelope import EnvelopeReader, EnvelopeWriter
@@ -24,7 +27,6 @@ from .request import Headers, RequestContext
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from pyqwest import Headers as HTTPHeaders
     from pyqwest import Response, SyncResponse
 
     from ._codec import Codec
@@ -36,6 +38,8 @@ RES = TypeVar("RES")
 
 GRPC_CONTENT_TYPE_DEFAULT = "application/grpc"
 GRPC_CONTENT_TYPE_PREFIX = f"{GRPC_CONTENT_TYPE_DEFAULT}+"
+GRPC_WEB_CONTENT_TYPE_DEFAULT = "application/grpc-web"
+GRPC_WEB_CONTENT_TYPE_PREFIX = f"{GRPC_WEB_CONTENT_TYPE_DEFAULT}+"
 
 GRPC_HEADER_TIMEOUT = "grpc-timeout"
 GRPC_HEADER_COMPRESSION = "grpc-encoding"
@@ -99,6 +103,24 @@ class GRPCServerProtocol:
         return req_compression, resp_compression
 
 
+class GRPCWebServerProtocol(GRPCServerProtocol):
+    def uses_trailers(self) -> bool:
+        return False
+
+    def content_type(self, codec: Codec) -> str:
+        return f"{GRPC_WEB_CONTENT_TYPE_PREFIX}{codec.name()}"
+
+    def codec_name_from_content_type(self, content_type: str, *, stream: bool) -> str:
+        if content_type.startswith(GRPC_WEB_CONTENT_TYPE_PREFIX):
+            return content_type[len(GRPC_WEB_CONTENT_TYPE_PREFIX) :]
+        return "proto"
+
+    def create_envelope_writer(
+        self, codec: Codec[RES, Any], compression: Compression | None
+    ) -> EnvelopeWriter[RES]:
+        return GRPCWebEnvelopeWriter(codec, compression)
+
+
 def _parse_timeout(timeout: str) -> int:
     # We normalize to int milliseconds matching connect's timeout header.
     value_to_ms = _lookup_timeout_unit(timeout[-1])
@@ -158,7 +180,21 @@ class GRPCEnvelopeWriter(EnvelopeWriter):
         return trailers
 
 
+class GRPCWebEnvelopeWriter(GRPCEnvelopeWriter):
+    def end(self, user_trailers: Headers, error: ConnectWireError | None) -> bytes:  # pyright: ignore[reportIncompatibleMethodOverride]
+        trailers = super().end(user_trailers, error)
+        data = "".join(f"{k}: {v}\r\n" for k, v in trailers.allitems()).encode()
+        if self._compression:
+            data = self._compression.compress(data)
+        prefix = self._prefix | 0b10000000
+        return struct.pack(">BI", prefix, len(data)) + data
+
+
 class GRPCClientProtocol:
+    def __init__(self) -> None:
+        self._content_type = GRPC_CONTENT_TYPE_DEFAULT
+        self._content_type_prefix = GRPC_CONTENT_TYPE_PREFIX
+
     def create_request_context(
         self,
         *,
@@ -190,7 +226,7 @@ class GRPCClientProtocol:
             headers[GRPC_HEADER_COMPRESSION] = send_compression.name()
         else:
             headers.pop(GRPC_HEADER_COMPRESSION, None)
-        headers["content-type"] = f"{GRPC_CONTENT_TYPE_PREFIX}{codec.name()}"
+        headers["content-type"] = f"{self._content_type_prefix}{codec.name()}"
         if timeout_ms is not None:
             headers[GRPC_HEADER_TIMEOUT] = _serialize_timeout(timeout_ms)
 
@@ -213,21 +249,23 @@ class GRPCClientProtocol:
         self, request_codec_name: str, response_content_type: str
     ) -> None:
         if not (
-            response_content_type == GRPC_CONTENT_TYPE_DEFAULT
-            or response_content_type.startswith(GRPC_CONTENT_TYPE_PREFIX)
+            response_content_type == self._content_type
+            or response_content_type.startswith(self._content_type_prefix)
         ):
             raise ConnectError(
                 Code.UNKNOWN,
-                f"invalid content-type: '{response_content_type}'; expecting '{GRPC_CONTENT_TYPE_PREFIX}{request_codec_name}'",
+                f"invalid content-type: '{response_content_type}'; expecting '{self._content_type_prefix}{request_codec_name}'",
             )
-        if response_content_type.startswith(GRPC_CONTENT_TYPE_PREFIX):
-            response_codec_name = response_content_type[len(GRPC_CONTENT_TYPE_PREFIX) :]
+        if response_content_type.startswith(self._content_type_prefix):
+            response_codec_name = response_content_type[
+                len(self._content_type_prefix) :
+            ]
         else:
             response_codec_name = "proto"
         if response_codec_name != request_codec_name:
             raise ConnectError(
                 Code.INTERNAL,
-                f"invalid content-type: '{response_content_type}'; expecting '{GRPC_CONTENT_TYPE_PREFIX}{request_codec_name}'",
+                f"invalid content-type: '{response_content_type}'; expecting '{self._content_type_prefix}{request_codec_name}'",
             )
 
     def handle_response_compression(
@@ -254,6 +292,21 @@ class GRPCClientProtocol:
         return GRPCEnvelopeReader(message_class, codec, compression, read_max_bytes)
 
 
+class GRPCWebClientProtocol(GRPCClientProtocol):
+    def __init__(self) -> None:
+        self._content_type = GRPC_WEB_CONTENT_TYPE_DEFAULT
+        self._content_type_prefix = GRPC_WEB_CONTENT_TYPE_PREFIX
+
+    def create_envelope_reader(
+        self,
+        message_class: type[RES],
+        codec: Codec,
+        compression: Compression,
+        read_max_bytes: int | None,
+    ) -> EnvelopeReader[RES]:
+        return GRPCWebEnvelopeReader(message_class, codec, compression, read_max_bytes)
+
+
 class GRPCEnvelopeReader(EnvelopeReader[RES]):
     def __init__(
         self,
@@ -274,14 +327,16 @@ class GRPCEnvelopeReader(EnvelopeReader[RES]):
         self._read_message = True
         return False
 
+    def get_response_trailers(self, response: Response | SyncResponse) -> HTTPHeaders:
+        return response.trailers
+
     def handle_response_complete(
         self, response: Response | SyncResponse, e: ConnectError | None = None
     ) -> None:
-        trailers = response.trailers
-        # Go ahead and feed HTTP trailers regardless of gRPC semantics.
-        handle_response_trailers(trailers)
+        # Get the actual HTTP trailers
+        trailers = self.get_response_trailers(response)
 
-        # Now handle gRPC trailers. They are either the HTTP trailers if there was body present
+        # gRPC trailers are either the HTTP trailers if there was body present
         # or HTTP headers if there was no body.
         grpc_status = trailers.get("grpc-status")
         if grpc_status is None:
@@ -289,6 +344,8 @@ class GRPCEnvelopeReader(EnvelopeReader[RES]):
             if self._read_message:
                 raise e or ConnectError(Code.INTERNAL, "missing grpc-status trailer")
             trailers = response.headers
+
+        handle_response_trailers(trailers)
 
         grpc_status = trailers.get("grpc-status")
         if grpc_status is None:
@@ -310,6 +367,35 @@ class GRPCEnvelopeReader(EnvelopeReader[RES]):
                 grpc_status, Code.UNKNOWN
             )
             raise ConnectError(connect_code, urllib.parse.unquote(message))
+
+
+class GRPCWebEnvelopeReader(GRPCEnvelopeReader):
+    def __init__(
+        self,
+        message_class: type[RES],
+        codec: Codec,
+        compression: Compression,
+        read_max_bytes: int | None,
+    ) -> None:
+        super().__init__(message_class, codec, compression, read_max_bytes)
+        self._trailers = HTTPHeaders()
+
+    def handle_end_message(
+        self, prefix_byte: int, message_data: bytes | bytearray
+    ) -> bool:
+        super().handle_end_message(prefix_byte, message_data)
+        end_stream = prefix_byte & 0b10000000 != 0
+        if not end_stream:
+            return False
+        for line in message_data.split(b"\r\n"):
+            if not line:
+                continue
+            key, value = line.split(b":", 1)
+            self._trailers.add(key.decode().strip(), value.decode().strip())
+        return True
+
+    def get_response_trailers(self, response: Response | SyncResponse) -> HTTPHeaders:
+        return self._trailers
 
 
 _GRPC_TIMEOUT_MAX_VALUE = 1e8
