@@ -101,7 +101,7 @@ class OpenTelemetryInterceptor:
         return self.on_start_sync(ctx)
 
     def on_start_sync(self, ctx: RequestContext) -> Token:
-        start_time = time.monotonic()
+        start_time = time.perf_counter()
 
         rpc_method = f"{ctx.method().service_name}/{ctx.method().name}"
         shared_attrs: dict[str, AttributeValue] = {
@@ -127,7 +127,7 @@ class OpenTelemetryInterceptor:
         self, token: Token, ctx: RequestContext, error: Exception | None
     ) -> None:
         cm, span, start_time, shared_attrs = token
-        end_time = time.monotonic()
+        end_time = time.perf_counter()
         error_attrs = self._get_error_attributes(error)
         if error_attrs:
             span.set_attributes(error_attrs)
