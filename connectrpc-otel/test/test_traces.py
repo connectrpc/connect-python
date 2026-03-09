@@ -182,7 +182,7 @@ def get_metric_data(metric_reader: InMemoryMetricReader) -> list[Metric]:
     assert data is not None
     for resource_metrics in data.resource_metrics:
         for scope_metrics in resource_metrics.scope_metrics:
-            if scope_metrics.scope and scope_metrics.scope.name == "connectrpc-otel":
+            if scope_metrics.scope.name == "connectrpc-otel":
                 metrics.extend(scope_metrics.metrics)
     assert len(metrics) > 0
     metrics.sort(key=lambda m: m.name)
