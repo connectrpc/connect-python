@@ -11,6 +11,8 @@ from typing import Final
 CLIENT_ADDRESS: Final = "client.address"
 CLIENT_PORT: Final = "client.port"
 ERROR_TYPE: Final = "error.type"
+RPC_CLIENT_CALL_DURATION: Final = "rpc.client.call.duration"
+RPC_SERVER_CALL_DURATION: Final = "rpc.server.call.duration"
 RPC_METHOD: Final = "rpc.method"
 RPC_RESPONSE_STATUS_CODE: Final = "rpc.response.status_code"
 RPC_SYSTEM_NAME: Final = "rpc.system.name"
