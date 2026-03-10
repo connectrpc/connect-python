@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import contextvars
-from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, ParamSpec, cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from connectrpc_otel import OpenTelemetryInterceptor
@@ -22,6 +20,8 @@ from opentelemetry.instrumentation.asgi import (
 from opentelemetry.instrumentation.wsgi import (
     OpenTelemetryMiddleware as WSGIOpenTelemetryMiddleware,
 )
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import Histogram, InMemoryMetricReader, Metric
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
@@ -31,11 +31,8 @@ from pyqwest.testing import ASGITransport, WSGITransport
 
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
-from connectrpc.interceptor import MetadataInterceptor, MetadataInterceptorSync
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
-
     from asgiref.typing import ASGIApplication
 
     from connectrpc.request import RequestContext
@@ -59,38 +56,6 @@ class ElizaServiceTestSync(ElizaServiceSync):
         return SayResponse(sentence="Hello")
 
 
-# Work around testing transports not filling host header like a normal one does.
-# https://github.com/curioswitch/pyqwest/pull/117
-class HostInterceptor(MetadataInterceptorSync, MetadataInterceptor):
-    def __init__(self, host: str) -> None:
-        self._host = host
-
-    async def on_start(self, ctx: RequestContext) -> None:
-        ctx.request_headers()["host"] = self._host
-
-    def on_start_sync(self, ctx: RequestContext) -> None:
-        ctx.request_headers()["host"] = self._host
-
-
-_P = ParamSpec("_P")
-
-
-# Work around testing WSGI transport doesn't copy context by default.
-# https://github.com/curioswitch/pyqwest/pull/118
-class ContextCopyingExecutor(ThreadPoolExecutor):
-    def submit(
-        self, fn: Callable[_P, object], *args: _P.args, **kwargs: _P.kwargs
-    ) -> Future:
-        ctx = contextvars.copy_context()
-        return super().submit(lambda: ctx.run(fn, *args, **kwargs))
-
-
-@pytest.fixture(scope="module")
-def executor() -> Iterator[ContextCopyingExecutor]:
-    with ContextCopyingExecutor() as executor:
-        yield executor
-
-
 @pytest.fixture
 def span_exporter() -> InMemorySpanExporter:
     return InMemorySpanExporter()
@@ -104,38 +69,59 @@ def tracer_provider(span_exporter: InMemorySpanExporter) -> TracerProvider:
 
 
 @pytest.fixture
-def app_async(tracer_provider: TracerProvider) -> ElizaServiceASGIApplication:
+def metric_reader() -> InMemoryMetricReader:
+    return InMemoryMetricReader()
+
+
+@pytest.fixture
+def meter_provider(metric_reader: InMemoryMetricReader) -> MeterProvider:
+    return MeterProvider(metric_readers=[metric_reader])
+
+
+@pytest.fixture
+def app_async(
+    tracer_provider: TracerProvider, meter_provider: MeterProvider
+) -> ElizaServiceASGIApplication:
     return ElizaServiceASGIApplication(
         ElizaServiceTest(),
         interceptors=[
-            HostInterceptor("localhost"),
-            OpenTelemetryInterceptor(tracer_provider=tracer_provider),
+            OpenTelemetryInterceptor(
+                tracer_provider=tracer_provider, meter_provider=meter_provider
+            )
         ],
     )
 
 
 @pytest.fixture
 def client_async(
-    app_async: ElizaServiceASGIApplication, tracer_provider: TracerProvider
+    app_async: ElizaServiceASGIApplication,
+    tracer_provider: TracerProvider,
+    meter_provider: MeterProvider,
 ) -> ElizaServiceClient:
     transport = ASGITransport(app_async, client=("123.456.7.89", 143))
     return ElizaServiceClient(
         "http://localhost",
         http_client=Client(transport=transport),
         interceptors=[
-            HostInterceptor("localhost"),
-            OpenTelemetryInterceptor(tracer_provider=tracer_provider, client=True),
+            OpenTelemetryInterceptor(
+                tracer_provider=tracer_provider,
+                meter_provider=meter_provider,
+                client=True,
+            )
         ],
     )
 
 
 @pytest.fixture
-def app_sync(tracer_provider: TracerProvider) -> ElizaServiceWSGIApplication:
+def app_sync(
+    tracer_provider: TracerProvider, meter_provider: MeterProvider
+) -> ElizaServiceWSGIApplication:
     return ElizaServiceWSGIApplication(
         ElizaServiceTestSync(),
         interceptors=[
-            HostInterceptor("localhost"),
-            OpenTelemetryInterceptor(tracer_provider=tracer_provider),
+            OpenTelemetryInterceptor(
+                tracer_provider=tracer_provider, meter_provider=meter_provider
+            )
         ],
     )
 
@@ -144,15 +130,18 @@ def app_sync(tracer_provider: TracerProvider) -> ElizaServiceWSGIApplication:
 def client_sync(
     app_sync: ElizaServiceWSGIApplication,
     tracer_provider: TracerProvider,
-    executor: ContextCopyingExecutor,
+    meter_provider: MeterProvider,
 ) -> ElizaServiceClientSync:
-    transport = WSGITransport(app_sync, executor=executor)
+    transport = WSGITransport(app_sync, client=("123.456.7.89", 143))
     return ElizaServiceClientSync(
         "http://localhost",
         http_client=SyncClient(transport=transport),
         interceptors=[
-            HostInterceptor("localhost"),
-            OpenTelemetryInterceptor(tracer_provider=tracer_provider, client=True),
+            OpenTelemetryInterceptor(
+                tracer_provider=tracer_provider,
+                meter_provider=meter_provider,
+                client=True,
+            )
         ],
     )
 
@@ -187,10 +176,24 @@ def app(
             raise ValueError(f"invalid app type {request.param}")
 
 
+def get_metric_data(metric_reader: InMemoryMetricReader) -> list[Metric]:
+    metrics: list[Metric] = []
+    data = metric_reader.get_metrics_data()
+    assert data is not None
+    for resource_metrics in data.resource_metrics:
+        for scope_metrics in resource_metrics.scope_metrics:
+            if scope_metrics.scope.name == "connectrpc-otel":
+                metrics.extend(scope_metrics.metrics)
+    assert len(metrics) > 0
+    metrics.sort(key=lambda m: m.name)
+    return metrics
+
+
 @pytest.mark.asyncio
 async def test_basic(
     client: ElizaServiceClient | ElizaServiceClientSync,
     span_exporter: InMemorySpanExporter,
+    metric_reader: InMemoryMetricReader,
 ) -> None:
     if isinstance(client, ElizaServiceClient):
         await client.say(SayRequest(sentence="Hi"))
@@ -221,19 +224,54 @@ async def test_basic(
         assert attrs["server.address"] == "localhost"
         assert attrs["server.port"] == 80
 
-    # TODO: Remove guard when WSGITransport supports setting client addr
-    # https://github.com/curioswitch/pyqwest/pull/117
-    if isinstance(client, ElizaServiceClient):
-        server_attrs = spans[0].attributes
-        assert server_attrs is not None
-        assert server_attrs["client.address"] == "123.456.7.89"
-        assert server_attrs["client.port"] == 143
+    server_attrs = spans[0].attributes
+    assert server_attrs is not None
+    assert server_attrs["client.address"] == "123.456.7.89"
+    assert server_attrs["client.port"] == 143
+
+    metrics = get_metric_data(metric_reader)
+    client_metric = metrics[0]
+    assert client_metric.name == "rpc.client.call.duration"
+    assert (
+        client_metric.description
+        == "Measures the duration of an outgoing Remote Procedure Call (RPC)"
+    )
+    assert client_metric.unit == "s"
+    client_histogram = cast("Histogram", client_metric.data)
+    assert len(client_histogram.data_points) == 1
+    assert client_histogram.data_points[0].count == 1
+    assert client_histogram.data_points[0].sum > 0
+    assert client_histogram.data_points[0].attributes == {
+        "rpc.system.name": "connectrpc",
+        "rpc.method": "connectrpc.eliza.v1.ElizaService/Say",
+        "server.address": "localhost",
+        "server.port": 80,
+    }
+
+    server_metric = metrics[1]
+    assert server_metric.name == "rpc.server.call.duration"
+    assert (
+        server_metric.description
+        == "Measures the duration of an incoming Remote Procedure Call (RPC)"
+    )
+    assert server_metric.unit == "s"
+    server_histogram = cast("Histogram", server_metric.data)
+    assert len(server_histogram.data_points) == 1
+    assert server_histogram.data_points[0].count == 1
+    assert server_histogram.data_points[0].sum > 0
+    assert server_histogram.data_points[0].attributes == {
+        "rpc.system.name": "connectrpc",
+        "rpc.method": "connectrpc.eliza.v1.ElizaService/Say",
+        "server.address": "localhost",
+        "server.port": 80,
+    }
 
 
 @pytest.mark.asyncio
 async def test_connect_error(
     client: ElizaServiceClient | ElizaServiceClientSync,
     span_exporter: InMemorySpanExporter,
+    metric_reader: InMemoryMetricReader,
 ) -> None:
     with pytest.raises(ConnectError):
         if isinstance(client, ElizaServiceClient):
@@ -261,23 +299,62 @@ async def test_connect_error(
         assert attrs["rpc.system.name"] == "connectrpc"
         assert attrs["rpc.method"] == "connectrpc.eliza.v1.ElizaService/Say"
         assert attrs["rpc.response.status_code"] == "failed_precondition"
-        assert "error.type" not in attrs
+        assert attrs["error.type"] == "ConnectError"
         assert attrs["server.address"] == "localhost"
         assert attrs["server.port"] == 80
 
-    # TODO: Remove guard when WSGITransport supports setting client addr
-    # https://github.com/curioswitch/pyqwest/pull/117
-    if isinstance(client, ElizaServiceClient):
-        server_attrs = spans[0].attributes
-        assert server_attrs is not None
-        assert server_attrs["client.address"] == "123.456.7.89"
-        assert server_attrs["client.port"] == 143
+    server_attrs = spans[0].attributes
+    assert server_attrs is not None
+    assert server_attrs["client.address"] == "123.456.7.89"
+    assert server_attrs["client.port"] == 143
+
+    metrics = get_metric_data(metric_reader)
+    client_metric = metrics[0]
+    assert client_metric.name == "rpc.client.call.duration"
+    assert (
+        client_metric.description
+        == "Measures the duration of an outgoing Remote Procedure Call (RPC)"
+    )
+    assert client_metric.unit == "s"
+    client_histogram = cast("Histogram", client_metric.data)
+    assert len(client_histogram.data_points) == 1
+    assert client_histogram.data_points[0].count == 1
+    assert client_histogram.data_points[0].sum > 0
+    assert client_histogram.data_points[0].attributes == {
+        "rpc.system.name": "connectrpc",
+        "rpc.method": "connectrpc.eliza.v1.ElizaService/Say",
+        "server.address": "localhost",
+        "server.port": 80,
+        "error.type": "ConnectError",
+        "rpc.response.status_code": "failed_precondition",
+    }
+
+    server_metric = metrics[1]
+    assert server_metric.name == "rpc.server.call.duration"
+    assert (
+        server_metric.description
+        == "Measures the duration of an incoming Remote Procedure Call (RPC)"
+    )
+    assert server_metric.unit == "s"
+    server_histogram = cast("Histogram", server_metric.data)
+    assert len(server_histogram.data_points) == 1
+    assert server_histogram.data_points[0].count == 1
+    assert server_histogram.data_points[0].sum > 0
+    assert server_histogram.data_points[0].attributes == {
+        "rpc.system.name": "connectrpc",
+        "rpc.method": "connectrpc.eliza.v1.ElizaService/Say",
+        "server.address": "localhost",
+        "server.port": 80,
+        "error.type": "ConnectError",
+        "rpc.response.status_code": "failed_precondition",
+    }
 
 
 @pytest.mark.asyncio
 async def test_unknown_error(
     client: ElizaServiceClient | ElizaServiceClientSync,
     span_exporter: InMemorySpanExporter,
+    metric_reader: InMemoryMetricReader,
 ) -> None:
     with pytest.raises(ConnectError):
         if isinstance(client, ElizaServiceClient):
@@ -312,16 +389,54 @@ async def test_unknown_error(
     assert server_attrs is not None
     # Server sees the ValueError itself
     assert server_attrs["error.type"] == "ValueError"
-    # TODO: Remove guard when WSGITransport supports setting client addr
-    # https://github.com/curioswitch/pyqwest/pull/117
-    if isinstance(client, ElizaServiceClient):
-        assert server_attrs["client.address"] == "123.456.7.89"
-        assert server_attrs["client.port"] == 143
+    assert server_attrs["client.address"] == "123.456.7.89"
+    assert server_attrs["client.port"] == 143
 
     client_attrs = spans[1].attributes
     assert client_attrs is not None
     # Client just sees a ConnectError
-    assert "error.type" not in client_attrs
+    assert client_attrs["error.type"] == "ConnectError"
+
+    metrics = get_metric_data(metric_reader)
+    client_metric = metrics[0]
+    assert client_metric.name == "rpc.client.call.duration"
+    assert (
+        client_metric.description
+        == "Measures the duration of an outgoing Remote Procedure Call (RPC)"
+    )
+    assert client_metric.unit == "s"
+    client_histogram = cast("Histogram", client_metric.data)
+    assert len(client_histogram.data_points) == 1
+    assert client_histogram.data_points[0].count == 1
+    assert client_histogram.data_points[0].sum > 0
+    assert client_histogram.data_points[0].attributes == {
+        "rpc.system.name": "connectrpc",
+        "rpc.method": "connectrpc.eliza.v1.ElizaService/Say",
+        "server.address": "localhost",
+        "server.port": 80,
+        "error.type": "ConnectError",
+        "rpc.response.status_code": "unknown",
+    }
+
+    server_metric = metrics[1]
+    assert server_metric.name == "rpc.server.call.duration"
+    assert (
+        server_metric.description
+        == "Measures the duration of an incoming Remote Procedure Call (RPC)"
+    )
+    assert server_metric.unit == "s"
+    server_histogram = cast("Histogram", server_metric.data)
+    assert len(server_histogram.data_points) == 1
+    assert server_histogram.data_points[0].count == 1
+    assert server_histogram.data_points[0].sum > 0
+    assert server_histogram.data_points[0].attributes == {
+        "rpc.system.name": "connectrpc",
+        "rpc.method": "connectrpc.eliza.v1.ElizaService/Say",
+        "server.address": "localhost",
+        "server.port": 80,
+        "rpc.response.status_code": "unknown",
+        "error.type": "ValueError",
+    }
 
 
 @pytest.mark.asyncio
@@ -342,22 +457,20 @@ async def test_http_server_parent(
             "http://localhost",
             http_client=Client(transport=transport),
             interceptors=[
-                HostInterceptor("localhost"),
-                OpenTelemetryInterceptor(tracer_provider=tracer_provider, client=True),
+                OpenTelemetryInterceptor(tracer_provider=tracer_provider, client=True)
             ],
         )
         await client.say(SayRequest(sentence="Hi"))
     else:
         transport = WSGITransport(
             WSGIOpenTelemetryMiddleware(app, tracer_provider=tracer_provider),
-            executor=ContextCopyingExecutor(),
+            client=("123.456.7.89", 143),
         )
         client = ElizaServiceClientSync(
             "http://localhost",
             http_client=SyncClient(transport=transport),
             interceptors=[
-                HostInterceptor("localhost"),
-                OpenTelemetryInterceptor(tracer_provider=tracer_provider, client=True),
+                OpenTelemetryInterceptor(tracer_provider=tracer_provider, client=True)
             ],
         )
         await asyncio.to_thread(client.say, SayRequest(sentence="Hi"))
@@ -391,13 +504,10 @@ async def test_http_server_parent(
         assert attrs["server.address"] == "localhost"
         assert attrs["server.port"] == 80
 
-    # TODO: Remove guard when WSGITransport supports setting client addr
-    # https://github.com/curioswitch/pyqwest/pull/117
-    if isinstance(client, ElizaServiceClient):
-        server_attrs = spans[0].attributes
-        assert server_attrs is not None
-        assert server_attrs["client.address"] == "123.456.7.89"
-        assert server_attrs["client.port"] == 143
+    server_attrs = spans[0].attributes
+    assert server_attrs is not None
+    assert server_attrs["client.address"] == "123.456.7.89"
+    assert server_attrs["client.port"] == 143
 
 
 @pytest.mark.asyncio
@@ -412,19 +522,17 @@ async def test_non_standard_port(
             "http://localhost:9123",
             http_client=Client(transport=transport),
             interceptors=[
-                HostInterceptor("localhost:9123"),
-                OpenTelemetryInterceptor(tracer_provider=tracer_provider, client=True),
+                OpenTelemetryInterceptor(tracer_provider=tracer_provider, client=True)
             ],
         )
         await client.say(SayRequest(sentence="Hi"))
     else:
-        transport = WSGITransport(app, executor=ContextCopyingExecutor())
+        transport = WSGITransport(app, client=("123.456.7.89", 143))
         client = ElizaServiceClientSync(
             "http://localhost:9123",
             http_client=SyncClient(transport=transport),
             interceptors=[
-                HostInterceptor("localhost:9123"),
-                OpenTelemetryInterceptor(tracer_provider=tracer_provider, client=True),
+                OpenTelemetryInterceptor(tracer_provider=tracer_provider, client=True)
             ],
         )
         await asyncio.to_thread(client.say, SayRequest(sentence="Hi"))
@@ -453,10 +561,7 @@ async def test_non_standard_port(
         assert attrs["server.address"] == "localhost"
         assert attrs["server.port"] == 9123
 
-    # TODO: Remove guard when WSGITransport supports setting client addr
-    # https://github.com/curioswitch/pyqwest/pull/117
-    if isinstance(client, ElizaServiceClient):
-        server_attrs = spans[0].attributes
-        assert server_attrs is not None
-        assert server_attrs["client.address"] == "123.456.7.89"
-        assert server_attrs["client.port"] == 143
+    server_attrs = spans[0].attributes
+    assert server_attrs is not None
+    assert server_attrs["client.address"] == "123.456.7.89"
+    assert server_attrs["client.port"] == 143
