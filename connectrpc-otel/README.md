@@ -1,9 +1,7 @@
 # connectrpc-otel
 
-OpenTelemetry middleware for connect-python to generate server and client spans
-for ConnectRPC requests.
-
-Auto-instrumentation is currently not supported.
+OpenTelemetry instrumentation for connect-python to generate server and client spans and metrics
+for ConnectRPC requests with support for auto-instrumentation.
 
 ## Example
 
