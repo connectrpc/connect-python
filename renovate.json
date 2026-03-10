@@ -8,6 +8,7 @@
   "packageRules": [
     {
       "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["*"],
       "groupName": "GitHub Actions"
     },
     {
@@ -23,10 +24,13 @@
     },
     {
       "matchCategories": ["python"],
+      "matchUpdateTypes": ["*"],
       "groupName": "Python dependencies"
     },
     {
       "matchDatasources": ["golang-version"],
+      "rangeStrategy": "bump",
+      "allowedVersions": "/^1\\.25\\.0$/",
       "groupName": "Go"
     },
     {
