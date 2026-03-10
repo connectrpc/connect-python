@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from functools import partial
 from typing import TYPE_CHECKING, ParamSpec, TypeVar, cast
 
@@ -38,10 +39,14 @@ class ConnectInstrumentor(BaseInstrumentor):
         register_post_import_hook(self._patch_server, "connectrpc.server")
 
     def _uninstrument(self, **kwargs: object) -> None:
-        unwrap("connectrpc.client.ConnectClient", "__init__")
-        unwrap("connectrpc.client.ConnectClientSync", "__init__")
-        unwrap("connectrpc.server.ConnectASGIApplication", "__init__")
-        unwrap("connectrpc.server.ConnectWSGIApplication", "__init__")
+        # TODO: Remove sys.modules check after
+        # https://github.com/open-telemetry/opentelemetry-python-contrib/pull/4321
+        if "connectrpc.client" in sys.modules:
+            unwrap("connectrpc.client.ConnectClient", "__init__")
+            unwrap("connectrpc.client.ConnectClientSync", "__init__")
+        if "connectrpc.server" in sys.modules:
+            unwrap("connectrpc.server.ConnectASGIApplication", "__init__")
+            unwrap("connectrpc.server.ConnectWSGIApplication", "__init__")
 
     def _patch_client(self, module: ModuleType) -> None:
         wrap_function_wrapper(

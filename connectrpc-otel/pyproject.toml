@@ -45,7 +45,7 @@ dev = [
     # auto-instrumentation shouldn't include a dependency on the library being instrumented
     # so it can be packaged in auto-instrumentation distros for general use.
     #
-    # This library also supports manually initializaing the interceptor.
+    # This library also supports manually initializing the interceptor.
     # For users that manually instrument by initializing the interceptor, it is easier to
     # have a real dependency to avoid any possible version conflicts. But for Python,
     # the ecosystem vastly favors auto-instrumentation, and it is easier to add than remove
