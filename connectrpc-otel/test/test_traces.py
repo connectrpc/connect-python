@@ -299,7 +299,7 @@ async def test_connect_error(
         assert attrs["rpc.system.name"] == "connectrpc"
         assert attrs["rpc.method"] == "connectrpc.eliza.v1.ElizaService/Say"
         assert attrs["rpc.response.status_code"] == "failed_precondition"
-        assert "error.type" not in attrs
+        assert attrs["error.type"] == "ConnectError"
         assert attrs["server.address"] == "localhost"
         assert attrs["server.port"] == 80
 
@@ -325,6 +325,7 @@ async def test_connect_error(
         "rpc.method": "connectrpc.eliza.v1.ElizaService/Say",
         "server.address": "localhost",
         "server.port": 80,
+        "error.type": "ConnectError",
         "rpc.response.status_code": "failed_precondition",
     }
 
@@ -344,6 +345,7 @@ async def test_connect_error(
         "rpc.method": "connectrpc.eliza.v1.ElizaService/Say",
         "server.address": "localhost",
         "server.port": 80,
+        "error.type": "ConnectError",
         "rpc.response.status_code": "failed_precondition",
     }
 
@@ -393,7 +395,7 @@ async def test_unknown_error(
     client_attrs = spans[1].attributes
     assert client_attrs is not None
     # Client just sees a ConnectError
-    assert "error.type" not in client_attrs
+    assert client_attrs["error.type"] == "ConnectError"
 
     metrics = get_metric_data(metric_reader)
     client_metric = metrics[0]
@@ -412,6 +414,7 @@ async def test_unknown_error(
         "rpc.method": "connectrpc.eliza.v1.ElizaService/Say",
         "server.address": "localhost",
         "server.port": 80,
+        "error.type": "ConnectError",
         "rpc.response.status_code": "unknown",
     }
 

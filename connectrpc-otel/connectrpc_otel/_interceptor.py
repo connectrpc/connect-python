@@ -178,9 +178,9 @@ class OpenTelemetryInterceptor:
         if not error:
             return None
 
-        if isinstance(error, ConnectError):
-            return {RPC_RESPONSE_STATUS_CODE: error.code.value}
         return {
-            RPC_RESPONSE_STATUS_CODE: "unknown",
             ERROR_TYPE: type(error).__qualname__,
+            RPC_RESPONSE_STATUS_CODE: error.code.value
+            if isinstance(error, ConnectError)
+            else "unknown",
         }
