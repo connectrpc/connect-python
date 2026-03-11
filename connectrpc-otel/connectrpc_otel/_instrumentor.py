@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from connectrpc.interceptor import Interceptor, InterceptorSync
 
-_instruments = ("connect-python>=0.8.0",)
+_instruments = ("connect-python>=0.9.0",)
 
 P = ParamSpec("P")
 R = TypeVar("R")
