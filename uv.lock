@@ -430,12 +430,13 @@ name = "connectrpc-otel"
 version = "0.1.0"
 source = { editable = "connectrpc-otel" }
 dependencies = [
-    { name = "connect-python" },
     { name = "opentelemetry-api" },
+    { name = "opentelemetry-instrumentation" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "connect-python" },
     { name = "connect-python-example" },
     { name = "opentelemetry-instrumentation-asgi" },
     { name = "opentelemetry-instrumentation-wsgi" },
@@ -445,12 +446,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "connect-python", editable = "." },
     { name = "opentelemetry-api", specifier = ">=1.39.1" },
+    { name = "opentelemetry-instrumentation", specifier = "==0.60b1" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "connect-python", editable = "." },
     { name = "connect-python-example", editable = "example" },
     { name = "opentelemetry-instrumentation-asgi", specifier = "==0.60b1" },
     { name = "opentelemetry-instrumentation-wsgi", specifier = "==0.60b1" },

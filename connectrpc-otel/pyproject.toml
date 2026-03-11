@@ -35,10 +35,23 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: System :: Networking",
 ]
-dependencies = ["connect-python>=0.8.0", "opentelemetry-api>=1.39.1"]
+dependencies = [
+    "opentelemetry-api>=1.39.1",
+    "opentelemetry-instrumentation==0.60b1",
+]
 
 [dependency-groups]
 dev = [
+    # auto-instrumentation shouldn't include a dependency on the library being instrumented
+    # so it can be packaged in auto-instrumentation distros for general use.
+    #
+    # This library also supports manually initializing the interceptor.
+    # For users that manually instrument by initializing the interceptor, it is easier to
+    # have a real dependency to avoid any possible version conflicts. But for Python,
+    # the ecosystem vastly favors auto-instrumentation, and it is easier to add than remove
+    # a transitive dependency, so we go ahead and leave it out.
+    "connect-python>=0.8.0",
+
     "opentelemetry-sdk==1.39.1",
     "opentelemetry-instrumentation-asgi==0.60b1",
     "opentelemetry-instrumentation-wsgi==0.60b1",
@@ -46,6 +59,9 @@ dev = [
     "connect-python-example",
     "pytest",
 ]
+
+[project.entry-points.opentelemetry_instrumentor]
+connectrpc = "connectrpc_otel:ConnectInstrumentor"
 
 [project.urls]
 Homepage = "https://github.com/connectrpc/connect-python"
