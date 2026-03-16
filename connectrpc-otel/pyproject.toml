@@ -37,7 +37,10 @@ classifiers = [
 ]
 dependencies = [
     "opentelemetry-api>=1.39.1",
-    "opentelemetry-instrumentation==0.60b1",
+    # We do not want to prevent users from updating OTel when connectrpc isn't depending on
+    # the latest. This does introduce a possibility of incompatibilities, but there is no
+    # alternative, and in practice, the APIs we use have been stable for a long time.
+    "opentelemetry-instrumentation>=0.60b1",
 ]
 
 [dependency-groups]
