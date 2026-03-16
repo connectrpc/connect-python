@@ -1,5 +1,5 @@
 [project]
-name = "protoc-gen-connect-python"
+name = "protoc-gen-connectrpc"
 version = "0.9.0"
 description = "Code generator for connect-python"
 maintainers = [

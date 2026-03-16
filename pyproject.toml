@@ -246,6 +246,6 @@ exclude = [
 members = ["connectrpc-otel", "example"]
 
 [tool.uv.sources]
-connect-python = { workspace = true }
+connectrpc = { workspace = true }
 connect-python-example = { workspace = true }
 connectrpc-otel = { workspace = true }
