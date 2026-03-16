@@ -1,5 +1,5 @@
 [project]
-name = "connect-python"
+name = "connectrpc"
 version = "0.9.0"
 description = "Server and client runtime library for Connect RPC"
 maintainers = [

@@ -1,5 +1,5 @@
 [project]
-name = "connectrpc"
+name = "connectrpc-otel"
 version = "0.1.0"
 description = "OpenTelemetry instrumentation for connectrpc"
 maintainers = [
