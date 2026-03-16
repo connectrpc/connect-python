@@ -12,11 +12,11 @@ requires-python = ">= 3.10"
 dependencies = ["protobuf>=5.28", "pyqwest>=0.4.1"]
 readme = "README.md"
 license = "Apache-2.0"
+license-files = ["LICENSE"]
 keywords = ["rpc", "grpc", "connect", "protobuf", "http"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
