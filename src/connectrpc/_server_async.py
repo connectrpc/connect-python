@@ -435,7 +435,9 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
             finally:
                 # Explicitly close the stream so that any generator finally-blocks
                 # run promptly (Python defers async-generator cleanup to GC otherwise).
-                await response_stream.aclose()
+                aclose = getattr(response_stream, "aclose", None)
+                if aclose is not None:
+                    await aclose()
                 if monitor_task is not None:
                     monitor_task.cancel()
                     with contextlib.suppress(CancelledError, Exception):

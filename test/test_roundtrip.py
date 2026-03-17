@@ -25,6 +25,8 @@ from .haberdasher_pb2 import Hat, Size
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator
 
+    from asgiref.typing import HTTPDisconnectEvent, HTTPRequestEvent, HTTPScope
+
 
 @pytest.mark.parametrize("proto_json", [False, True])
 @pytest.mark.parametrize("compression_name", ["gzip", "br", "zstd", "identity"])
@@ -311,7 +313,7 @@ async def test_server_stream_client_disconnect() -> None:
     response_count = 0
     call_count = 0
 
-    async def receive():
+    async def receive() -> HTTPRequestEvent | HTTPDisconnectEvent:
         nonlocal call_count
         call_count += 1
         if call_count == 1:
@@ -329,13 +331,20 @@ async def test_server_stream_client_disconnect() -> None:
             if response_count >= 3:
                 disconnect_trigger.set()
 
-    scope = {
+    scope: HTTPScope = {
         "type": "http",
+        "asgi": {"spec_version": "2.0", "version": "3.0"},
+        "http_version": "1.1",
         "method": "POST",
+        "scheme": "http",
         "path": "/connectrpc.example.Haberdasher/MakeSimilarHats",
+        "raw_path": b"/connectrpc.example.Haberdasher/MakeSimilarHats",
         "query_string": b"",
         "root_path": "",
         "headers": [(b"content-type", b"application/connect+proto")],
+        "client": None,
+        "server": None,
+        "extensions": None,
     }
 
     # Without the fix the app hangs forever (generator never stopped), causing a
