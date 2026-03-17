@@ -21,7 +21,7 @@ class ConnectError(Exception):
     If a server raises a ConnectError, the same exception content will be
     raised on the client as well. Errors surfacing on the client side such as
     timeouts will also be raised as a ConnectError with an appropriate
-    code.
+    [Code][].
     """
 
     def __init__(
