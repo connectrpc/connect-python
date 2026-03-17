@@ -10,6 +10,7 @@ class GzipCompression(Compression):
 
     def __init__(self, level: int = 6) -> None:
         """Creates a new GzipCompression.
+
         Args:
             level: Compression level to use.
         """
