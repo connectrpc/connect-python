@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import struct
 from typing import TYPE_CHECKING
 
 import pytest
@@ -280,3 +282,66 @@ async def test_message_limit_async(client_bad: bool, compression_name: str) -> N
         else:
             assert len(requests) == 2
             assert len(responses) == 1
+
+
+@pytest.mark.asyncio
+async def test_server_stream_client_disconnect() -> None:
+    """Server streaming generator should be closed when the client disconnects.
+
+    Regression test for https://github.com/connectrpc/connect-python/issues/174.
+    """
+    generator_closed = asyncio.Event()
+
+    class InfiniteHaberdasher(Haberdasher):
+        async def make_similar_hats(self, request, ctx):
+            try:
+                while True:
+                    yield Hat(size=request.inches, color="green")
+                    await asyncio.sleep(0)  # yield control to event loop
+            finally:
+                generator_closed.set()
+
+    app = HaberdasherASGIApplication(InfiniteHaberdasher())
+
+    # Encode a Connect protocol (application/connect+proto) request for Size(inches=10).
+    request_bytes = Size(inches=10).SerializeToString()
+    request_body = struct.pack(">BI", 0, len(request_bytes)) + request_bytes
+
+    disconnect_trigger = asyncio.Event()
+    response_count = 0
+    call_count = 0
+
+    async def receive():
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return {"type": "http.request", "body": request_body, "more_body": False}
+        # Block until the test is ready to simulate a disconnect.
+        await disconnect_trigger.wait()
+        return {"type": "http.disconnect"}
+
+    async def send(message):
+        nonlocal response_count
+        if message.get("type") == "http.response.body" and message.get(
+            "more_body", False
+        ):
+            response_count += 1
+            if response_count >= 3:
+                disconnect_trigger.set()
+
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "path": "/connectrpc.example.Haberdasher/MakeSimilarHats",
+        "query_string": b"",
+        "root_path": "",
+        "headers": [(b"content-type", b"application/connect+proto")],
+    }
+
+    # Without the fix the app hangs forever (generator never stopped), causing a
+    # TimeoutError here.  With the fix it terminates promptly after the disconnect.
+    await asyncio.wait_for(app(scope, receive, send), timeout=5.0)
+
+    assert generator_closed.is_set(), (
+        "generator should be closed after client disconnect"
+    )
