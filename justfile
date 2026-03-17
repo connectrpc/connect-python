@@ -67,8 +67,4 @@ bump semver:
     uv version --bump={{ semver }} --directory protoc-gen-connect-python
 
 serve-docs:
-    # It seems like when iterating on docstrings in src/, re-runs of `zensical
-    # serve` do not properly cache-bust, so for now, remove the .cache
-    # directory before running.
-    rm -rf .cache
     uv run --group docs zensical serve
