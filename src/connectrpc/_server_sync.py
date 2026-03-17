@@ -98,15 +98,14 @@ def _process_headers(headers: dict) -> Headers:
 def prepare_response_headers(
     base_headers: dict[str, list[str]], selected_encoding: str
 ) -> dict[str, list[str]]:
-    """Prepare response headers and determine if compression should be used.
+    """Prepare response headers with the selected compression encoding.
 
     Args:
-        base_headers: Base response headers
-        selected_encoding: Selected compression encoding
-        compressed_size: Size of compressed content (if compression was attempted)
+        base_headers: Base response headers.
+        selected_encoding: Selected compression encoding.
 
     Returns:
-        tuple[dict, bool]: Final headers and whether to use compression
+        The final response headers with content-encoding set.
     """
     headers = base_headers.copy()
 

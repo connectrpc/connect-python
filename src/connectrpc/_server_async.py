@@ -95,7 +95,9 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
 
         Args:
             service: The service instance or async generator that yields the service during lifespan.
-            endpoints: A mapping of URL paths to endpoints resolved from service.
+            endpoints: A callable that takes the service instance and returns a mapping of URL
+                paths to endpoints. Typically provided directly by generated code from the
+                Connect Python plugin.
             interceptors: A sequence of interceptors to apply to the endpoints.
             read_max_bytes: Maximum size of request messages.
             compressions: Supported compression algorithms. If unset, defaults to gzip.

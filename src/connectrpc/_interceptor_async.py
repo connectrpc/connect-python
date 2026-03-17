@@ -126,7 +126,7 @@ class MetadataInterceptor(Protocol[T]):
     access to metadata such as headers and trailers.
 
     To access request and response bodies of a method, instead use an interceptor
-    corresponding to the type of method such as UnaryInterceptor.
+    corresponding to the type of method such as [UnaryInterceptor][].
     """
 
     async def on_start(self, ctx: RequestContext) -> T:

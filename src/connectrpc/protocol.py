@@ -4,13 +4,13 @@ from enum import Enum
 
 
 class ProtocolType(Enum):
-    """A protocol supported by Connect"""
+    """A protocol supported by Connect."""
 
     CONNECT = 1
-    """The Connect protocol"""
+    """The Connect protocol."""
 
     GRPC = 2
-    """The gRPC protocol"""
+    """The gRPC protocol."""
 
     GRPC_WEB = 3
-    """The gRPC-Web protocol"""
+    """The gRPC-Web protocol."""

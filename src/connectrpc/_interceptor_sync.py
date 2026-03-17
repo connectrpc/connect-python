@@ -126,7 +126,7 @@ class MetadataInterceptorSync(Protocol[T]):
     access to metadata such as headers and trailers.
 
     To access request and response bodies of a method, instead use an interceptor
-    corresponding to the type of method such as UnaryInterceptorSync.
+    corresponding to the type of method such as [UnaryInterceptorSync][].
     """
 
     def on_start_sync(self, ctx: RequestContext) -> T:

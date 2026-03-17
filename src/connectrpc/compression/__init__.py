@@ -11,10 +11,12 @@ class Compression(Protocol):
 
     By default, gzip compression is used. Other compression methods can be
     used by specifying implementations of this protocol. We provide standard
-    implementations for
+    implementations for:
 
-    - br (connectrpc.compression.brotli.BrotliCompression) - requires the `brotli` dependency
-    - zstd (connectrpc.compression.zstd.ZstdCompression) - requires the `zstandard` dependency
+    - br ([BrotliCompression][connectrpc.compression.brotli.BrotliCompression]) -
+      requires the `brotli` dependency.
+    - zstd ([ZstdCompression][connectrpc.compression.zstd.ZstdCompression]) -
+      requires the `zstandard` dependency.
     """
 
     def name(self) -> str:

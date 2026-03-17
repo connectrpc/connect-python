@@ -63,11 +63,7 @@ class RequestContext(Generic[REQ, RES]):
         return self._http_method
 
     def request_headers(self) -> Headers:
-        """
-        Returns the request headers associated with the context.
-
-        :return: A mapping of header keys to lists of header values.
-        """
+        """Returns the request headers associated with the context."""
         return self._request_headers
 
     def response_headers(self) -> Headers:
@@ -87,12 +83,7 @@ class RequestContext(Generic[REQ, RES]):
         return self._response_trailers
 
     def timeout_ms(self) -> float | None:
-        """
-        Returns the remaining time until the timeout.
-
-        Returns:
-            float | None: The remaining time in milliseconds, or None if no timeout is set.
-        """
+        """Returns the remaining time until the timeout in milliseconds, or None if no timeout is set."""
         if self._end_time is None:
             return None
         return (self._end_time - time.monotonic()) * 1000.0
