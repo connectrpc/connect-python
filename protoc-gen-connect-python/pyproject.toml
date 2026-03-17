@@ -11,7 +11,7 @@ maintainers = [
 requires-python = ">= 3.10"
 readme = "README.md"
 license = "Apache-2.0"
-# Can't set license-files - https://github.com/astral-sh/uv/issues/18502
+license-files = ["LICENSE"]
 keywords = [
     "protoc",
     "protobuf",
