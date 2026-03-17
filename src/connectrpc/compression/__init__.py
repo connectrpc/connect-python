@@ -13,8 +13,8 @@ class Compression(Protocol):
     used by specifying implementations of this protocol. We provide standard
     implementations for
 
-    - br (connectrpc.compression.brotli.BrotliCompression) - requires the brotli dependency
-    - zstd (connectrpc.compression.zstd.ZstdCompression) - requires the zstandard dependency
+    - br (connectrpc.compression.brotli.BrotliCompression) - requires the `brotli` dependency
+    - zstd (connectrpc.compression.zstd.ZstdCompression) - requires the `zstandard` dependency
     """
 
     def name(self) -> str:

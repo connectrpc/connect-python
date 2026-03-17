@@ -65,3 +65,6 @@ checkgenerate: generate
 bump semver:
     uv version --bump={{ semver }}
     uv version --bump={{ semver }} --directory protoc-gen-connect-python
+
+serve-docs:
+    uv run --group docs zensical serve

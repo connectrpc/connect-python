@@ -64,12 +64,13 @@ class ResponseMetadata:
     for the invocation made within the context.
 
     Example:
-
+        ```python
         with ResponseMetadata() as resp_data:
             resp = client.MakeHat(Size(inches=10))
             do_something_with_response_payload(resp)
             check_response_headers(resp_data.headers())
             check_response_trailers(resp_data.trailers())
+        ```
     """
 
     _headers: Headers | None = None

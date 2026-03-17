@@ -63,6 +63,8 @@ dev = [
     "pytest-timeout",
 ]
 
+docs = ["zensical==0.0.27", "mkdocstrings-python==2.0.3"]
+
 [build-system]
 requires = ["uv_build>=0.10.0,<0.11.0"]
 build-backend = "uv_build"
