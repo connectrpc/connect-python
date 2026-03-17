@@ -21,7 +21,7 @@ class Endpoint(Generic[REQ, RES]):
     Represents an endpoint in a service.
 
     Attributes:
-        method: The method to map the the RPC function.
+        method: The method to map to the RPC function.
     """
 
     method: MethodInfo[REQ, RES]
@@ -83,7 +83,7 @@ class EndpointSync(Generic[REQ, RES]):
     Represents a sync endpoint in a service.
 
     Attributes:
-        method: The method to map the RPC function.
+        method: The method to map to the RPC function.
     """
 
     method: MethodInfo[REQ, RES]

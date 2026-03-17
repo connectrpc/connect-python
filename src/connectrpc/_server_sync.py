@@ -172,7 +172,8 @@ class ConnectWSGIApplication(ABC):
         """Initialize the WSGI application.
 
         Args:
-            endpoints: A mapping of URL paths to service endpoints.
+            endpoints: A mapping of URL paths to endpoints. Typically provided directly
+                by generated code from the Connect Python plugin.
             interceptors: A sequence of interceptors to apply to the endpoints.
             read_max_bytes: Maximum size of request messages.
             compressions: Supported compression algorithms. If unset, defaults to gzip.
