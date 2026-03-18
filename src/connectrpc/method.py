@@ -70,4 +70,4 @@ class MethodInfo(Generic[REQ, RES]):
     """The output message type of the method."""
 
     idempotency_level: IdempotencyLevel
-    """The idempotency level of the method."""
+    """The [IdempotencyLevel][] of the method."""

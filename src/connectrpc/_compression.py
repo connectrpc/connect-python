@@ -26,7 +26,7 @@ class IdentityCompression(Compression):
 _identity = IdentityCompression()
 
 _gzip = GzipCompression()
-_default_compressions = {"gzip": _gzip, "identity": _identity}
+_default_compressions: dict[str, Compression] = {"gzip": _gzip, "identity": _identity}
 
 
 def resolve_compressions(

@@ -126,13 +126,13 @@ class MetadataInterceptor(Protocol[T]):
     access to metadata such as headers and trailers.
 
     To access request and response bodies of a method, instead use an interceptor
-    corresponding to the type of method such as UnaryInterceptor.
+    corresponding to the type of method such as [UnaryInterceptor][].
     """
 
     async def on_start(self, ctx: RequestContext) -> T:
-        """Called when the RPC starts. The return value will be passed to on_end as-is.
+        """Called when the RPC starts. The return value will be passed to [on_end][] as-is.
         For example, if measuring RPC invocation time, on_start may return the current
-        time. If a return value isn't needed or on_end won't be used, return None.
+        time. If a return value isn't needed or [on_end][] won't be used, return None.
         """
         ...
 

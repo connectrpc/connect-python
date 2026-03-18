@@ -105,15 +105,16 @@ class ConnectClient:
 
         Args:
             address: The address of the server to connect to, including scheme.
-            proto_json: Whether to use JSON for the protocol
+            proto_json: Whether to use JSON for the protocol.
+            protocol: The [ProtocolType][] to use for requests.
             accept_compression: Compression algorithms to accept from the server. If unset,
                                 defaults to gzip. If set to empty, disables response compression.
             send_compression: Compression algorithm to use for sending requests. If unset,
                               defaults to gzip. If set to None, disables request compression.
-            timeout_ms: The timeout for requests in milliseconds
-            read_max_bytes: The maximum number of bytes to read from the response
-            interceptors: A list of interceptors to apply to requests
-            http_client: A pyqwest Client to use for requests
+            timeout_ms: The timeout for requests in milliseconds.
+            read_max_bytes: The maximum number of bytes to read from the response.
+            interceptors: A list of interceptors to apply to requests.
+            http_client: A pyqwest Client to use for requests.
         """
         self._address = address
         self._codec = get_proto_json_codec() if proto_json else get_proto_binary_codec()
