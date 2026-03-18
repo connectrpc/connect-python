@@ -433,15 +433,17 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                         {"type": "http.response.body", "body": body, "more_body": True}
                     )
             finally:
+                # Cancel the monitor first so a throwing generator finally-block
+                # doesn't leak the task.
+                if monitor_task is not None:
+                    monitor_task.cancel()
+                    with contextlib.suppress(CancelledError):
+                        await monitor_task
                 # Explicitly close the stream so that any generator finally-blocks
                 # run promptly (Python defers async-generator cleanup to GC otherwise).
                 aclose = getattr(response_stream, "aclose", None)
                 if aclose is not None:
                     await aclose()
-                if monitor_task is not None:
-                    monitor_task.cancel()
-                    with contextlib.suppress(CancelledError, Exception):
-                        await monitor_task
         except CancelledError as e:
             raise ConnectError(Code.CANCELED, "Request was cancelled") from e
         except Exception as e:

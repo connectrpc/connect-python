@@ -309,6 +309,10 @@ async def test_server_stream_client_disconnect() -> None:
     request_bytes = Size(inches=10).SerializeToString()
     request_body = struct.pack(">BI", 0, len(request_bytes)) + request_bytes
 
+    # We invoke the ASGI app directly rather than using a real client with a
+    # short timeout because a real client could trigger the disconnect before the
+    # request body has been fully read, which would be a different code path.
+    # That timing is also particularly hard to control reliably on Windows.
     disconnect_trigger = asyncio.Event()
     response_count = 0
     call_count = 0
