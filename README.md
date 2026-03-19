@@ -26,17 +26,17 @@ This repo provides a Python implementation of Connect, including both client and
 ### Install the runtime library
 
 ```bash
-pip install connect-python
+pip install connectrpc
 ```
 
 Or with your preferred package manager:
 
 ```bash
 # Using uv
-uv add connect-python
+uv add connectrpc
 
 # Using poetry
-poetry add connect-python
+poetry add connectrpc
 ```
 
 ### Install the code generator
@@ -58,20 +58,20 @@ plugins:
     out: .
 ```
 
-Or, you can install the compiler (e.g. `pip install protoc-gen-connect-python`), and
-it can be referenced as `protoc-gen-connect-python`.
-Then, you can use `protoc-gen-connect-python` as a local plugin:
+Or, you can install the compiler (e.g. `pip install protoc-gen-connectrpc`), and
+it can be referenced as `protoc-gen-connectrpc`.
+Then, you can use `protoc-gen-connectrpc` as a local plugin:
 
 ```yaml
-- local: .venv/bin/protoc-gen-connect-python
+- local: .venv/bin/protoc-gen-connectrpc
   out: .
 ```
 
 Alternatively, download a precompiled binary from the
 [releases](https://github.com/connectrpc/connect-python/releases).
 
-`protoc-gen-connect-python` is only needed for code generation. Your actual
-application should include `connect-python` as a dependency for the runtime
+`protoc-gen-connectrpc` is only needed for code generation. Your actual
+application should include `connectrpc` as a dependency for the runtime
 component.
 
 ### Basic Client Usage
@@ -383,7 +383,7 @@ When exceeded, returns `RESOURCE_EXHAUSTED` error.
 
 ### Proto Editions Support
 
-`protoc-gen-connect-python` supports up to [Protobuf Editions](https://protobuf.dev/editions/overview/) 2024:
+`protoc-gen-connectrpc` supports up to [Protobuf Editions](https://protobuf.dev/editions/overview/) 2024:
 
 ```proto
 edition = "2024";

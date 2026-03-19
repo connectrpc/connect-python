@@ -1,6 +1,6 @@
 version: 2
 dist: ../out
-project_name: protoc-gen-connect-python
+project_name: protoc-gen-connectrpc
 builds:
   - main: .
     env:

@@ -53,7 +53,7 @@ dev = [
     # have a real dependency to avoid any possible version conflicts. But for Python,
     # the ecosystem vastly favors auto-instrumentation, and it is easier to add than remove
     # a transitive dependency, so we go ahead and leave it out.
-    "connect-python>=0.8.0",
+    "connectrpc>=0.8.0",
 
     "opentelemetry-sdk==1.39.1",
     "opentelemetry-instrumentation-asgi==0.60b1",

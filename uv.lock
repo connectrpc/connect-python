@@ -8,8 +8,8 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "connect-python",
     "connect-python-example",
+    "connectrpc",
     "connectrpc-otel",
 ]
 constraints = [
@@ -344,7 +344,26 @@ wheels = [
 ]
 
 [[package]]
-name = "connect-python"
+name = "connect-python-example"
+version = "0.1.0"
+source = { editable = "example" }
+dependencies = [
+    { name = "connectrpc" },
+    { name = "flask" },
+    { name = "protobuf" },
+    { name = "starlette" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "connectrpc", editable = "." },
+    { name = "flask", specifier = "==3.1.3" },
+    { name = "protobuf", specifier = ">=5.28" },
+    { name = "starlette", specifier = "==0.52.1" },
+]
+
+[[package]]
+name = "connectrpc"
 version = "0.9.0"
 source = { editable = "." }
 dependencies = [
@@ -415,25 +434,6 @@ docs = [
 ]
 
 [[package]]
-name = "connect-python-example"
-version = "0.1.0"
-source = { editable = "example" }
-dependencies = [
-    { name = "connect-python" },
-    { name = "flask" },
-    { name = "protobuf" },
-    { name = "starlette" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "connect-python", editable = "." },
-    { name = "flask", specifier = "==3.1.3" },
-    { name = "protobuf", specifier = ">=5.28" },
-    { name = "starlette", specifier = "==0.52.1" },
-]
-
-[[package]]
 name = "connectrpc-otel"
 version = "0.1.0"
 source = { editable = "connectrpc-otel" }
@@ -444,8 +444,8 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "connect-python" },
     { name = "connect-python-example" },
+    { name = "connectrpc" },
     { name = "opentelemetry-instrumentation-asgi" },
     { name = "opentelemetry-instrumentation-wsgi" },
     { name = "opentelemetry-sdk" },
@@ -460,8 +460,8 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "connect-python", editable = "." },
     { name = "connect-python-example", editable = "example" },
+    { name = "connectrpc", editable = "." },
     { name = "opentelemetry-instrumentation-asgi", specifier = "==0.60b1" },
     { name = "opentelemetry-instrumentation-wsgi", specifier = "==0.60b1" },
     { name = "opentelemetry-sdk", specifier = "==1.39.1" },
