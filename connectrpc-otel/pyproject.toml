@@ -55,9 +55,9 @@ dev = [
     # a transitive dependency, so we go ahead and leave it out.
     "connectrpc>=0.8.0",
 
-    "opentelemetry-sdk==1.39.1",
-    "opentelemetry-instrumentation-asgi==0.60b1",
-    "opentelemetry-instrumentation-wsgi==0.60b1",
+    "opentelemetry-sdk==1.40.0",
+    "opentelemetry-instrumentation-asgi==0.61b0",
+    "opentelemetry-instrumentation-wsgi==0.61b0",
 
     "connect-python-example",
     "pytest",
