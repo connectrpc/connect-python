@@ -1,6 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["helpers:pinGitHubActionDigests", "schedule:earlyMondays"],
+  // TODO: Restore "schedule:earlyMondays"
+  "extends": ["helpers:pinGitHubActionDigests"],
   "prHourlyLimit": 0,
   "lockFileMaintenance": {
     "enabled": true
@@ -25,10 +26,15 @@
     {
       "matchCategories": ["python"],
       "separateMajorMinor": false,
-      // Needed to bump dev OTel dependencies. If a blanket value here doesn't make sense
-      // in the future, we can separate out packageRules / group name for OTel.
-      "ignoreUnstable": false,
       "groupName": "Python dependencies"
+    },
+    // Production artifacts depend on unstable ones with strict version-locking.
+    {
+      "matchCategories": ["python"],
+      "matchPackageNames": ["opentelemetry-*"],
+      "separateMajorMinor": false,
+      "ignoreUnstable": false,
+      "groupName": "OTel dependencies"
     },
     {
       "matchDatasources": ["golang-version"],
