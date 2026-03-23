@@ -12,10 +12,9 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Collection
     from types import ModuleType
 
+    from connectrpc.interceptor import Interceptor, InterceptorSync
     from opentelemetry.metrics import MeterProvider
     from opentelemetry.trace import TracerProvider
-
-    from connectrpc.interceptor import Interceptor, InterceptorSync
 
 _instruments = ("connectrpc>=0.9.0",)
 

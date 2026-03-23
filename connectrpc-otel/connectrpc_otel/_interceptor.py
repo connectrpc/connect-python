@@ -4,6 +4,7 @@ import time
 from contextlib import AbstractContextManager, contextmanager
 from typing import TYPE_CHECKING, TypeAlias, TypeVar, cast
 
+from connectrpc.errors import ConnectError
 from opentelemetry.metrics import MeterProvider, get_meter_provider
 from opentelemetry.propagate import get_global_textmap
 from opentelemetry.propagators.textmap import Setter, TextMapPropagator, default_setter
@@ -15,8 +16,6 @@ from opentelemetry.trace import (
     get_tracer_provider,
 )
 from opentelemetry.util.types import AttributeValue
-
-from connectrpc.errors import ConnectError
 
 from ._semconv import (
     CLIENT_ADDRESS,

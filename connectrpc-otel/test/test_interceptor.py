@@ -4,7 +4,8 @@ import asyncio
 from typing import TYPE_CHECKING, cast
 
 import pytest
-from connectrpc_otel import OpenTelemetryInterceptor
+from connectrpc.code import Code
+from connectrpc.errors import ConnectError
 from example.eliza_connect import (
     ElizaService,
     ElizaServiceASGIApplication,
@@ -24,19 +25,17 @@ from opentelemetry.trace import SpanKind, StatusCode
 from pyqwest import Client, SyncClient
 from pyqwest.testing import ASGITransport, WSGITransport
 
-from connectrpc.code import Code
-from connectrpc.errors import ConnectError
+from connectrpc_otel import OpenTelemetryInterceptor
 
 if TYPE_CHECKING:
     from asgiref.typing import ASGIApplication
+    from connectrpc.request import RequestContext
     from opentelemetry.sdk.metrics import MeterProvider
     from opentelemetry.sdk.metrics.export import Histogram, InMemoryMetricReader, Metric
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
         InMemorySpanExporter,
     )
-
-    from connectrpc.request import RequestContext
 
 
 class ElizaServiceTest(ElizaService):
