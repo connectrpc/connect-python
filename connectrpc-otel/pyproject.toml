@@ -78,3 +78,6 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-name = "connectrpc_otel"
 module-root = ""
+
+[tool.ruff]
+extend = "../pyproject.toml"

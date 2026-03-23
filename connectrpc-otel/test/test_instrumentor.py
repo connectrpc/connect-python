@@ -7,7 +7,8 @@ import textwrap
 from typing import TYPE_CHECKING, Literal
 
 import pytest
-from connectrpc_otel import ConnectInstrumentor, OpenTelemetryInterceptor
+from connectrpc.code import Code
+from connectrpc.errors import ConnectError
 from example.eliza_connect import (
     ElizaService,
     ElizaServiceASGIApplication,
@@ -21,18 +22,16 @@ from opentelemetry.trace import SpanKind
 from pyqwest import Client, SyncClient
 from pyqwest.testing import ASGITransport, WSGITransport
 
-from connectrpc.code import Code
-from connectrpc.errors import ConnectError
+from connectrpc_otel import ConnectInstrumentor, OpenTelemetryInterceptor
 
 if TYPE_CHECKING:
+    from connectrpc.request import RequestContext
     from opentelemetry.metrics import MeterProvider
     from opentelemetry.sdk.metrics.export import InMemoryMetricReader
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
         InMemorySpanExporter,
     )
-
-    from connectrpc.request import RequestContext
 
 
 class ElizaServiceTest(ElizaService):
