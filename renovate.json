@@ -1,7 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  // TODO: Restore "schedule:earlyMondays"
-  "extends": ["helpers:pinGitHubActionDigests"],
+  "extends": ["helpers:pinGitHubActionDigests", "schedule:earlyMondays"],
   "prHourlyLimit": 0,
   "lockFileMaintenance": {
     "enabled": true
