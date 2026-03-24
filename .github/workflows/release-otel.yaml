@@ -1,0 +1,31 @@
+name: Release
+on:
+  push:
+    tags:
+      - "connectrpc-otel/v*"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  attestations: write
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    environment: pypi-release
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+
+      - run: uv sync --frozen
+
+      # Builds into root dist directory
+      - run: uv build
+        working-directory: connectrpc-otel
+
+      - name: publish connectrpc-otel
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+        with:
+          skip-existing: true

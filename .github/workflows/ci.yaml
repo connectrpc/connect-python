@@ -118,6 +118,10 @@ jobs:
 
       - run: uv build
 
+      # Builds to root dist directory so published together with the main project.
+      - run: uv build
+        working-directory: connectrpc-otel
+
       - name: build codegen archives
         uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0
         with:
