@@ -415,7 +415,7 @@ dev = [
     { name = "grpcio-tools", specifier = "==1.78.0" },
     { name = "gunicorn", specifier = "==25.1.0" },
     { name = "hypercorn", specifier = "==0.18.0" },
-    { name = "just-bin", marker = "sys_platform != 'win32'", specifier = "==1.46.0" },
+    { name = "just-bin", marker = "sys_platform != 'win32'", specifier = "==1.47.1" },
     { name = "pyright", extras = ["nodejs"], specifier = "==1.1.408" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -819,6 +819,7 @@ wheels = [
 name = "griffelib"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/06/eccbd311c9e2b3ca45dbc063b93134c57a1ccc7607c5e545264ad092c4a9/griffelib-2.0.0.tar.gz", hash = "sha256:e504d637a089f5cab9b5daf18f7645970509bf4f53eda8d79ed71cce8bd97934", size = 166312, upload-time = "2026-03-23T21:06:55.954Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/51/c936033e16d12b627ea334aaaaf42229c37620d0f15593456ab69ab48161/griffelib-2.0.0-py3-none-any.whl", hash = "sha256:01284878c966508b6d6f1dbff9b6fa607bc062d8261c5c7253cb285b06422a7f", size = 142004, upload-time = "2026-02-09T19:09:40.561Z" },
 ]
@@ -1096,13 +1097,13 @@ wheels = [
 
 [[package]]
 name = "just-bin"
-version = "1.46.0"
+version = "1.47.1"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/30/b197e1b247584e378f333864ca79c8b6530fea9fc9225ad667f50b5a527b/just_bin-1.46.0-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:9daf06e4e3795554493f86b63e91fad511558e6bc29e0a1088737600f5b7e58b", size = 1769303, upload-time = "2026-01-06T00:53:39.913Z" },
-    { url = "https://files.pythonhosted.org/packages/bd/da/8fe74f11c77f44b557c56e9d58e3c2aa0cacd441407ebf90fd1417dd35fa/just_bin-1.46.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:30cddb92af28d8ac8762c9e3a24fc84630eb81b6045c956a4f394b55d0a7e58c", size = 1625199, upload-time = "2026-01-06T00:53:41.098Z" },
-    { url = "https://files.pythonhosted.org/packages/d6/c2/0b9746f5020f8f76a9df144b75eb9a6fd987d49ecaa9a2796e92ca08620f/just_bin-1.46.0-py3-none-manylinux2014_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:50c71c0779415e9bff9ff8da3cd7e636cded7b6b2cb65ad7aedbb2d323778751", size = 1768494, upload-time = "2026-01-06T00:53:42.587Z" },
-    { url = "https://files.pythonhosted.org/packages/8c/02/b629164f99b5224c1f82b8d9f7301dfdf11444bcb51a63a079807813554d/just_bin-1.46.0-py3-none-manylinux2014_x86_64.musllinux_1_1_x86_64.whl", hash = "sha256:a28581e6fdde54d3385a3b294a83b3b40c719d98bf4937dbe4922e6707b4bb51", size = 1936156, upload-time = "2026-01-06T00:53:43.934Z" },
+    { url = "https://files.pythonhosted.org/packages/07/87/21aff939c1a69dcfcd9e8c3e43c7f8169132c9fd71eb8d04c6f20c147ec0/just_bin-1.47.1-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:f21231c9e22d817806bb7319d5b5eb1220299eb5c5c75a88523b0e1804e6f466", size = 1754635, upload-time = "2026-03-23T14:29:28.8Z" },
+    { url = "https://files.pythonhosted.org/packages/c6/19/7899cc220c14940eeaa835e1e1a84cb74fccdead7f1519b855e1531474f5/just_bin-1.47.1-py3-none-macosx_11_0_arm64.whl", hash = "sha256:fad23c1f02087f4d0a115e9dfe83bbdcb9bd8f9a519b3d3c2ee8edf56f0fe6ef", size = 1606882, upload-time = "2026-03-23T14:29:30.11Z" },
+    { url = "https://files.pythonhosted.org/packages/03/13/b85ac9ecdb43f0468f747de8b73455df599ac219dc72734e1663a2cbdbe5/just_bin-1.47.1-py3-none-manylinux2014_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:97364fb5978900eb05ce3bd0aee539a0c2ab8d9273a1fdb19dea17ea4d81cf36", size = 1748684, upload-time = "2026-03-23T14:29:31.47Z" },
+    { url = "https://files.pythonhosted.org/packages/36/3e/196670267c67fd6a1865d95ea83127bf281a20cbf0dc627a8b4f1216df98/just_bin-1.47.1-py3-none-manylinux2014_x86_64.musllinux_1_1_x86_64.whl", hash = "sha256:f25bba0210b519119b9f82ffe483b5839b3c815630958f22251b2cd73aedf940", size = 1918495, upload-time = "2026-03-23T14:29:33.056Z" },
 ]
 
 [[package]]

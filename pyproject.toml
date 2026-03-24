@@ -46,7 +46,7 @@ dev = [
     "granian==2.7.2",
     "grpcio-tools==1.78.0",
     "gunicorn==25.1.0",
-    "just-bin==1.46.0; sys_platform != 'win32'",
+    "just-bin==1.47.1; sys_platform != 'win32'",
     "pyright[nodejs]==1.1.408",
     "pyvoy==0.3.0",
     "ruff~=0.15.0",
@@ -66,7 +66,7 @@ dev = [
 docs = ["zensical==0.0.28", "mkdocstrings-python==2.0.3"]
 
 [build-system]
-requires = ["uv_build>=0.10.0,<0.11.0"]
+requires = ["uv_build>=0.11.0,<0.12.0"]
 build-backend = "uv_build"
 
 [tool.uv]
