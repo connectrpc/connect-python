@@ -10,7 +10,7 @@ from pyqwest import Headers as HTTPHeaders
 from connectrpc._protocol_grpc import GRPCClientProtocol, GRPCWebClientProtocol
 
 from . import _client_shared
-from ._codec import Codec, get_proto_binary_codec, get_proto_json_codec
+from ._codec import Codec, ProtoJSONCodec, get_proto_binary_codec, get_proto_json_codec
 from ._compression import IdentityCompression, _gzip, resolve_compressions
 from ._interceptor_sync import (
     BidiStreamInterceptorSync,
@@ -90,6 +90,7 @@ class ConnectClientSync:
         read_max_bytes: int | None = None,
         interceptors: Iterable[InterceptorSync] = (),
         http_client: SyncClient | None = None,
+        json_codec: ProtoJSONCodec | None = None,
     ) -> None:
         """Creates a new synchronous Connect client.
 
@@ -105,9 +106,18 @@ class ConnectClientSync:
             read_max_bytes: The maximum number of bytes to read from the response.
             interceptors: A list of interceptors to apply to requests.
             http_client: A pyqwest SyncClient to use for requests.
+            json_codec: Custom JSON codec. Requires ``proto_json=True``.
         """
+        if json_codec is not None and not proto_json:
+            msg = "json_codec requires proto_json=True"
+            raise ValueError(msg)
         self._address = address
-        self._codec = get_proto_json_codec() if proto_json else get_proto_binary_codec()
+        if proto_json:
+            self._codec: Codec = (
+                json_codec if json_codec is not None else get_proto_json_codec()
+            )
+        else:
+            self._codec = get_proto_binary_codec()
         self._timeout_ms = timeout_ms
         self._read_max_bytes = read_max_bytes
         self._response_compressions = resolve_compressions(accept_compression)

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from typing import Protocol, TypeVar
+from typing import TYPE_CHECKING, Protocol, TypedDict, TypeVar
 
 from google.protobuf.json_format import MessageToJson
 from google.protobuf.json_format import Parse as MessageFromJson
 from google.protobuf.message import Message
+
+if TYPE_CHECKING:
+    from google.protobuf.descriptor_pool import DescriptorPool
 
 CODEC_NAME_PROTO = "proto"
 CODEC_NAME_JSON = "json"
@@ -46,14 +49,34 @@ class ProtoBinaryCodec(Codec[Message, V]):
         return message
 
 
+class MarshalOptions(TypedDict, total=False):
+    """Options for ``MessageToJson`` serialization.
+
+    All fields are optional and correspond to the keyword arguments of
+    ``google.protobuf.json_format.MessageToJson``.
+    """
+
+    preserving_proto_field_name: bool
+    indent: int | None
+    sort_keys: bool
+    use_integers_for_enums: bool
+    float_precision: int | None
+    ensure_ascii: bool
+    always_print_fields_with_no_presence: bool
+    descriptor_pool: DescriptorPool | None
+
+
 class ProtoJSONCodec(Codec[Message, V]):
     """Codec for Protocol bytes | bytearrays JSON format."""
+
+    def __init__(self, *, marshal_options: MarshalOptions | None = None) -> None:
+        self._marshal_options: MarshalOptions = marshal_options or {}
 
     def name(self) -> str:
         return "json"
 
     def encode(self, message: Message) -> bytes:
-        return MessageToJson(message).encode()
+        return MessageToJson(message, **self._marshal_options).encode()
 
     def decode(self, data: bytes | bytearray, message: V) -> V:
         MessageFromJson(data, message)  # pyright: ignore[reportArgumentType] - type is incorrect

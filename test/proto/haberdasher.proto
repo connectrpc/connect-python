@@ -19,6 +19,9 @@ message Hat {
   // The name of a hat is it's type. Like, 'bowler', or something.
   optional string name = 3;
 
+  // Tags for the hat (e.g., 'summer', 'formal').
+  repeated string tags = 4;
+
   // A part within a Hat.
   message Part {
     // The ID of the part.

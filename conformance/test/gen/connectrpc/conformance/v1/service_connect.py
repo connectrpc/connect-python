@@ -26,6 +26,7 @@ if TYPE_CHECKING:
         Mapping,
     )
 
+    from connectrpc import ProtoJSONCodec
     from connectrpc.compression import Compression
     from connectrpc.interceptor import Interceptor, InterceptorSync
     from connectrpc.request import Headers, RequestContext
@@ -91,6 +92,7 @@ class ConformanceServiceASGIApplication(ConnectASGIApplication[ConformanceServic
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
         compressions: Iterable[Compression] | None = None,
+        json_codec: ProtoJSONCodec | None = None,
     ) -> None:
         super().__init__(
             service=service,
@@ -159,6 +161,7 @@ class ConformanceServiceASGIApplication(ConnectASGIApplication[ConformanceServic
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
             compressions=compressions,
+            json_codec=json_codec,
         )
 
     @property
@@ -358,6 +361,8 @@ class ConformanceServiceWSGIApplication(ConnectWSGIApplication):
         interceptors: Iterable[InterceptorSync] = (),
         read_max_bytes: int | None = None,
         compressions: Iterable[Compression] | None = None,
+        *,
+        json_codec: ProtoJSONCodec | None = None,
     ) -> None:
         super().__init__(
             endpoints={
@@ -425,6 +430,7 @@ class ConformanceServiceWSGIApplication(ConnectWSGIApplication):
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
             compressions=compressions,
+            json_codec=json_codec,
         )
 
     @property

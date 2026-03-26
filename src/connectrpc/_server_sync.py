@@ -9,7 +9,13 @@ from typing import TYPE_CHECKING, TypeVar
 from urllib.parse import parse_qs
 
 from . import _server_shared
-from ._codec import Codec, get_codec
+from ._codec import (
+    CODEC_NAME_JSON,
+    CODEC_NAME_JSON_CHARSET_UTF8,
+    Codec,
+    ProtoJSONCodec,
+    get_codec,
+)
 from ._compression import negotiate_compression, resolve_compressions
 from ._envelope import EnvelopeReader, EnvelopeWriter
 from ._interceptor_sync import (
@@ -168,6 +174,7 @@ class ConnectWSGIApplication(ABC):
         interceptors: Iterable[InterceptorSync] = (),
         read_max_bytes: int | None = None,
         compressions: Iterable[Compression] | None = None,
+        json_codec: ProtoJSONCodec | None = None,
     ) -> None:
         """Initialize the WSGI application.
 
@@ -178,6 +185,9 @@ class ConnectWSGIApplication(ABC):
             read_max_bytes: Maximum size of request messages.
             compressions: Supported compression algorithms. If unset, defaults to gzip.
                           If set to empty, disables compression.
+            json_codec: Custom JSON codec to use instead of the default. Allows
+                customizing ``MessageToJson`` options such as
+                ``always_print_fields_with_no_presence``.
         """
         super().__init__()
         if interceptors:
@@ -194,6 +204,10 @@ class ConnectWSGIApplication(ABC):
         self._endpoints = endpoints
         self._read_max_bytes = read_max_bytes
         self._compressions = resolve_compressions(compressions)
+        self._codec_overrides: dict[str, Codec] = {}
+        if json_codec is not None:
+            self._codec_overrides[CODEC_NAME_JSON] = json_codec
+            self._codec_overrides[CODEC_NAME_JSON_CHARSET_UTF8] = json_codec
 
     def __call__(
         self, environ: WSGIEnvironment, start_response: StartResponse
@@ -299,7 +313,8 @@ class ConnectWSGIApplication(ABC):
         codec_name = codec_name_from_content_type(
             request_headers.get("content-type", ""), stream=False
         )
-        codec = get_codec(codec_name)
+        override = self._codec_overrides.get(codec_name)
+        codec = override if override is not None else get_codec(codec_name)
         if not codec:
             raise HTTPException(
                 HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
@@ -393,7 +408,8 @@ class ConnectWSGIApplication(ABC):
                 message = compression.decompress(message)
 
             codec_name = params.get("encoding", ("",))[0]
-            codec = get_codec(codec_name)
+            override = self._codec_overrides.get(codec_name)
+            codec = override if override is not None else get_codec(codec_name)
             if not codec:
                 raise ConnectError(
                     Code.UNIMPLEMENTED, f"invalid message encoding: '{codec_name}'"
@@ -430,7 +446,8 @@ class ConnectWSGIApplication(ABC):
         codec_name = protocol.codec_name_from_content_type(
             headers.get("content-type", ""), stream=True
         )
-        codec = get_codec(codec_name)
+        override = self._codec_overrides.get(codec_name)
+        codec = override if override is not None else get_codec(codec_name)
         if not codec:
             raise HTTPException(
                 HTTPStatus.UNSUPPORTED_MEDIA_TYPE,

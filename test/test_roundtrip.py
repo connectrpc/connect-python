@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import io
+import json
 import struct
 from typing import TYPE_CHECKING
 
@@ -8,6 +10,7 @@ import pytest
 from pyqwest import Client, SyncClient
 from pyqwest.testing import ASGITransport, WSGITransport
 
+from connectrpc import ProtoJSONCodec
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
 
@@ -357,3 +360,221 @@ async def test_server_stream_client_disconnect() -> None:
     assert generator_closed.is_set(), (
         "generator should be closed after client disconnect"
     )
+
+
+_json_codec = ProtoJSONCodec(
+    marshal_options={"always_print_fields_with_no_presence": True}
+)
+
+
+def test_json_codec_server_sync() -> None:
+    """WSGI server with custom json_codec includes empty repeated in JSON wire body."""
+
+    class SyncHaberdasher(HaberdasherSync):
+        def make_hat(self, request, ctx):
+            return Hat(size=request.inches, color="green")
+
+    app = HaberdasherWSGIApplication(SyncHaberdasher(), json_codec=_json_codec)
+    with HaberdasherClientSync(
+        "http://localhost",
+        http_client=SyncClient(WSGITransport(app=app)),
+        proto_json=True,
+        send_compression=None,
+        accept_compression=[],
+    ) as client:
+        response = client.make_hat(request=Size(inches=10))
+    assert response.size == 10
+    assert response.color == "green"
+
+
+def test_json_codec_server_sync_wire_body() -> None:
+    """Verify the wire JSON body from WSGI server contains empty repeated field."""
+
+    class SyncHaberdasher(HaberdasherSync):
+        def make_hat(self, request, ctx):
+            return Hat(size=request.inches, color="green")
+
+    app = HaberdasherWSGIApplication(SyncHaberdasher(), json_codec=_json_codec)
+    http_client = SyncClient(WSGITransport(app=app))
+    resp = http_client.post(
+        "http://localhost/connectrpc.example.Haberdasher/MakeHat",
+        content=b'{"inches": 10}',
+        headers={"content-type": "application/json"},
+    )
+    body = json.loads(resp.content)
+    assert "tags" in body
+    assert body["tags"] == []
+
+
+def test_json_codec_server_sync_proto_unaffected() -> None:
+    """Proto binary requests still work when json_codec is overridden on WSGI server."""
+
+    class SyncHaberdasher(HaberdasherSync):
+        def make_hat(self, request, ctx):
+            return Hat(size=request.inches, color="blue")
+
+    app = HaberdasherWSGIApplication(SyncHaberdasher(), json_codec=_json_codec)
+    with HaberdasherClientSync(
+        "http://localhost",
+        http_client=SyncClient(WSGITransport(app=app)),
+        proto_json=False,
+        send_compression=None,
+        accept_compression=[],
+    ) as client:
+        response = client.make_hat(request=Size(inches=5))
+    assert response.size == 5
+    assert response.color == "blue"
+
+
+@pytest.mark.asyncio
+async def test_json_codec_server_async() -> None:
+    """ASGI server with custom json_codec includes empty repeated in JSON wire body."""
+
+    class AsyncHaberdasher(Haberdasher):
+        async def make_hat(self, request, ctx):
+            return Hat(size=request.inches, color="green")
+
+    app = HaberdasherASGIApplication(AsyncHaberdasher(), json_codec=_json_codec)
+    transport = ASGITransport(app)
+    async with HaberdasherClient(
+        "http://localhost",
+        http_client=Client(transport),
+        proto_json=True,
+        send_compression=None,
+        accept_compression=[],
+    ) as client:
+        response = await client.make_hat(request=Size(inches=10))
+    assert response.size == 10
+    assert response.color == "green"
+
+
+@pytest.mark.asyncio
+async def test_json_codec_server_async_wire_body() -> None:
+    """Verify the wire JSON body from ASGI server contains empty repeated field."""
+
+    class AsyncHaberdasher(Haberdasher):
+        async def make_hat(self, request, ctx):
+            return Hat(size=request.inches, color="green")
+
+    app = HaberdasherASGIApplication(AsyncHaberdasher(), json_codec=_json_codec)
+    transport = ASGITransport(app)
+    http_client = Client(transport)
+    resp = await http_client.post(
+        "http://localhost/connectrpc.example.Haberdasher/MakeHat",
+        content=b'{"inches": 10}',
+        headers={"content-type": "application/json"},
+    )
+    body = json.loads(resp.content)
+    assert "tags" in body
+    assert body["tags"] == []
+
+
+@pytest.mark.asyncio
+async def test_json_codec_server_async_proto_unaffected() -> None:
+    """Proto binary requests still work when json_codec is overridden on ASGI server."""
+
+    class AsyncHaberdasher(Haberdasher):
+        async def make_hat(self, request, ctx):
+            return Hat(size=request.inches, color="blue")
+
+    app = HaberdasherASGIApplication(AsyncHaberdasher(), json_codec=_json_codec)
+    transport = ASGITransport(app)
+    async with HaberdasherClient(
+        "http://localhost",
+        http_client=Client(transport),
+        proto_json=False,
+        send_compression=None,
+        accept_compression=[],
+    ) as client:
+        response = await client.make_hat(request=Size(inches=5))
+    assert response.size == 5
+    assert response.color == "blue"
+
+
+def test_json_codec_client_sync() -> None:
+    """Sync client with custom json_codec encodes request with marshal options."""
+    captured_bodies: list[bytes] = []
+
+    class SyncHaberdasher(HaberdasherSync):
+        def make_hat(self, request, ctx):
+            return Hat(size=request.inches, color="green")
+
+    inner_app = HaberdasherWSGIApplication(SyncHaberdasher())
+
+    def capturing_app(environ, start_response):
+        body = environ["wsgi.input"].read()
+        captured_bodies.append(body)
+        environ["wsgi.input"] = io.BytesIO(body)
+        return inner_app(environ, start_response)
+
+    with HaberdasherClientSync(
+        "http://localhost",
+        http_client=SyncClient(WSGITransport(app=capturing_app)),
+        proto_json=True,
+        json_codec=_json_codec,
+        send_compression=None,
+        accept_compression=[],
+    ) as client:
+        client.make_hat(request=Size(inches=7))
+
+    assert len(captured_bodies) == 1
+    request_body = json.loads(captured_bodies[0])
+    # always_print_fields_with_no_presence causes the default-valued
+    # "description" field to appear in the wire JSON.
+    assert "description" in request_body
+    assert request_body["description"] == ""
+
+
+@pytest.mark.asyncio
+async def test_json_codec_client_async() -> None:
+    """Async client with custom json_codec encodes request with marshal options."""
+    captured_bodies: list[bytes] = []
+
+    class AsyncHaberdasher(Haberdasher):
+        async def make_hat(self, request, ctx):
+            return Hat(size=request.inches, color="green")
+
+    inner_app = HaberdasherASGIApplication(AsyncHaberdasher())
+
+    async def capturing_app(scope, receive, send):
+        if scope["type"] == "http":
+            original_receive = receive
+
+            async def capturing_receive():
+                message = await original_receive()
+                body = message.get("body", b"")
+                if message.get("type") == "http.request" and body:
+                    captured_bodies.append(body)
+                return message
+
+            await inner_app(scope, capturing_receive, send)
+        else:
+            await inner_app(scope, receive, send)
+
+    async with HaberdasherClient(
+        "http://localhost",
+        http_client=Client(ASGITransport(capturing_app)),
+        proto_json=True,
+        json_codec=_json_codec,
+        send_compression=None,
+        accept_compression=[],
+    ) as client:
+        await client.make_hat(request=Size(inches=7))
+
+    assert len(captured_bodies) == 1
+    request_body = json.loads(captured_bodies[0])
+    assert "description" in request_body
+    assert request_body["description"] == ""
+
+
+def test_json_codec_client_requires_proto_json_sync() -> None:
+    """Sync client raises ValueError if json_codec is set without proto_json=True."""
+    with pytest.raises(ValueError, match="json_codec requires proto_json=True"):
+        HaberdasherClientSync("http://localhost", json_codec=_json_codec)
+
+
+@pytest.mark.asyncio
+async def test_json_codec_client_requires_proto_json_async() -> None:
+    """Async client raises ValueError if json_codec is set without proto_json=True."""
+    with pytest.raises(ValueError, match="json_codec requires proto_json=True"):
+        HaberdasherClient("http://localhost", json_codec=_json_codec)
