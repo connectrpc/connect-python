@@ -5,15 +5,18 @@ BUF_VERSION := "v1.57.0"
 [private]
 @default: check
 
-# Format Python files
+# Format Python files and TOML files
 format:
     uv run ruff check --fix --unsafe-fixes --exit-zero .
     uv run ruff format .
+    uv run tombi format
 
-# Lint Python files
+# Lint Python and TOML files
 lint:
     uv run ruff format --check .
     uv run ruff check .
+    uv run tombi format --check
+    uv run tombi lint
 
 # Typecheck Python files
 typecheck:
