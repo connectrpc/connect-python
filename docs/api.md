@@ -12,6 +12,7 @@
 ::: connectrpc.interceptor
 
 ::: connectrpc.codec
+::: connectrpc.protocol
 
 ::: connectrpc.compression
 ::: connectrpc.compression.brotli
