@@ -49,6 +49,7 @@ from typing import Protocol
 
 from connectrpc.client import ConnectClient, ConnectClientSync
 from connectrpc.code import Code
+from connectrpc.codec import Codec
 from connectrpc.compression import Compression
 from connectrpc.errors import ConnectError
 from connectrpc.interceptor import Interceptor, InterceptorSync
@@ -69,7 +70,7 @@ class {{.Name}}(Protocol):{{- range .Methods }}
 {{ end }}
 
 class {{.Name}}ASGIApplication(ConnectASGIApplication[{{.Name}}]):
-    def __init__(self, service: {{.Name}} | AsyncGenerator[{{.Name}}], *, interceptors: Iterable[Interceptor]=(), read_max_bytes: int | None = None, compressions: Iterable[Compression] | None = None) -> None:
+    def __init__(self, service: {{.Name}} | AsyncGenerator[{{.Name}}], *, interceptors: Iterable[Interceptor]=(), read_max_bytes: int | None = None, compressions: Iterable[Compression] | None = None, codecs: Iterable[Codec] | None = None) -> None:
         super().__init__(
             service=service,
             endpoints=lambda svc: { {{- range .Methods }}
@@ -87,6 +88,7 @@ class {{.Name}}ASGIApplication(ConnectASGIApplication[{{.Name}}]):
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
             compressions=compressions,
+            codecs=codecs,
         )
 
     @property
@@ -130,7 +132,7 @@ class {{.Name}}Sync(Protocol):{{- range .Methods }}
 
 
 class {{.Name}}WSGIApplication(ConnectWSGIApplication):
-    def __init__(self, service: {{.Name}}Sync, interceptors: Iterable[InterceptorSync]=(), read_max_bytes: int | None = None, compressions: Iterable[Compression] | None = None) -> None:
+    def __init__(self, service: {{.Name}}Sync, interceptors: Iterable[InterceptorSync]=(), read_max_bytes: int | None = None, compressions: Iterable[Compression] | None = None, codecs: Iterable[Codec] | None = None) -> None:
         super().__init__(
             endpoints={ {{- range .Methods }}
                 "/{{.ServiceName}}/{{.Name}}": EndpointSync.{{.EndpointType}}(
@@ -147,6 +149,7 @@ class {{.Name}}WSGIApplication(ConnectWSGIApplication):
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
             compressions=compressions,
+            codecs=codecs,
         )
 
     @property

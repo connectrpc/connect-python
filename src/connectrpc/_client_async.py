@@ -12,7 +12,7 @@ from pyqwest import Headers as HTTPHeaders
 
 from . import _client_shared
 from ._asyncio_timeout import timeout as asyncio_timeout
-from ._codec import Codec, get_proto_binary_codec, get_proto_json_codec
+from ._codec import proto_binary_codec
 from ._compression import IdentityCompression, _gzip, resolve_compressions
 from ._interceptor_async import (
     BidiStreamInterceptor,
@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from ._envelope import EnvelopeReader
+    from .codec import Codec
     from .compression import Compression
     from .method import MethodInfo
     from .request import Headers, RequestContext
@@ -92,7 +93,7 @@ class ConnectClient:
         self,
         address: str,
         *,
-        proto_json: bool = False,
+        codec: Codec | None = None,
         protocol: ProtocolType = ProtocolType.CONNECT,
         accept_compression: Iterable[Compression] | None = None,
         send_compression: Compression | None = _gzip,
@@ -105,7 +106,8 @@ class ConnectClient:
 
         Args:
             address: The address of the server to connect to, including scheme.
-            proto_json: Whether to use JSON for the protocol.
+            codec: The [Codec][] to use for requests. If unset, defaults to binary protobuf.
+                   For JSON encoding, use [proto_json_codec][connectrpc.codec.proto_json_codec].
             protocol: The [ProtocolType][] to use for requests.
             accept_compression: Compression algorithms to accept from the server. If unset,
                                 defaults to gzip. If set to empty, disables response compression.
@@ -117,7 +119,7 @@ class ConnectClient:
             http_client: A pyqwest Client to use for requests.
         """
         self._address = address
-        self._codec = get_proto_json_codec() if proto_json else get_proto_binary_codec()
+        self._codec = codec or proto_binary_codec()
         self._response_compressions = resolve_compressions(accept_compression)
         self._accept_compression_header = ",".join(self._response_compressions.keys())
         self._send_compression = send_compression or IdentityCompression()

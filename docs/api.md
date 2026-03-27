@@ -11,6 +11,8 @@
 
 ::: connectrpc.interceptor
 
+::: connectrpc.codec
+
 ::: connectrpc.compression
 ::: connectrpc.compression.brotli
 ::: connectrpc.compression.gzip

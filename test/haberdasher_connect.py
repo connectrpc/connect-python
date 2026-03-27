@@ -28,6 +28,7 @@ if TYPE_CHECKING:
         Mapping,
     )
 
+    from connectrpc.codec import Codec
     from connectrpc.compression import Compression
     from connectrpc.interceptor import Interceptor, InterceptorSync
     from connectrpc.request import Headers, RequestContext
@@ -73,6 +74,7 @@ class HaberdasherASGIApplication(ConnectASGIApplication[Haberdasher]):
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
         compressions: Iterable[Compression] | None = None,
+        codecs: Iterable[Codec] | None = None,
     ) -> None:
         super().__init__(
             service=service,
@@ -141,6 +143,7 @@ class HaberdasherASGIApplication(ConnectASGIApplication[Haberdasher]):
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
             compressions=compressions,
+            codecs=codecs,
         )
 
     @property
@@ -312,6 +315,7 @@ class HaberdasherWSGIApplication(ConnectWSGIApplication):
         interceptors: Iterable[InterceptorSync] = (),
         read_max_bytes: int | None = None,
         compressions: Iterable[Compression] | None = None,
+        codecs: Iterable[Codec] | None = None,
     ) -> None:
         super().__init__(
             endpoints={
@@ -379,6 +383,7 @@ class HaberdasherWSGIApplication(ConnectWSGIApplication):
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
             compressions=compressions,
+            codecs=codecs,
         )
 
     @property
