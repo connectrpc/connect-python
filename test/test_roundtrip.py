@@ -9,6 +9,7 @@ from pyqwest import Client, SyncClient
 from pyqwest.testing import ASGITransport, WSGITransport
 
 from connectrpc.code import Code
+from connectrpc.codec import proto_json_codec
 from connectrpc.errors import ConnectError
 
 from ._util import resolve_compression
@@ -42,7 +43,7 @@ def test_roundtrip_sync(proto_json: bool, compression_name: str) -> None:
     with HaberdasherClientSync(
         "http://localhost",
         http_client=SyncClient(WSGITransport(app=app)),
-        proto_json=proto_json,
+        codec=proto_json_codec() if proto_json else None,
         send_compression=compression,
         accept_compression=[compression],
     ) as client:
@@ -65,7 +66,7 @@ async def test_roundtrip_async(proto_json: bool, compression_name: str) -> None:
     async with HaberdasherClient(
         "http://localhost",
         http_client=Client(transport),
-        proto_json=proto_json,
+        codec=proto_json_codec() if proto_json else None,
         send_compression=compression,
         accept_compression=[compression],
     ) as client:
@@ -135,7 +136,7 @@ async def test_roundtrip_response_stream_async(
     async with HaberdasherClient(
         "http://localhost",
         http_client=Client(transport=transport),
-        proto_json=proto_json,
+        codec=proto_json_codec() if proto_json else None,
         send_compression=compression,
         accept_compression=[compression],
     ) as client:

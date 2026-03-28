@@ -45,6 +45,7 @@ from pyqwest import HTTPVersion as PyQwestHTTPVersion
 
 from connectrpc.client import ResponseMetadata
 from connectrpc.code import Code
+from connectrpc.codec import proto_json_codec
 from connectrpc.compression.brotli import BrotliCompression
 from connectrpc.compression.gzip import GzipCompression
 from connectrpc.compression.zstd import ZstdCompression
@@ -173,7 +174,9 @@ async def client_sync(
                 ZstdCompression(),
             ],
             send_compression=_convert_compression(test_request.compression),
-            proto_json=test_request.codec == Codec.CODEC_JSON,
+            codec=proto_json_codec()
+            if test_request.codec == Codec.CODEC_JSON
+            else None,
             protocol=protocol,
             read_max_bytes=read_max_bytes,
         ) as client,
@@ -220,7 +223,9 @@ async def client_async(
                 ZstdCompression(),
             ],
             send_compression=_convert_compression(test_request.compression),
-            proto_json=test_request.codec == Codec.CODEC_JSON,
+            codec=proto_json_codec()
+            if test_request.codec == Codec.CODEC_JSON
+            else None,
             protocol=protocol,
             read_max_bytes=read_max_bytes,
         ) as client,

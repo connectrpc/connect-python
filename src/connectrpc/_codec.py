@@ -20,7 +20,10 @@ V = TypeVar("V", bound=Message)
 
 class Codec(Protocol[T_contra, U]):
     def name(self) -> str:
-        """Returns the name of the codec."""
+        """Returns the name of the codec.
+
+        This corresponds to the content-type used in requests.
+        """
         ...
 
     def encode(self, message: T_contra) -> bytes:
@@ -49,8 +52,11 @@ class ProtoBinaryCodec(Codec[Message, V]):
 class ProtoJSONCodec(Codec[Message, V]):
     """Codec for Protocol bytes | bytearrays JSON format."""
 
+    def __init__(self, name: str = "json") -> None:
+        self._name = name
+
     def name(self) -> str:
-        return "json"
+        return self._name
 
     def encode(self, message: Message) -> bytes:
         return MessageToJson(message).encode()
@@ -60,27 +66,24 @@ class ProtoJSONCodec(Codec[Message, V]):
         return message
 
 
-# TODO: Codecs can generally be customized per handler instead of as a global
-# registry, though the usage isn't common.
 _proto_binary_codec = ProtoBinaryCodec()
 _proto_json_codec = ProtoJSONCodec()
-_codecs = {
-    CODEC_NAME_PROTO: _proto_binary_codec,
-    CODEC_NAME_JSON: _proto_json_codec,
-    CODEC_NAME_JSON_CHARSET_UTF8: _proto_json_codec,
-}
+_default_codecs = [
+    _proto_binary_codec,
+    _proto_json_codec,
+    ProtoJSONCodec(name=CODEC_NAME_JSON_CHARSET_UTF8),
+]
 
 
-def get_proto_binary_codec() -> Codec:
-    """Returns the Protocol bytes | bytearrays binary codec."""
+def get_default_codecs() -> list[Codec]:
+    return _default_codecs
+
+
+def proto_binary_codec() -> Codec:
+    """Returns the Protocol Buffers binary codec."""
     return _proto_binary_codec
 
 
-def get_proto_json_codec() -> Codec:
-    """Returns the Protocol bytes | bytearrays JSON codec."""
+def proto_json_codec() -> Codec:
+    """Returns the Protocol Buffers JSON codec."""
     return _proto_json_codec
-
-
-def get_codec(name: str) -> Codec | None:
-    """Returns the codec with the given name."""
-    return _codecs.get(name)

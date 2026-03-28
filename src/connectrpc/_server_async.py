@@ -11,7 +11,7 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING, Generic, TypeVar, cast
 from urllib.parse import parse_qs
 
-from ._codec import Codec, get_codec
+from ._codec import Codec, get_default_codecs
 from ._compression import negotiate_compression, resolve_compressions
 from ._envelope import EnvelopeReader
 from ._interceptor_async import (
@@ -91,6 +91,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
         interceptors: Iterable[Interceptor] = (),
         read_max_bytes: int | None = None,
         compressions: Iterable[Compression] | None = None,
+        codecs: Iterable[Codec] | None = None,
     ) -> None:
         """Initialize the ASGI application.
 
@@ -103,6 +104,8 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
             read_max_bytes: Maximum size of request messages.
             compressions: Supported compression algorithms. If unset, defaults to gzip.
                           If set to empty, disables compression.
+            codecs: The codecs supported by the server. If unset, defaults to Protocol Buffers
+                    binary and JSON codecs.
         """
         super().__init__()
         self._service = service
@@ -111,6 +114,8 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
         self._resolved_endpoints = None
         self._read_max_bytes = read_max_bytes
         self._compressions = resolve_compressions(compressions)
+        codecs = codecs if codecs is not None else get_default_codecs()
+        self._codecs = {codec.name(): codec for codec in codecs}
 
     async def __call__(
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
@@ -208,7 +213,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                 codec_name = protocol.codec_name_from_content_type(
                     headers.get("content-type", ""), stream=not is_unary
                 )
-            codec = get_codec(codec_name.lower())
+            codec = self._codecs.get(codec_name.lower())
             if not codec:
                 raise HTTPException(
                     HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
