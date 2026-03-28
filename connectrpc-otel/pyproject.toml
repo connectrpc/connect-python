@@ -2,82 +2,82 @@
 name = "connectrpc-otel"
 version = "0.1.0"
 description = "OpenTelemetry instrumentation for connectrpc"
-maintainers = [
-    { name = "Anuraag Agrawal", email = "anuraaga@gmail.com" },
-    { name = "Spencer Nelson", email = "spencer@firetiger.com" },
-    { name = "Stefan VanBuren", email = "svanburen@buf.build" },
-    { name = "Yasushi Itoh", email = "i2y.may.roku@gmail.com" },
-]
-requires-python = ">= 3.10"
 readme = "README.md"
+requires-python = ">= 3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
+maintainers = [
+  { name = "Anuraag Agrawal", email = "anuraaga@gmail.com" },
+  { name = "Spencer Nelson", email = "spencer@firetiger.com" },
+  { name = "Stefan VanBuren", email = "svanburen@buf.build" },
+  { name = "Yasushi Itoh", email = "i2y.may.roku@gmail.com" },
+]
 keywords = [
-    "opentelemetry",
-    "otel",
-    "connectrpc",
-    "connect-python",
-    "middleware",
-    "tracing",
-    "observability",
+  "connect-python",
+  "connectrpc",
+  "middleware",
+  "observability",
+  "opentelemetry",
+  "otel",
+  "tracing",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Environment :: Console",
-    "Intended Audience :: Developers",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-    "Topic :: System :: Networking",
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: System :: Networking",
 ]
 dependencies = [
-    "opentelemetry-api>=1.39.1",
-    # We do not want to prevent users from updating OTel when connectrpc isn't depending on
-    # the latest. This does introduce a possibility of incompatibilities, but there is no
-    # alternative, and in practice, the APIs we use have been stable for a long time.
-    "opentelemetry-instrumentation>=0.60b1",
+  "opentelemetry-api>=1.39.1",
+  # We do not want to prevent users from updating OTel when connectrpc isn't depending on
+  # the latest. This does introduce a possibility of incompatibilities, but there is no
+  # alternative, and in practice, the APIs we use have been stable for a long time.
+  "opentelemetry-instrumentation>=0.60b1",
 ]
 
-[dependency-groups]
-dev = [
-    # auto-instrumentation shouldn't include a dependency on the library being instrumented
-    # so it can be packaged in auto-instrumentation distros for general use.
-    #
-    # This library also supports manually initializing the interceptor.
-    # For users that manually instrument by initializing the interceptor, it is easier to
-    # have a real dependency to avoid any possible version conflicts. But for Python,
-    # the ecosystem vastly favors auto-instrumentation, and it is easier to add than remove
-    # a transitive dependency, so we go ahead and leave it out.
-    "connectrpc>=0.8.0",
-
-    "opentelemetry-sdk==1.40.0",
-    "opentelemetry-instrumentation-asgi==0.61b0",
-    "opentelemetry-instrumentation-wsgi==0.61b0",
-
-    "connect-python-example",
-    "pytest",
-]
+[project.urls]
+Homepage = "https://github.com/connectrpc/connect-python"
+Issues = "https://github.com/connectrpc/connect-python/issues"
+Repository = "https://github.com/connectrpc/connect-python"
 
 [project.entry-points.opentelemetry_instrumentor]
 connectrpc = "connectrpc_otel:ConnectInstrumentor"
 
-[project.urls]
-Homepage = "https://github.com/connectrpc/connect-python"
-Repository = "https://github.com/connectrpc/connect-python"
-Issues = "https://github.com/connectrpc/connect-python/issues"
+[dependency-groups]
+dev = [
+  # auto-instrumentation shouldn't include a dependency on the library being instrumented
+  # so it can be packaged in auto-instrumentation distros for general use.
+  #
+  # This library also supports manually initializing the interceptor.
+  # For users that manually instrument by initializing the interceptor, it is easier to
+  # have a real dependency to avoid any possible version conflicts. But for Python,
+  # the ecosystem vastly favors auto-instrumentation, and it is easier to add than remove
+  # a transitive dependency, so we go ahead and leave it out.
+  "connectrpc>=0.8.0",
+
+  "opentelemetry-instrumentation-asgi==0.61b0",
+  "opentelemetry-instrumentation-wsgi==0.61b0",
+  "opentelemetry-sdk==1.40.0",
+
+  "connect-python-example",
+  "pytest",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.0,<0.12.0"]
 build-backend = "uv_build"
 
+[tool.ruff]
+extend = "../pyproject.toml"
+
 [tool.uv.build-backend]
 module-name = "connectrpc_otel"
 module-root = ""
-
-[tool.ruff]
-extend = "../pyproject.toml"
