@@ -405,7 +405,7 @@ We rely on the conformance test suit (in
 Set up a virtual env:
 
 ```sh
-uv sync
+uv sync --all-packages
 ```
 
 Then, use `uv run just` to do development checks, or check out `uv run just --list` for other targets.

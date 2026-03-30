@@ -19,7 +19,7 @@
 2. Install dependencies:
 
    ```bash
-   uv sync
+   uv sync --all-packages
    ```
 
 ## Development Workflow
