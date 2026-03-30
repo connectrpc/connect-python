@@ -51,7 +51,7 @@ dev = [
   "just-bin==1.47.1; sys_platform != 'win32'",
   "pyright[nodejs]==1.1.408",
   "pyvoy==0.3.0",
-  "ruff~=0.15.0",
+  "ruff==0.15.8",
   "tombi==0.9.11",
   "typing_extensions==4.15.0",
   "uvicorn==0.42.0",
