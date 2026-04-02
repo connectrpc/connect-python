@@ -46,13 +46,13 @@ dev = [
   "daphne==4.2.1",
   "granian==2.7.2",
   "grpcio-tools==1.78.0",
-  "gunicorn==25.1.0",
+  "gunicorn==25.3.0",
   "hypercorn==0.18.0",
   "just-bin==1.47.1; sys_platform != 'win32'",
   "pyright[nodejs]==1.1.408",
   "pyvoy==0.3.0",
-  "ruff~=0.15.0",
-  "tombi==0.9.9",
+  "ruff==0.15.8",
+  "tombi==0.9.11",
   "typing_extensions==4.15.0",
   "uvicorn==0.42.0",
   "zstandard==0.25.0",
@@ -64,7 +64,7 @@ dev = [
   "pytest-timeout",
 ]
 
-docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.28"]
+docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.30"]
 
 [build-system]
 requires = ["uv_build>=0.11.0,<0.12.0"]
