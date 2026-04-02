@@ -382,6 +382,9 @@ dev = [
     { name = "gunicorn" },
     { name = "hypercorn" },
     { name = "just-bin", marker = "sys_platform != 'win32'" },
+    { name = "opentelemetry-instrumentation-asgi" },
+    { name = "opentelemetry-instrumentation-wsgi" },
+    { name = "opentelemetry-sdk" },
     { name = "pyright", extra = ["nodejs"] },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -417,6 +420,9 @@ dev = [
     { name = "gunicorn", specifier = "==25.3.0" },
     { name = "hypercorn", specifier = "==0.18.0" },
     { name = "just-bin", marker = "sys_platform != 'win32'", specifier = "==1.47.1" },
+    { name = "opentelemetry-instrumentation-asgi", specifier = "==0.61b0" },
+    { name = "opentelemetry-instrumentation-wsgi", specifier = "==0.61b0" },
+    { name = "opentelemetry-sdk", specifier = "==1.40.0" },
     { name = "pyright", extras = ["nodejs"], specifier = "==1.1.408" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -448,9 +454,6 @@ dependencies = [
 dev = [
     { name = "connect-python-example" },
     { name = "connectrpc" },
-    { name = "opentelemetry-instrumentation-asgi" },
-    { name = "opentelemetry-instrumentation-wsgi" },
-    { name = "opentelemetry-sdk" },
     { name = "pytest" },
 ]
 
@@ -464,9 +467,6 @@ requires-dist = [
 dev = [
     { name = "connect-python-example", editable = "example" },
     { name = "connectrpc", editable = "." },
-    { name = "opentelemetry-instrumentation-asgi", specifier = "==0.61b0" },
-    { name = "opentelemetry-instrumentation-wsgi", specifier = "==0.61b0" },
-    { name = "opentelemetry-sdk", specifier = "==1.40.0" },
     { name = "pytest" },
 ]
 
