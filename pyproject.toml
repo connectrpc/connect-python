@@ -45,17 +45,28 @@ dev = [
   "connect-python-example",
   "daphne==4.2.1",
   "granian==2.7.2",
-  "grpcio-tools==1.78.0",
-  "gunicorn==25.1.0",
+  "grpcio-tools==1.80.0",
+  "gunicorn==25.3.0",
   "hypercorn==0.18.0",
-  "just-bin==1.47.1; sys_platform != 'win32'",
+  "just-bin==1.48.1; sys_platform != 'win32'",
   "pyright[nodejs]==1.1.408",
   "pyvoy==0.3.0",
-  "ruff~=0.15.0",
-  "tombi==0.9.9",
+  "ruff==0.15.9",
+  "tombi==0.9.14",
   "typing_extensions==4.15.0",
-  "uvicorn==0.42.0",
+  "uvicorn==0.43.0",
   "zstandard==0.25.0",
+
+  # dev dependencies only used in subprojects. Optimal structure would include these
+  # in the subproject itself, but then `uv sync` does not install them from the
+  # workspace root. We strategically keep them here instead so the entire workspace
+  # is ready for editing in an IDE with a simple sync command.
+  # If the below issue is resolved, we can move them back to subprojects and configure
+  # our default sync setting as --all-packages.
+  # https://github.com/astral-sh/uv/issues/5737
+  "opentelemetry-instrumentation-asgi==0.61b0",
+  "opentelemetry-instrumentation-wsgi==0.61b0",
+  "opentelemetry-sdk==1.40.0",
 
   # Versions locked in constraint-dependencies
   "pytest",
@@ -64,7 +75,7 @@ dev = [
   "pytest-timeout",
 ]
 
-docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.28"]
+docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.31"]
 
 [build-system]
 requires = ["uv_build>=0.11.0,<0.12.0"]
