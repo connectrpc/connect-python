@@ -83,7 +83,6 @@ jobs:
 
       - name: run OTel tests
         run: uv run poe test-otel ${{ matrix.coverage == 'cov' && '--cov=connectrpc_otel --cov-report=xml' || '' }}
-        working-directory: connectrpc-otel
 
       - name: run Go tests
         run: go test ./...
