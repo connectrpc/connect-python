@@ -408,8 +408,7 @@ Set up a virtual env:
 uv sync
 ```
 
-Then, use `uv run just` to do development checks, or check out `uv run just --list` for other targets.
-`just` is run via `uv` as a development dependency, but you can also install it globally and omit the `uv run` from the commands.
+Then, use `uv run poe check` to do development checks, or check out `uv run poe` for other targets.
 
 ## Status
 
