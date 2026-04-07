@@ -112,5 +112,7 @@ cwd = "conformance"
 
 [tasks.test-otel]
 help = "Run connectrpc-otel tests"
-cmd = "pytest"
+# Use uv run to make sure the package is built before running tests.
+# Instrumentation tests require package metadata.
+cmd = "uv run pytest"
 cwd = "connectrpc-otel"
