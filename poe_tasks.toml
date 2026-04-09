@@ -10,7 +10,7 @@ sequence = [
   { cmd = "uv version --active --directory protoc-gen-connect-python --bump=${_version}" }
 ]
 args = [
-  { name = "_version", help = "The type of version bump to apply", choices = [
+  { name = "_version", required = true, help = "The type of version bump to apply", choices = [
     "patch",
     "minor",
     "major"
