@@ -67,37 +67,32 @@ jobs:
           go-version-file: protoc-gen-connect-python/go.mod
           cache-dependency-path: "**/go.mod"
 
-      - run: uv sync --all-packages
+      - run: uv sync --frozen
 
       - name: run lints
         if: startsWith(matrix.os, 'ubuntu-')
-        run: |
-          uv run ruff format --check .
-          uv run ruff check .
-          uv run pyright
+        run: uv run poe lint
 
       - name: run python tests
-        run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
+        run: uv run poe test ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
 
       - name: run conformance tests
         # TODO: Debug stdin/stdout issues on Windows
         if: ${{ !startsWith(matrix.os, 'windows-') }}
-        run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
-        working-directory: conformance
+        run: uv run poe test-conformance ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
 
       - name: run OTel tests
-        run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
-        working-directory: connectrpc-otel
+        run: uv run poe test-otel ${{ matrix.coverage == 'cov' && '--cov=connectrpc_otel --cov-report=xml' || '' }}
 
       - name: run Go tests
         run: go test ./...
         working-directory: protoc-gen-connect-python
 
-      - name: check running `just generate` does not create a diff
+      - name: check running generate does not create a diff
         # NOTE: running on macOS as our sed command only works there
         # We expect uv.lock to change when matrix.resolution == "lowest-direct", so we don't check it there.
         if: ${{ startsWith(matrix.os, 'macos-') && matrix.resolution == 'highest' }}
-        run: uv run just checkgenerate
+        run: uv run poe checkgenerate
         env:
           BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
 

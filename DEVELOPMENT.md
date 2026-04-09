@@ -24,23 +24,20 @@
 
 ## Development Workflow
 
-We use `just` as a task runner. Available commands:
+We use `poe` as a task runner. Available commands:
 
 ```bash
 # Run all checks
-uv run just check
+uv run poe check
 
 # Format code
-uv run just format
-
-# Run type checking
-uv run just typecheck
+uv run poe format
 
 # Run tests
-uv run just test
+uv run poe test
 
 # Run conformance tests
-uv run just conformance
+uv run poe test-conformance
 ```
 
 ## Code Style
@@ -58,7 +55,7 @@ The project follows strict type checking and formatting standards.
 ### Unit Tests
 
 ```bash
-uv run just test
+uv run poe test
 ```
 
 ### Conformance Tests
@@ -66,7 +63,7 @@ uv run just test
 The project uses the official Connect conformance test suite. Go must be installed to run them.
 
 ```bash
-uv run just conformance
+uv run poe test-conformance
 ```
 
 ## Code Generation
@@ -74,7 +71,7 @@ uv run just conformance
 The project includes protobuf code generation for examples and tests:
 
 ```bash
-uv run just generate
+uv run poe generate
 ```
 
 ## Releasing
@@ -90,7 +87,7 @@ Documentation is contained in the [connectrpc/connectrpc.com](https://github.com
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run the full test suite: `uv run just check`
+4. Run the full smoke check suite: `uv run poe check`
 5. Submit a pull request
 
 ### Pull Request Guidelines

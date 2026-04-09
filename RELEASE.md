@@ -6,8 +6,8 @@ This document outlines how to create a release of connect-python.
 
 2. On a new branch, update version strings with the `bump` command, either to the next minor or patch version, based on the changes that are included in this new release.
 
-- If there are only bug fixes and no new features, run `uv run just bump patch`.
-- If there are features being released, run `uv run just bump minor`.
+- If there are only bug fixes and no new features, run `uv run poe bump --version patch`.
+- If there are features being released, run `uv run poe bump --version minor`.
 
 Note the new version X.Y.Z in the updated files.
 
