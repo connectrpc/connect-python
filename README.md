@@ -295,13 +295,13 @@ class LoggingInterceptor:
     """Implements the MetadataInterceptor protocol."""
 
     async def on_start(self, ctx: RequestContext) -> None:
-        print(f"Handling {ctx.method.name} request")
+        print(f"Handling {ctx.method().name} request")
 
     async def on_end(self, token: None, ctx: RequestContext, error: Exception | None) -> None:
         if error:
-            print(f"Failed {ctx.method.name}: {error}")
+            print(f"Failed {ctx.method().name}: {error}")
         else:
-            print(f"Completed {ctx.method.name} request")
+            print(f"Completed {ctx.method().name} request")
 
 # Add to your application
 app = HelloServiceASGIApplication(
