@@ -30,13 +30,11 @@ sequence = [
 
 [tasks.docs-build]
 help = "Build documentation"
-cmd = "zensical build"
-executor = { type = "uv", group = "docs" }
+cmd = "uv run --group docs zensical build"
 
 [tasks.docs-serve]
 help = "Start documentation local server"
-cmd = "zensical serve"
-executor = { type = "uv", group = "docs" }
+cmd = "uv run --group docs zensical serve"
 
 [tasks.format]
 help = "Apply all possible auto-formatting to files"
