@@ -1,0 +1,116 @@
+#:schema https://json.schemastore.org/partial-poe.json
+
+[env]
+BUF_VERSION = "v1.67.0"
+
+[tasks.bump]
+help = "Bump the project version"
+sequence = [
+  { cmd = "uv version --active --bump=${_version}" },
+  { cmd = "uv version --active --directory protoc-gen-connect-python --bump=${_version}" }
+]
+args = [
+  { name = "_version", required = true, help = "The type of version bump to apply", choices = [
+    "patch",
+    "minor",
+    "major"
+  ] }
+]
+
+[tasks.check]
+help = "Run smoke checks"
+sequence = ["lint", "test", "test-otel"]
+
+[tasks.checkgenerate]
+help = "Used in CI to verify that generate doesn't produce a diff"
+sequence = [
+  "generate",
+  { shell = 'test -z "$(git status --porcelain | tee /dev/stderr)"' },
+]
+
+[tasks.docs-build]
+help = "Build documentation"
+cmd = "uv run --group docs zensical build"
+
+[tasks.docs-serve]
+help = "Start documentation local server"
+cmd = "uv run --group docs zensical serve"
+
+[tasks.format]
+help = "Apply all possible auto-formatting to files"
+sequence = ["format-python", "format-toml"]
+
+[tasks.format-python]
+help = "Apply auto-formatting to Python files"
+sequence = [
+  { cmd = "ruff check --fix --unsafe-fixes --exit-zero" },
+  { cmd = "ruff format" }
+]
+
+[tasks.format-toml]
+help = "Apply auto-formatting to TOML files"
+cmd = "tombi format"
+
+[tasks.generate]
+help = "Generate all files"
+sequence = [
+  "generate-conformance",
+  "generate-example",
+  "generate-status",
+  "generate-test",
+  "format",
+]
+
+[tasks.generate-conformance]
+help = "Generate conformance files"
+sequence = [
+  { cmd = "go run github.com/bufbuild/buf/cmd/buf@${BUF_VERSION} generate" },
+  { shell = "find test/gen -type f -exec sed -i '' 's/from connectrpc.conformance.v1/from gen.connectrpc.conformance.v1/' {} +", env = { "LC_ALL" = "c" } },
+]
+cwd = "conformance"
+
+[tasks.generate-example]
+help = "Generate example files"
+cmd = "go run github.com/bufbuild/buf/cmd/buf@${BUF_VERSION} generate"
+cwd = "example"
+
+[tasks.generate-status]
+help = "Generate gRPC status"
+cmd = "go run github.com/bufbuild/buf/cmd/buf@${BUF_VERSION} generate"
+
+[tasks.generate-test]
+help = "Generate test files"
+cmd = "go run github.com/bufbuild/buf/cmd/buf@${BUF_VERSION} generate"
+cwd = "test"
+
+[tasks.lint]
+help = "Apply all possible linting to files"
+sequence = ["lint-python", "lint-toml", "lint-types"]
+
+[tasks.lint-python]
+help = "Apply linting to Python files"
+sequence = [{ cmd = "ruff check" }, { cmd = "ruff format --check" }]
+
+[tasks.lint-toml]
+help = "Apply linting to TOML files"
+cmd = "tombi lint"
+
+[tasks.lint-types]
+help = "Apply type checking to Python files"
+cmd = "pyright"
+
+[tasks.test]
+help = "Run unit tests"
+cmd = "pytest"
+
+[tasks.test-conformance]
+help = "Run conformance tests. These are very slow"
+cmd = "pytest"
+cwd = "conformance"
+
+[tasks.test-otel]
+help = "Run connectrpc-otel tests"
+# Use uv run to make sure the package is built before running tests.
+# Instrumentation tests require package metadata.
+cmd = "uv run pytest"
+cwd = "connectrpc-otel"
