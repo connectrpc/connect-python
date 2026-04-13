@@ -64,9 +64,9 @@ dev = [
   # If the below issue is resolved, we can move them back to subprojects and configure
   # our default sync setting as --all-packages.
   # https://github.com/astral-sh/uv/issues/5737
-  "opentelemetry-instrumentation-asgi==0.61b0",
-  "opentelemetry-instrumentation-wsgi==0.61b0",
-  "opentelemetry-sdk==1.40.0",
+  "opentelemetry-instrumentation-asgi==0.62b0",
+  "opentelemetry-instrumentation-wsgi==0.62b0",
+  "opentelemetry-sdk==1.41.0",
 
   # Versions locked in constraint-dependencies
   "pytest",
