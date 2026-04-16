@@ -543,18 +543,21 @@ async def serve_granian(
 
 async def serve_gunicorn(
     request: ServerCompatRequest,
+    mode: Mode,
     certfile: str | None,
     keyfile: str | None,
     cafile: str | None,
     port_future: asyncio.Future[int],
 ):
-    args = [
-        "--bind=127.0.0.1:0",
-        "--workers=4",
-        "--worker-class=gthread",
-        "--threads=16",
-        "--keep-alive=0",
-    ]
+    args = ["--bind=127.0.0.1:0", "--workers=4"]
+    if mode == "sync":
+        args.extend(["--worker-class=gthread", "--threads=16", "--keep-alive=0"])
+    else:
+        args.append("--worker-class=asgi")
+        # Gunicorn's native ASGI worker supports HTTP/2 only over TLS via ALPN.
+        # h2c (cleartext HTTP/2) is not supported.
+        if certfile:
+            args.append("--http-protocols=h2,h1")
     if certfile:
         args.append(f"--certfile={certfile}")
     if keyfile:
@@ -563,7 +566,7 @@ async def serve_gunicorn(
         args.append(f"--ca-certs={cafile}")
         args.append(f"--cert-reqs={ssl.CERT_REQUIRED}")
 
-    args.append("server:wsgi_app")
+    args.append("server:wsgi_app" if mode == "sync" else "server:asgi_app")
 
     proc = await asyncio.create_subprocess_exec(
         "gunicorn",
@@ -791,11 +794,10 @@ async def main() -> None:
                     )
                 )
             case "gunicorn":
-                if args.mode == "async":
-                    msg = "gunicorn does not support async mode"
-                    raise ValueError(msg)
                 serve_task = asyncio.create_task(
-                    serve_gunicorn(request, certfile, keyfile, cafile, port_future)
+                    serve_gunicorn(
+                        request, args.mode, certfile, keyfile, cafile, port_future
+                    )
                 )
             case "hypercorn":
                 serve_task = asyncio.create_task(

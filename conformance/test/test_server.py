@@ -77,7 +77,7 @@ def test_server_sync(server: str, cov: Coverage) -> None:
         pytest.fail(f"\n{result.stdout}\n{result.stderr}")
 
 
-@pytest.mark.parametrize("server", ["daphne", "pyvoy", "uvicorn"])
+@pytest.mark.parametrize("server", ["daphne", "gunicorn", "pyvoy", "uvicorn"])
 def test_server_async(server: str, cov: Coverage) -> None:
     args = maybe_patch_args_with_debug(
         [sys.executable, _server_py_path, "--mode", "async", "--server", server]
@@ -103,6 +103,15 @@ def test_server_async(server: str, cov: Coverage) -> None:
                 "gRPC Proto Sub-Format Requests/**",
                 "--skip",
                 "gRPC Unexpected Requests/**",
+            ]
+        case "gunicorn":
+            opts = [
+                # gunicorn's ASGI worker supports HTTP/2 only over TLS via ALPN; h2c is not supported
+                "--skip",
+                "**/HTTPVersion:2/**/TLS:false/**",
+                # gunicorn doesn't support HTTP/3
+                "--skip",
+                "**/HTTPVersion:3/**",
             ]
         case "uvicorn":
             # uvicorn doesn't support HTTP/2 or 3
