@@ -112,11 +112,11 @@ def test_server_async(server: str, cov: Coverage) -> None:
                 "**/HTTPVersion:2/**",
                 "--skip",
                 "**/HTTPVersion:3/**",
-                # gunicorn's gunicorn_h1c C parser returns 400 "Invalid request line" when
-                # a client aborts a connection mid-stream; no upstream issue filed yet
+                # gunicorn's gunicorn_h1c C parser returns 400 "Invalid request line" for
+                # various gRPC-Web error scenarios; no upstream issue filed yet
                 # (see issue #3563 for a related gunicorn_h1c strictness regression)
                 "--skip",
-                "Errors/**/Protocol:PROTOCOL_GRPC_WEB/**/server-stream/canceled",
+                "Errors/**/Protocol:PROTOCOL_GRPC_WEB/**",
             ]
         case "uvicorn":
             # uvicorn doesn't support HTTP/2 or 3
