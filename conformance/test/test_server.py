@@ -105,8 +105,19 @@ def test_server_async(server: str, cov: Coverage) -> None:
                 "gRPC Unexpected Requests/**",
             ]
         case "gunicorn":
-            # gunicorn's HTTP/2 support is beta and not yet stable enough for conformance
-            opts = ["--skip", "**/HTTPVersion:2/**", "--skip", "**/HTTPVersion:3/**"]
+            opts = [
+                # gunicorn's native HTTP/2 ASGI worker sends GOAWAY after very few streams
+                # under load; no upstream issue filed yet (see PR #3568 for related h2 fix)
+                "--skip",
+                "**/HTTPVersion:2/**",
+                "--skip",
+                "**/HTTPVersion:3/**",
+                # gunicorn's gunicorn_h1c C parser returns 400 "Invalid request line" when
+                # a client aborts a connection mid-stream; no upstream issue filed yet
+                # (see issue #3563 for a related gunicorn_h1c strictness regression)
+                "--skip",
+                "Errors/**/Protocol:PROTOCOL_GRPC_WEB/**/server-stream/canceled",
+            ]
         case "uvicorn":
             # uvicorn doesn't support HTTP/2 or 3
             opts = ["--skip", "**/HTTPVersion:2/**", "--skip", "**/HTTPVersion:3/**"]
