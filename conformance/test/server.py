@@ -554,10 +554,6 @@ async def serve_gunicorn(
         args.extend(["--worker-class=gthread", "--threads=16", "--keep-alive=0"])
     else:
         args.append("--worker-class=asgi")
-        # Gunicorn's native ASGI worker supports HTTP/2 only over TLS via ALPN.
-        # h2c (cleartext HTTP/2) is not supported.
-        if certfile:
-            args.append("--http-protocols=h2,h1")
     if certfile:
         args.append(f"--certfile={certfile}")
     if keyfile:

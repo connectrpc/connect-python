@@ -105,14 +105,8 @@ def test_server_async(server: str, cov: Coverage) -> None:
                 "gRPC Unexpected Requests/**",
             ]
         case "gunicorn":
-            opts = [
-                # gunicorn's ASGI worker supports HTTP/2 only over TLS via ALPN; h2c is not supported
-                "--skip",
-                "**/HTTPVersion:2/**/TLS:false/**",
-                # gunicorn doesn't support HTTP/3
-                "--skip",
-                "**/HTTPVersion:3/**",
-            ]
+            # gunicorn's HTTP/2 support is beta and not yet stable enough for conformance
+            opts = ["--skip", "**/HTTPVersion:2/**", "--skip", "**/HTTPVersion:3/**"]
         case "uvicorn":
             # uvicorn doesn't support HTTP/2 or 3
             opts = ["--skip", "**/HTTPVersion:2/**", "--skip", "**/HTTPVersion:3/**"]
