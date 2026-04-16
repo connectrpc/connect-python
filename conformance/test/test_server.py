@@ -117,6 +117,10 @@ def test_server_async(server: str, cov: Coverage) -> None:
                 # (see issue #3563 for a related gunicorn_h1c strictness regression)
                 "--skip",
                 "**/Protocol:PROTOCOL_GRPC_WEB/**",
+                "--skip",
+                "gRPC-Web Proto Sub-Format Requests/**",
+                "--skip",
+                "gRPC-Web Unexpected Requests/**",
             ]
         case "uvicorn":
             # uvicorn doesn't support HTTP/2 or 3
