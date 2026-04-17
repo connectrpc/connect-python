@@ -34,8 +34,6 @@ from .haberdasher_connect import (
 from .haberdasher_pb2 import Hat, Size
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-
     from connectrpc.request import RequestContext
 
 _errors = [
@@ -455,9 +453,7 @@ async def test_async_unhandled_exception_reraised() -> None:
 @pytest.mark.asyncio
 async def test_async_unhandled_exception_reraised_stream() -> None:
     class RaisingHaberdasher(Haberdasher):
-        def make_similar_hats(
-            self, request: Size, ctx: RequestContext
-        ) -> AsyncIterator[Hat]:
+        def make_similar_hats(self, request: Size, ctx: RequestContext) -> NoReturn:
             raise TypeError("Something went wrong")
 
     app = HaberdasherASGIApplication(RaisingHaberdasher())
@@ -497,9 +493,7 @@ async def test_async_connect_exception_not_reraised() -> None:
 @pytest.mark.asyncio
 async def test_async_connect_exception_not_reraised_stream() -> None:
     class RaisingHaberdasher(Haberdasher):
-        def make_similar_hats(
-            self, request: Size, ctx: RequestContext
-        ) -> AsyncIterator[Hat]:
+        def make_similar_hats(self, request: Size, ctx: RequestContext) -> NoReturn:
             raise ConnectError(Code.INTERNAL, "We're broken")
 
     app = HaberdasherASGIApplication(RaisingHaberdasher())
