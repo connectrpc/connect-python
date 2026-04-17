@@ -236,6 +236,7 @@ For ASGI servers:
 - [Uvicorn](https://www.uvicorn.org/) - Lightning-fast ASGI server
 - [Daphne](https://github.com/django/daphne) - Django Channels' ASGI server with HTTP/2 support
 - [Hypercorn](https://gitlab.com/pgjones/hypercorn) - ASGI server with HTTP/2 and HTTP/3 support
+- [Gunicorn](https://gunicorn.org/) - Python WSGI and ASGI HTTP Server
 
 For WSGI servers:
 
