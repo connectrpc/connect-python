@@ -28,7 +28,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Typing :: Typed",
 ]
-dependencies = ["protobuf>=5.28", "pyqwest>=0.4.1"]
+dependencies = ["protobuf>=5.28", "pyqwest>=0.5.1"]
 
 [project.urls]
 Documentation = "https://connectrpc.com/docs/python/getting-started/"
