@@ -42,6 +42,8 @@ _known_flaky = [
     "Server Message Size/HTTPVersion:1/**/first-request-exceeds-server-limit",
 ]
 
+_skip_http2_http3 = ["--skip", "**/HTTPVersion:2/**", "--skip", "**/HTTPVersion:3/**"]
+
 
 @pytest.mark.parametrize("server", ["gunicorn", "pyvoy"])
 def test_server_sync(server: str, cov: Coverage) -> None:
@@ -52,7 +54,7 @@ def test_server_sync(server: str, cov: Coverage) -> None:
     match server:
         case "gunicorn":
             # gunicorn doesn't support HTTP/2 or 3
-            opts = ["--skip", "**/HTTPVersion:2/**", "--skip", "**/HTTPVersion:3/**"]
+            opts = _skip_http2_http3
 
     result = subprocess.run(
         [
@@ -108,10 +110,7 @@ def test_server_async(server: str, cov: Coverage) -> None:
             opts = [
                 # gunicorn's native HTTP/2 ASGI worker sends GOAWAY after very few streams
                 # under load; no upstream issue filed yet (see PR #3568 for related h2 fix)
-                "--skip",
-                "**/HTTPVersion:2/**",
-                "--skip",
-                "**/HTTPVersion:3/**",
+                *_skip_http2_http3,
                 # gunicorn's gunicorn_h1c C parser returns 400 "Invalid request line" for
                 # gRPC-Web requests broadly; no upstream issue filed yet
                 # (see issue #3563 for a related gunicorn_h1c strictness regression)
@@ -124,7 +123,7 @@ def test_server_async(server: str, cov: Coverage) -> None:
             ]
         case "uvicorn":
             # uvicorn doesn't support HTTP/2 or 3
-            opts = ["--skip", "**/HTTPVersion:2/**", "--skip", "**/HTTPVersion:3/**"]
+            opts = _skip_http2_http3
     result = subprocess.run(
         [
             "go",
