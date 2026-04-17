@@ -127,10 +127,11 @@ func TestGenerate(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name        string
-		req         *pluginpb.CodeGeneratorRequest
-		wantStrings []string
-		wantErr     bool
+		name            string
+		req             *pluginpb.CodeGeneratorRequest
+		wantStrings     []string
+		dontWantStrings []string
+		wantErr         bool
 	}{
 		{
 			name: "empty request",
@@ -195,7 +196,127 @@ func TestGenerate(t *testing.T) {
 				},
 			},
 			wantErr:     false,
-			wantStrings: []string{"def try_(self"},
+			wantStrings: []string{"class TestServiceASGIApplication", "class TestServiceWSGIApplication"},
+		},
+		{
+			name: "async only",
+			req: &pluginpb.CodeGeneratorRequest{
+				FileToGenerate: []string{"test.proto"},
+				Parameter:      proto.String("async=true"),
+				ProtoFile: []*descriptorpb.FileDescriptorProto{
+					{
+						Name:       proto.String("test.proto"),
+						Package:    proto.String("test"),
+						Dependency: []string{"other.proto"},
+						Service: []*descriptorpb.ServiceDescriptorProto{
+							{
+								Name: proto.String("TestService"),
+								Method: []*descriptorpb.MethodDescriptorProto{
+									{
+										Name:       proto.String("TestMethod"),
+										InputType:  proto.String(".test.TestRequest"),
+										OutputType: proto.String(".test.TestResponse"),
+									},
+									{
+										Name:       proto.String("TestMethod2"),
+										InputType:  proto.String(".otherpackage.OtherRequest"),
+										OutputType: proto.String(".otherpackage.OtherResponse"),
+									},
+									// Reserved keyword
+									{
+										Name:       proto.String("Try"),
+										InputType:  proto.String(".otherpackage.OtherRequest"),
+										OutputType: proto.String(".otherpackage.OtherResponse"),
+									},
+								},
+							},
+						},
+						MessageType: []*descriptorpb.DescriptorProto{
+							{
+								Name: proto.String("TestRequest"),
+							},
+							{
+								Name: proto.String("TestResponse"),
+							},
+						},
+					},
+					{
+						Name:    proto.String("other.proto"),
+						Package: proto.String("otherpackage"),
+						MessageType: []*descriptorpb.DescriptorProto{
+							{
+								Name: proto.String("OtherRequest"),
+							},
+							{
+								Name: proto.String("OtherResponse"),
+							},
+						},
+					},
+				},
+			},
+			wantErr:         false,
+			wantStrings:     []string{"class TestServiceASGIApplication"},
+			dontWantStrings: []string{"class TestServiceWSGIApplication"},
+		},
+		{
+			name: "sync only",
+			req: &pluginpb.CodeGeneratorRequest{
+				FileToGenerate: []string{"test.proto"},
+				Parameter:      proto.String("async=false"),
+				ProtoFile: []*descriptorpb.FileDescriptorProto{
+					{
+						Name:       proto.String("test.proto"),
+						Package:    proto.String("test"),
+						Dependency: []string{"other.proto"},
+						Service: []*descriptorpb.ServiceDescriptorProto{
+							{
+								Name: proto.String("TestService"),
+								Method: []*descriptorpb.MethodDescriptorProto{
+									{
+										Name:       proto.String("TestMethod"),
+										InputType:  proto.String(".test.TestRequest"),
+										OutputType: proto.String(".test.TestResponse"),
+									},
+									{
+										Name:       proto.String("TestMethod2"),
+										InputType:  proto.String(".otherpackage.OtherRequest"),
+										OutputType: proto.String(".otherpackage.OtherResponse"),
+									},
+									// Reserved keyword
+									{
+										Name:       proto.String("Try"),
+										InputType:  proto.String(".otherpackage.OtherRequest"),
+										OutputType: proto.String(".otherpackage.OtherResponse"),
+									},
+								},
+							},
+						},
+						MessageType: []*descriptorpb.DescriptorProto{
+							{
+								Name: proto.String("TestRequest"),
+							},
+							{
+								Name: proto.String("TestResponse"),
+							},
+						},
+					},
+					{
+						Name:    proto.String("other.proto"),
+						Package: proto.String("otherpackage"),
+						MessageType: []*descriptorpb.DescriptorProto{
+							{
+								Name: proto.String("OtherRequest"),
+							},
+							{
+								Name: proto.String("OtherResponse"),
+							},
+						},
+					},
+				},
+			},
+			wantErr:         false,
+			wantStrings:     []string{"class TestServiceWSGIApplication"},
+			dontWantStrings: []string{"class TestServiceASGIApplication"},
 		},
 	}
 
@@ -217,6 +338,11 @@ func TestGenerate(t *testing.T) {
 				for _, s := range tt.wantStrings {
 					if !strings.Contains(resp.GetFile()[0].GetContent(), s) {
 						t.Errorf("generate() missing expected string: %v", s)
+					}
+				}
+				for _, s := range tt.dontWantStrings {
+					if strings.Contains(resp.GetFile()[0].GetContent(), s) {
+						t.Errorf("generate() contains unexpected string: %v", s)
 					}
 				}
 			}
