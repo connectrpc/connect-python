@@ -233,7 +233,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                 )
         except Exception as e:
             await self._handle_error(e, ctx, send)
-            if not isinstance(e, ConnectError):
+            if not isinstance(e, (ConnectError, HTTPException)):
                 raise
             return None
 

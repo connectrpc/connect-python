@@ -19,6 +19,7 @@ from pyqwest import (
 )
 from pyqwest.testing import ASGITransport, WSGITransport
 
+from connectrpc._protocol import HTTPException
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
 
@@ -513,6 +514,27 @@ async def test_async_connect_exception_not_reraised_stream() -> None:
         with pytest.raises(ConnectError, match="We're broken"):
             async for _ in client.make_similar_hats(request=Size(inches=10)):
                 pass
+
+    # Workaround https://github.com/curioswitch/pyqwest/pull/148
+    # TODO: Remove after fix is released
+    assert getattr(transport, "_app_exception", None) is None
+
+
+@pytest.mark.asyncio
+async def test_async_http_exception_not_reraised() -> None:
+    class RaisingHaberdasher(Haberdasher):
+        async def make_hat(self, request, ctx) -> NoReturn:
+            raise HTTPException(status=HTTPStatus.INTERNAL_SERVER_ERROR, headers=[])
+
+    app = HaberdasherASGIApplication(RaisingHaberdasher())
+    transport = ASGITransport(app)
+    http_client = Client(transport)
+
+    async with HaberdasherClient(
+        "http://localhost", timeout_ms=200, http_client=http_client
+    ) as client:
+        with pytest.raises(ConnectError, match="Internal Server Error"):
+            await client.make_hat(request=Size(inches=10))
 
     # Workaround https://github.com/curioswitch/pyqwest/pull/148
     # TODO: Remove after fix is released
