@@ -491,9 +491,7 @@ async def test_async_connect_exception_not_reraised() -> None:
         with pytest.raises(ConnectError, match="We're broken"):
             await client.make_hat(request=Size(inches=10))
 
-    # Workaround https://github.com/curioswitch/pyqwest/pull/148
-    # TODO: Remove after fix is released
-    assert getattr(transport, "_app_exception", None) is None
+    assert transport.app_exception is None
 
 
 @pytest.mark.asyncio
@@ -515,9 +513,7 @@ async def test_async_connect_exception_not_reraised_stream() -> None:
             async for _ in client.make_similar_hats(request=Size(inches=10)):
                 pass
 
-    # Workaround https://github.com/curioswitch/pyqwest/pull/148
-    # TODO: Remove after fix is released
-    assert getattr(transport, "_app_exception", None) is None
+    assert transport.app_exception is None
 
 
 @pytest.mark.asyncio
@@ -536,6 +532,50 @@ async def test_async_http_exception_not_reraised() -> None:
         with pytest.raises(ConnectError, match="Internal Server Error"):
             await client.make_hat(request=Size(inches=10))
 
-    # Workaround https://github.com/curioswitch/pyqwest/pull/148
-    # TODO: Remove after fix is released
-    assert getattr(transport, "_app_exception", None) is None
+    assert transport.app_exception is None
+
+
+def test_sync_unhandled_exception_logged() -> None:
+    class RaisingHaberdasher(HaberdasherSync):
+        def make_hat(self, request, ctx) -> NoReturn:
+            raise TypeError("Something went wrong")
+
+    app = HaberdasherWSGIApplication(RaisingHaberdasher())
+    transport = WSGITransport(app)
+    http_client = SyncClient(transport)
+
+    with (
+        HaberdasherClientSync(
+            "http://localhost", timeout_ms=200, http_client=http_client
+        ) as client,
+        pytest.raises(ConnectError, match="Something went wrong"),
+    ):
+        client.make_hat(request=Size(inches=10))
+
+    logged_error = transport.error_stream.getvalue()
+    assert "Exception in WSGI application" in logged_error
+    assert "TypeError: Something went wrong" in logged_error
+    assert "Traceback" in logged_error
+
+
+def test_sync_unhandled_exception_logged_stream() -> None:
+    class RaisingHaberdasher(HaberdasherSync):
+        def make_similar_hats(self, request, ctx) -> NoReturn:
+            raise TypeError("Something went wrong")
+
+    app = HaberdasherWSGIApplication(RaisingHaberdasher())
+    transport = WSGITransport(app)
+    http_client = SyncClient(transport)
+
+    with (
+        HaberdasherClientSync(
+            "http://localhost", timeout_ms=200, http_client=http_client
+        ) as client,
+        pytest.raises(ConnectError, match="Something went wrong"),
+    ):
+        next(client.make_similar_hats(request=Size(inches=10)))
+
+    logged_error = transport.error_stream.getvalue()
+    assert "Exception in WSGI application" in logged_error
+    assert "TypeError: Something went wrong" in logged_error
+    assert "Traceback" in logged_error
