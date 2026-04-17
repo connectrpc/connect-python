@@ -232,7 +232,10 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                     ctx,
                 )
         except Exception as e:
-            return await self._handle_error(e, ctx, send)
+            await self._handle_error(e, ctx, send)
+            if not isinstance(e, ConnectError):
+                raise
+            return None
 
         # Streams have their own error handling so move out of the try block.
         return await self._handle_stream(
@@ -486,6 +489,8 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                         "more_trailers": False,
                     }
                 )
+            if error and not isinstance(error, ConnectError):
+                raise error
 
     async def _handle_error(
         self, exc: Exception, ctx: RequestContext | None, send: ASGISendCallable
