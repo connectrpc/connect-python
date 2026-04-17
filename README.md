@@ -239,7 +239,7 @@ For ASGI servers:
 
 For WSGI servers:
 
-- [Gunicorn](https://gunicorn.org/) - Python WSGI HTTP Server
+- [Gunicorn](https://gunicorn.org/) - Python WSGI and ASGI HTTP Server
 - [uWSGI](https://uwsgi-docs.readthedocs.io/) - Full-featured application server
 - Any WSGI-compliant server
 
