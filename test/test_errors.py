@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import threading
 from http import HTTPStatus
-from typing import NoReturn
+from typing import TYPE_CHECKING, NoReturn
 
 import pytest
 from pyqwest import (
@@ -19,6 +19,7 @@ from pyqwest import (
 )
 from pyqwest.testing import ASGITransport, WSGITransport
 
+from connectrpc._protocol import HTTPException
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
 
@@ -31,6 +32,9 @@ from .haberdasher_connect import (
     HaberdasherWSGIApplication,
 )
 from .haberdasher_pb2 import Hat, Size
+
+if TYPE_CHECKING:
+    from connectrpc.request import RequestContext
 
 _errors = [
     (Code.CANCELED, "Operation was cancelled", 499),
@@ -424,3 +428,148 @@ async def test_async_client_timeout(client_timeout_ms, call_timeout_ms) -> None:
     assert exc_info.value.code == Code.DEADLINE_EXCEEDED
     assert exc_info.value.message == "Request timed out"
     assert recorded_timeout_header == "200"
+
+
+@pytest.mark.asyncio
+async def test_async_unhandled_exception_reraised() -> None:
+    class RaisingHaberdasher(Haberdasher):
+        async def make_hat(self, request, ctx) -> NoReturn:
+            raise TypeError("Something went wrong")
+
+    app = HaberdasherASGIApplication(RaisingHaberdasher())
+    transport = ASGITransport(app)
+    http_client = Client(transport)
+
+    async with HaberdasherClient(
+        "http://localhost", timeout_ms=200, http_client=http_client
+    ) as client:
+        with pytest.raises(ConnectError, match="Something went wrong"):
+            await client.make_hat(request=Size(inches=10))
+
+    assert isinstance(transport.app_exception, TypeError)
+    assert str(transport.app_exception) == "Something went wrong"
+
+
+@pytest.mark.asyncio
+async def test_async_unhandled_exception_reraised_stream() -> None:
+    class RaisingHaberdasher(Haberdasher):
+        def make_similar_hats(self, request: Size, ctx: RequestContext) -> NoReturn:
+            raise TypeError("Something went wrong")
+
+    app = HaberdasherASGIApplication(RaisingHaberdasher())
+    transport = ASGITransport(app)
+    http_client = Client(transport)
+
+    async with HaberdasherClient(
+        "http://localhost", timeout_ms=200, http_client=http_client
+    ) as client:
+        with pytest.raises(ConnectError, match="Something went wrong"):
+            async for _ in client.make_similar_hats(request=Size(inches=10)):
+                pass
+
+    assert isinstance(transport.app_exception, TypeError)
+    assert str(transport.app_exception) == "Something went wrong"
+
+
+@pytest.mark.asyncio
+async def test_async_connect_exception_not_reraised() -> None:
+    class RaisingHaberdasher(Haberdasher):
+        async def make_hat(self, request, ctx) -> NoReturn:
+            raise ConnectError(Code.INTERNAL, "We're broken")
+
+    app = HaberdasherASGIApplication(RaisingHaberdasher())
+    transport = ASGITransport(app)
+    http_client = Client(transport)
+
+    async with HaberdasherClient(
+        "http://localhost", timeout_ms=200, http_client=http_client
+    ) as client:
+        with pytest.raises(ConnectError, match="We're broken"):
+            await client.make_hat(request=Size(inches=10))
+
+    assert transport.app_exception is None
+
+
+@pytest.mark.asyncio
+async def test_async_connect_exception_not_reraised_stream() -> None:
+    class RaisingHaberdasher(Haberdasher):
+        def make_similar_hats(self, request: Size, ctx: RequestContext) -> NoReturn:
+            raise ConnectError(Code.INTERNAL, "We're broken")
+
+    app = HaberdasherASGIApplication(RaisingHaberdasher())
+    transport = ASGITransport(app)
+    http_client = Client(transport)
+
+    async with HaberdasherClient(
+        "http://localhost", timeout_ms=200, http_client=http_client
+    ) as client:
+        with pytest.raises(ConnectError, match="We're broken"):
+            async for _ in client.make_similar_hats(request=Size(inches=10)):
+                pass
+
+    assert transport.app_exception is None
+
+
+@pytest.mark.asyncio
+async def test_async_http_exception_not_reraised() -> None:
+    class RaisingHaberdasher(Haberdasher):
+        async def make_hat(self, request, ctx) -> NoReturn:
+            raise HTTPException(status=HTTPStatus.INTERNAL_SERVER_ERROR, headers=[])
+
+    app = HaberdasherASGIApplication(RaisingHaberdasher())
+    transport = ASGITransport(app)
+    http_client = Client(transport)
+
+    async with HaberdasherClient(
+        "http://localhost", timeout_ms=200, http_client=http_client
+    ) as client:
+        with pytest.raises(ConnectError, match="Internal Server Error"):
+            await client.make_hat(request=Size(inches=10))
+
+    assert transport.app_exception is None
+
+
+def test_sync_unhandled_exception_logged() -> None:
+    class RaisingHaberdasher(HaberdasherSync):
+        def make_hat(self, request, ctx) -> NoReturn:
+            raise TypeError("Something went wrong")
+
+    app = HaberdasherWSGIApplication(RaisingHaberdasher())
+    transport = WSGITransport(app)
+    http_client = SyncClient(transport)
+
+    with (
+        HaberdasherClientSync(
+            "http://localhost", timeout_ms=200, http_client=http_client
+        ) as client,
+        pytest.raises(ConnectError, match="Something went wrong"),
+    ):
+        client.make_hat(request=Size(inches=10))
+
+    logged_error = transport.error_stream.getvalue()
+    assert "Exception in WSGI application" in logged_error
+    assert "TypeError: Something went wrong" in logged_error
+    assert "Traceback" in logged_error
+
+
+def test_sync_unhandled_exception_logged_stream() -> None:
+    class RaisingHaberdasher(HaberdasherSync):
+        def make_similar_hats(self, request, ctx) -> NoReturn:
+            raise TypeError("Something went wrong")
+
+    app = HaberdasherWSGIApplication(RaisingHaberdasher())
+    transport = WSGITransport(app)
+    http_client = SyncClient(transport)
+
+    with (
+        HaberdasherClientSync(
+            "http://localhost", timeout_ms=200, http_client=http_client
+        ) as client,
+        pytest.raises(ConnectError, match="Something went wrong"),
+    ):
+        next(client.make_similar_hats(request=Size(inches=10)))
+
+    logged_error = transport.error_stream.getvalue()
+    assert "Exception in WSGI application" in logged_error
+    assert "TypeError: Something went wrong" in logged_error
+    assert "Traceback" in logged_error
