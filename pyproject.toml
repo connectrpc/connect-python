@@ -51,8 +51,8 @@ dev = [
   "poethepoet==0.44.0",
   "pyright[nodejs]==1.1.408",
   "pyvoy==0.3.0",
-  "ruff==0.15.10",
-  "tombi==0.9.17",
+  "ruff==0.15.11",
+  "tombi==0.9.20",
   "typing_extensions==4.15.0",
   "uvicorn==0.44.0",
   "zstandard==0.25.0",
@@ -75,7 +75,7 @@ dev = [
   "pytest-timeout",
 ]
 
-docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.32"]
+docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.33"]
 
 [build-system]
 requires = ["uv_build>=0.11.0,<0.12.0"]
