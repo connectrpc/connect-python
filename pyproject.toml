@@ -40,6 +40,7 @@ Repository = "https://github.com/connectrpc/connect-python"
 dev = [
   # Needed to enable HTTP/2 in daphne
   "Twisted[tls,http2]==25.5.0",
+  "buf-bin==1.68.3",
   "asgiref==3.11.1",
   "brotli==1.2.0",
   "connect-python-example",

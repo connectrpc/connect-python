@@ -197,6 +197,23 @@ wheels = [
 ]
 
 [[package]]
+name = "buf-bin"
+version = "1.68.3"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/42/15/9443a446f741798a498e212dfb771cbb2317411d20862bfa7bb97989895d/buf_bin-1.68.3-py3-none-macosx_11_0_arm64.whl", hash = "sha256:5fe7e01b19573c456aeb4f6959e9093d56651edfe57a9bd32df60124d6a13a38", size = 15280611, upload-time = "2026-04-20T22:39:28.711Z" },
+    { url = "https://files.pythonhosted.org/packages/53/56/cfd9ab23646435db38187c1b43dee17d142c6933bfd059ea2616b9e2b4ad/buf_bin-1.68.3-py3-none-macosx_11_0_x86_64.whl", hash = "sha256:dfd5019b550d717e7e472eb40c88d6d6dec39cc456ee9cd666594fb28dcdc8b6", size = 16429435, upload-time = "2026-04-20T22:39:31.193Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/df/456a48c5854eb31967a31e544b8ca03f87fa5f78e4a08bea128acd211b1a/buf_bin-1.68.3-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:41b2874babb151aaa32a0f939ff8379fbc566fe9b0488add51d33b70099d03ee", size = 14465942, upload-time = "2026-04-20T22:39:33.786Z" },
+    { url = "https://files.pythonhosted.org/packages/40/fc/dc3d6d5faeaa3544064313df04fa344c01dca76055b97a3414b2775eedca/buf_bin-1.68.3-py3-none-manylinux2014_armv7l.manylinux_2_17_armv7l.musllinux_1_1_armv7l.whl", hash = "sha256:aa16ca7ed064d28b83223e2ea2fd1804aab133d6769efaaef63ceeb66e0f6042", size = 14664645, upload-time = "2026-04-20T22:39:36.299Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/95/bfd82ed193f047eebedd3cb9bb4c83550253230db994b305591a3207e7df/buf_bin-1.68.3-py3-none-manylinux2014_ppc64le.manylinux_2_17_ppc64le.musllinux_1_1_ppc64le.whl", hash = "sha256:11b3953b857fddaf3b3f2370a04910cf43be3ec96e3faf20b7fdc8cd9f5492b6", size = 14175536, upload-time = "2026-04-20T22:39:38.606Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/e0/3e1aba1583b3922593fc068063cab77c185bb8ecc4f6de89cff7766570bf/buf_bin-1.68.3-py3-none-manylinux2014_s390x.manylinux_2_17_s390x.musllinux_1_1_s390x.whl", hash = "sha256:6409ea6414ed738bc081f5a389995849532c0bbd0ebaac4fad8361fb952b5594", size = 15425939, upload-time = "2026-04-20T22:39:40.782Z" },
+    { url = "https://files.pythonhosted.org/packages/c0/5c/34b85c515139e3b240813dff4bd3d0b92dc8051632c84eca7de4176cc471/buf_bin-1.68.3-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.musllinux_1_1_x86_64.whl", hash = "sha256:54e50b425797a133eb6d6483fbdba4d555daa92130551d70718ce54954ea539b", size = 16029379, upload-time = "2026-04-20T22:39:42.926Z" },
+    { url = "https://files.pythonhosted.org/packages/62/54/10f01c6d5d25ee74b50116958795085abb440f9a0d5a5a1b373ed63141cf/buf_bin-1.68.3-py3-none-manylinux_2_17_riscv64.musllinux_1_2_riscv64.whl", hash = "sha256:3719dc6258c3a2ce351ce8a28756a257bd65232497d2d057283d9931e4e8f07d", size = 14679823, upload-time = "2026-04-20T22:39:45.193Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/89/c5f172a5bcc2d8d501aadeaa97a1850d78256d30d64671274a3893c31e3a/buf_bin-1.68.3-py3-none-win_amd64.whl", hash = "sha256:f223f15179ae8d4b8056c3f710584771bc5fbb447525bf5bd8ab61d9ba783e41", size = 16366444, upload-time = "2026-04-20T22:39:47.397Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/7b/793f3c5bfef334c8a4d169cb73e20dd523b85592ed838919beb270375127/buf_bin-1.68.3-py3-none-win_arm64.whl", hash = "sha256:ab873ee2f4f98f90c231ab49df138a44d6cc5ebfab680e3cc4b6792713d44e91", size = 14548467, upload-time = "2026-04-20T22:39:49.7Z" },
+]
+
+[[package]]
 name = "cbor2"
 version = "5.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -375,6 +392,7 @@ dependencies = [
 dev = [
     { name = "asgiref" },
     { name = "brotli" },
+    { name = "buf-bin" },
     { name = "connect-python-example" },
     { name = "daphne" },
     { name = "granian" },
@@ -413,6 +431,7 @@ requires-dist = [
 dev = [
     { name = "asgiref", specifier = "==3.11.1" },
     { name = "brotli", specifier = "==1.2.0" },
+    { name = "buf-bin", specifier = "==1.68.3" },
     { name = "connect-python-example", editable = "example" },
     { name = "daphne", specifier = "==4.2.1" },
     { name = "granian", specifier = "==2.7.3" },
@@ -683,7 +702,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -1956,8 +1975,8 @@ name = "taskgroup"
 version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "exceptiongroup" },
-    { name = "typing-extensions" },
+    { name = "exceptiongroup", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f0/8d/e218e0160cc1b692e6e0e5ba34e8865dbb171efeb5fc9a704544b3020605/taskgroup-0.2.2.tar.gz", hash = "sha256:078483ac3e78f2e3f973e2edbf6941374fbea81b9c5d0a96f51d297717f4752d", size = 11504, upload-time = "2025-01-03T09:24:13.761Z" }
 wheels = [
