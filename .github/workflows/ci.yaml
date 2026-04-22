@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  ci:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -57,6 +57,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
         with:
@@ -73,21 +75,6 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu-')
         run: uv run poe lint
 
-      - name: run python tests
-        run: uv run poe test ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
-
-      - name: run conformance tests
-        # TODO: Debug stdin/stdout issues on Windows
-        if: ${{ !startsWith(matrix.os, 'windows-') }}
-        run: uv run poe test-conformance ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
-
-      - name: run OTel tests
-        run: uv run poe test-otel ${{ matrix.coverage == 'cov' && '--cov=connectrpc_otel --cov-report=xml' || '' }}
-
-      - name: run Go tests
-        run: go test ./...
-        working-directory: protoc-gen-connect-python
-
       - name: check running generate does not create a diff
         # NOTE: running on macOS as our sed command only works there
         # We expect uv.lock to change when matrix.resolution == "lowest-direct", so we don't check it there.
@@ -96,6 +83,21 @@ jobs:
         env:
           BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
 
+      - name: run python tests
+        run: uv run poe test ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
+
+      - name: run OTel tests
+        run: uv run poe test-otel ${{ matrix.coverage == 'cov' && '--cov=connectrpc_otel --cov-report=xml' || '' }}
+
+      - name: run Go tests
+        run: go test ./...
+        working-directory: protoc-gen-connect-python
+
+      - name: run conformance tests
+        # TODO: Debug stdin/stdout issues on Windows
+        if: ${{ !startsWith(matrix.os, 'windows-') }}
+        run: uv run poe test-conformance ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
+
       - uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         if: ${{ matrix.coverage == 'cov' }}
         with:
@@ -103,9 +105,11 @@ jobs:
 
   publish:
     runs-on: ubuntu-24.04
-    needs: build
+    needs: ci
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
 
