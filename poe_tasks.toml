@@ -58,6 +58,7 @@ sequence = [
   "generate-example",
   "generate-status",
   "generate-test",
+  { cmd = "go mod tidy", cwd = "protoc-gen-connect-python" },
   "format",
 ]
 
