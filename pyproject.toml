@@ -42,6 +42,7 @@ dev = [
   "Twisted[tls,http2]==25.5.0",
   "asgiref==3.11.1",
   "brotli==1.2.0",
+  "buf-bin==1.68.3",
   "connect-python-example",
   "daphne==4.2.1",
   "granian==2.7.3",
