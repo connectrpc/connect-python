@@ -4,6 +4,7 @@
 [![CI](https://github.com/connectrpc/connect-python/actions/workflows/ci.yaml/badge.svg)](https://github.com/connectrpc/connect-python/actions/workflows/ci.yaml)
 [![codecov](https://codecov.io/github/connectrpc/connect-python/graph/badge.svg)](https://codecov.io/github/connectrpc/connect-python)
 [![PyPI version](https://img.shields.io/pypi/v/connect-python)](https://pypi.org/project/connect-python)
+[![API Docs](https://img.shields.io/badge/API_Docs-connectrpc.github.io-blue)](https://connectrpc.github.io/connect-python/api/)
 
 A Python implementation of [Connect](https://connectrpc.com/): Protobuf RPC that works.
 
