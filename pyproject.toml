@@ -90,6 +90,14 @@ exclude = [
   "**/.*",
   ".venv",
 
+  # Recent versions of typeshed fail on 5.x gencode.
+  # https://github.com/python/typeshed/pull/15677
+  "**/*_pb.py",
+
+  # Recent versions of typeshed have improved typing of functions that then expose
+  # type errors for accessing
+  "**/*_pb2.py",
+
   # GRPC python files don't typecheck on their own.
   # See https://github.com/grpc/grpc/issues/39555
   "**/*_pb2_grpc.py",
