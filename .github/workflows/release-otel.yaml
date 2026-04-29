@@ -1,4 +1,4 @@
-name: Release
+name: Release connectrpc-otel
 on:
   push:
     tags:

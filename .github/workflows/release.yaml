@@ -1,4 +1,4 @@
-name: Release
+name: Release connectrpc
 on:
   push:
     tags:
