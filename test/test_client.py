@@ -113,3 +113,38 @@ async def test_headers_async(
 
     assert list(resp.headers().allitems()) == response_headers
     assert list(resp.trailers().allitems()) == response_trailers
+
+
+def test_json_charset_content_type() -> None:
+    class HeadersHaberdasherSync(HaberdasherSync):
+        def make_hat(self, request, ctx):
+            return Hat(size=2)
+
+    transport = WSGITransport(HaberdasherWSGIApplication(HeadersHaberdasherSync()))
+
+    client = SyncClient(transport=transport)
+
+    res = client.post(
+        "http://localhost/connectrpc.example.Haberdasher/MakeHat",
+        content=b"{}",
+        headers={"Content-Type": "application/json; charset=utf-8"},
+    )
+    assert res.json() == {"size": 2}
+
+
+@pytest.mark.asyncio
+async def test_json_charset_content_type_async() -> None:
+    class HeadersHaberdasher(Haberdasher):
+        async def make_hat(self, request, ctx):
+            return Hat(size=2)
+
+    transport = ASGITransport(HaberdasherASGIApplication(HeadersHaberdasher()))
+
+    client = Client(transport=transport)
+
+    res = await client.post(
+        "http://localhost/connectrpc.example.Haberdasher/MakeHat",
+        content=b"{}",
+        headers={"Content-Type": "application/json; charset=utf-8"},
+    )
+    assert res.json() == {"size": 2}
