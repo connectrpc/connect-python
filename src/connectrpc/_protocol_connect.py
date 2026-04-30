@@ -5,7 +5,7 @@ import struct
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from ._codec import CODEC_NAME_JSON, CODEC_NAME_JSON_CHARSET_UTF8, Codec
+from ._codec import CODEC_NAME_JSON, Codec
 from ._compression import IdentityCompression, negotiate_compression
 from ._envelope import EnvelopeReader, EnvelopeWriter
 from ._protocol import (
@@ -36,6 +36,9 @@ CONNECT_HEADER_PROTOCOL_VERSION = "connect-protocol-version"
 CONNECT_PROTOCOL_VERSION = "1"
 CONNECT_HEADER_TIMEOUT = "connect-timeout-ms"
 CONNECT_UNARY_CONTENT_TYPE_PREFIX = "application/"
+CONNECT_UNARY_CONTENT_TYPE_JSON = (
+    f"{CONNECT_UNARY_CONTENT_TYPE_PREFIX}{CODEC_NAME_JSON}"
+)
 CONNECT_STREAMING_CONTENT_TYPE_PREFIX = "application/connect+"
 CONNECT_UNARY_HEADER_COMPRESSION = "content-encoding"
 CONNECT_UNARY_HEADER_ACCEPT_COMPRESSION = "accept-encoding"
@@ -46,7 +49,16 @@ CONNECT_STREAMING_HEADER_ACCEPT_COMPRESSION = "connect-accept-encoding"
 _DEFAULT_CONNECT_USER_AGENT = f"connectrpc/{__version__}"
 
 
+def _normalize_content_type(content_type: str) -> str:
+    # content-type can have parameters, most commonly charset. Our support codecs,
+    # binary and JSON are always either non-text or utf-8 and the parameters are not
+    # important for matching to a codec. A custom codec could conceivably need to
+    # match on parameters, but we will reconsider that if it is ever asked for.
+    return content_type.partition(";")[0].strip()
+
+
 def codec_name_from_content_type(content_type: str, *, stream: bool) -> str:
+    content_type = _normalize_content_type(content_type)
     prefix = (
         CONNECT_STREAMING_CONTENT_TYPE_PREFIX
         if stream
@@ -226,12 +238,10 @@ class ConnectClientProtocol:
     def validate_response(
         self, request_codec_name: str, status_code: int, response_content_type: str
     ) -> None:
+        response_content_type = _normalize_content_type(response_content_type)
         if status_code != HTTPStatus.OK:
             # Error responses must be JSON-encoded
-            if response_content_type in (
-                f"{CONNECT_UNARY_CONTENT_TYPE_PREFIX}{CODEC_NAME_JSON}",
-                f"{CONNECT_UNARY_CONTENT_TYPE_PREFIX}{CODEC_NAME_JSON_CHARSET_UTF8}",
-            ):
+            if response_content_type == CONNECT_UNARY_CONTENT_TYPE_JSON:
                 return
             raise ConnectWireError.from_http_status(status_code).to_exception()
 
@@ -245,16 +255,6 @@ class ConnectClientProtocol:
             response_content_type, stream=False
         )
         if response_codec_name == request_codec_name:
-            return
-
-        if (
-            response_codec_name == CODEC_NAME_JSON
-            and request_codec_name == CODEC_NAME_JSON_CHARSET_UTF8
-        ) or (
-            response_codec_name == CODEC_NAME_JSON_CHARSET_UTF8
-            and request_codec_name == CODEC_NAME_JSON
-        ):
-            # Both are JSON
             return
 
         raise ConnectError(

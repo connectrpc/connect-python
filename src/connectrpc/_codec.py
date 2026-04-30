@@ -68,11 +68,7 @@ class ProtoJSONCodec(Codec[Message, V]):
 
 _proto_binary_codec = ProtoBinaryCodec()
 _proto_json_codec = ProtoJSONCodec()
-_default_codecs = [
-    _proto_binary_codec,
-    _proto_json_codec,
-    ProtoJSONCodec(name=CODEC_NAME_JSON_CHARSET_UTF8),
-]
+_default_codecs = [_proto_binary_codec, _proto_json_codec]
 
 
 def get_default_codecs() -> list[Codec]:
