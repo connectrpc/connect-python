@@ -213,7 +213,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                 codec_name = protocol.codec_name_from_content_type(
                     headers.get("content-type", ""), stream=not is_unary
                 )
-            codec = self._codecs.get(codec_name.lower())
+            codec = self._codecs.get(codec_name)
             if not codec:
                 raise HTTPException(
                     HTTPStatus.UNSUPPORTED_MEDIA_TYPE,

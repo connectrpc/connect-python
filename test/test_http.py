@@ -19,6 +19,7 @@ _charset_content_type_cases = [
     "application/json;charset=utf-8",
     "application/json;    charset=utf-8",
     "application/json; charset=utf-8; version=1",
+    "application/JSON",
 ]
 
 

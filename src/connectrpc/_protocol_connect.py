@@ -54,7 +54,7 @@ def _normalize_content_type(content_type: str) -> str:
     # binary and JSON are always either non-text or utf-8 and the parameters are not
     # important for matching to a codec. A custom codec could conceivably need to
     # match on parameters, but we will reconsider that if it is ever asked for.
-    return content_type.partition(";")[0].strip()
+    return content_type.partition(";")[0].strip().lower()
 
 
 def codec_name_from_content_type(content_type: str, *, stream: bool) -> str:

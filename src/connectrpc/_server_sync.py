@@ -70,30 +70,18 @@ EndpointSync = (
 )
 
 
-def _normalize_wsgi_headers(environ: WSGIEnvironment) -> dict:
-    """Extract and normalize HTTP headers from WSGI environment."""
-    headers = {}
+def _process_headers(environ: WSGIEnvironment) -> Headers:
+    headers = Headers()
     if "CONTENT_TYPE" in environ:
-        headers["content-type"] = environ["CONTENT_TYPE"].lower()
+        headers["content-type"] = environ["CONTENT_TYPE"]
     if "CONTENT_LENGTH" in environ:
-        headers["content-length"] = environ["CONTENT_LENGTH"].lower()
+        headers["content-length"] = environ["CONTENT_LENGTH"]
 
     for key, value in environ.items():
         if key.startswith("HTTP_"):
             header = key[5:].replace("_", "-")
             headers[header] = value
     return headers
-
-
-def _process_headers(headers: dict) -> Headers:
-    result = Headers()
-    for key, value in headers.items():
-        if isinstance(value, list | tuple):
-            for v in value:
-                result.add(key, v)
-        else:
-            result.add(key, str(value))
-    return result
 
 
 def prepare_response_headers(
@@ -220,7 +208,7 @@ class ConnectWSGIApplication(ABC):
 
             http_method = environ["REQUEST_METHOD"]
             http_scheme = environ.get("wsgi.url_scheme", "http")
-            headers = _process_headers(_normalize_wsgi_headers(environ))
+            headers = _process_headers(environ)
             if ra := environ.get("REMOTE_ADDR"):
                 port = environ.get("REMOTE_PORT", "0")
                 client_address = f"{ra}:{port}"
