@@ -8,9 +8,6 @@ from google.protobuf.message import Message
 
 CODEC_NAME_PROTO = "proto"
 CODEC_NAME_JSON = "json"
-# Follow connect-go's hacky approach to handling charset parameter
-# https://github.com/connectrpc/connect-go/blob/fe4915717d32438c40a24a50e3895271d4c24751/codec.go#L31
-CODEC_NAME_JSON_CHARSET_UTF8 = "json; charset=utf-8"
 
 
 T_contra = TypeVar("T_contra", contravariant=True)
