@@ -8,9 +8,6 @@ from google.protobuf.message import Message
 
 CODEC_NAME_PROTO = "proto"
 CODEC_NAME_JSON = "json"
-# Follow connect-go's hacky approach to handling charset parameter
-# https://github.com/connectrpc/connect-go/blob/fe4915717d32438c40a24a50e3895271d4c24751/codec.go#L31
-CODEC_NAME_JSON_CHARSET_UTF8 = "json; charset=utf-8"
 
 
 T_contra = TypeVar("T_contra", contravariant=True)
@@ -68,11 +65,7 @@ class ProtoJSONCodec(Codec[Message, V]):
 
 _proto_binary_codec = ProtoBinaryCodec()
 _proto_json_codec = ProtoJSONCodec()
-_default_codecs = [
-    _proto_binary_codec,
-    _proto_json_codec,
-    ProtoJSONCodec(name=CODEC_NAME_JSON_CHARSET_UTF8),
-]
+_default_codecs = [_proto_binary_codec, _proto_json_codec]
 
 
 def get_default_codecs() -> list[Codec]:
