@@ -38,13 +38,10 @@ Repository = "https://github.com/connectrpc/connect-python"
 
 [dependency-groups]
 dev = [
-  # Needed to enable HTTP/2 in daphne
-  "Twisted[tls,http2]==25.5.0",
   "asgiref==3.11.1",
   "brotli==1.2.0",
   "buf-bin==1.69.0",
   "connect-python-example",
-  "daphne==4.2.1",
   "granian==2.7.4",
   "grpcio-tools==1.80.0",
   "gunicorn==25.3.0",

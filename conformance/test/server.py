@@ -445,51 +445,6 @@ async def _consume_log(stream: AsyncIterator[bytes]) -> None:
         pass
 
 
-async def serve_daphne(
-    request: ServerCompatRequest,
-    certfile: str | None,
-    keyfile: str | None,
-    cafile: str | None,
-    port_future: asyncio.Future[int],
-):
-    args = []
-    ssl_endpoint_parts = []
-    if certfile:
-        ssl_endpoint_parts.append(f"certKey={certfile}")
-    if keyfile:
-        ssl_endpoint_parts.append(f"privateKey={keyfile}")
-    if cafile:
-        ssl_endpoint_parts.append(f"extraCertChain={cafile}")
-    if ssl_endpoint_parts:
-        args.append("-e")
-        args.append(f"ssl:port=0:{':'.join(ssl_endpoint_parts)}")
-    else:
-        args.append("-p=0")
-
-    args.append("server:asgi_app")
-
-    proc = await asyncio.create_subprocess_exec(
-        "daphne",
-        *args,
-        stderr=asyncio.subprocess.STDOUT,
-        stdout=asyncio.subprocess.PIPE,
-        env=_server_env(request),
-    )
-    stdout = proc.stdout
-    assert stdout is not None
-    stdout = _tee_to_stderr(stdout)
-    try:
-        async for line in stdout:
-            if b"Listening on TCP address" in line:
-                port = line.decode("utf-8").strip().rsplit(":", 1)[1]
-                port_future.set_result(int(port))
-                break
-        await _consume_log(stdout)
-    except asyncio.CancelledError:
-        proc.terminate()
-        await proc.wait()
-
-
 async def serve_granian(
     request: ServerCompatRequest,
     mode: Literal["sync", "async"],
@@ -730,7 +685,7 @@ def _find_free_port():
 
 
 Mode = Literal["sync", "async"]
-Server = Literal["daphne", "granian", "gunicorn", "hypercorn", "pyvoy", "uvicorn"]
+Server = Literal["granian", "gunicorn", "hypercorn", "pyvoy", "uvicorn"]
 
 
 class Args(argparse.Namespace):
@@ -777,13 +732,6 @@ async def main() -> None:
     with cleanup:
         port_future: asyncio.Future[int] = asyncio.get_event_loop().create_future()
         match args.server:
-            case "daphne":
-                if args.mode == "sync":
-                    msg = "daphne does not support sync mode"
-                    raise ValueError(msg)
-                serve_task = asyncio.create_task(
-                    serve_daphne(request, certfile, keyfile, cafile, port_future)
-                )
             case "granian":
                 serve_task = asyncio.create_task(
                     serve_granian(
