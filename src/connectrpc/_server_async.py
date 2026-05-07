@@ -220,11 +220,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                     [("Accept-Post", "application/json, application/proto")],
                 )
 
-            # Re-check via isinstance (rather than reusing `is_unary`) so the type
-            # checker narrows `endpoint` for the unary handler call below.
-            if isinstance(endpoint, EndpointUnary) and isinstance(
-                protocol, ConnectServerProtocol
-            ):
+            if is_unary and isinstance(protocol, ConnectServerProtocol):
                 return await self._handle_unary_connect(
                     http_method,
                     headers,
