@@ -33,7 +33,7 @@ class Codec(Protocol[T_contra, U]):
 
 
 class ProtoBinaryCodec(Codec[Message, V]):
-    """Codec for Protocol bytes | bytearrays binary format."""
+    """Codec for the Protocol Buffers binary format."""
 
     def name(self) -> str:
         return "proto"
@@ -42,12 +42,16 @@ class ProtoBinaryCodec(Codec[Message, V]):
         return message.SerializeToString()
 
     def decode(self, data: bytes | bytearray, message: V) -> V:
-        message.ParseFromString(data)  # pyright: ignore[reportArgumentType] - type is incorrect
+        # ParseFromString accepts the buffer protocol at runtime, but typeshed
+        # declares only `bytes`. Skipping the conversion avoids a copy on the
+        # streaming decode path (see _envelope.py). Tracked upstream in
+        # https://github.com/python/typeshed/issues/9006.
+        message.ParseFromString(data)  # ty: ignore[invalid-argument-type]
         return message
 
 
 class ProtoJSONCodec(Codec[Message, V]):
-    """Codec for Protocol bytes | bytearrays JSON format."""
+    """Codec for the Protocol Buffers JSON format."""
 
     def __init__(self, name: str = "json") -> None:
         self._name = name
@@ -59,13 +63,16 @@ class ProtoJSONCodec(Codec[Message, V]):
         return MessageToJson(message).encode()
 
     def decode(self, data: bytes | bytearray, message: V) -> V:
-        MessageFromJson(data, message)  # pyright: ignore[reportArgumentType] - type is incorrect
+        # google.protobuf.json_format.Parse accepts the buffer protocol at
+        # runtime, but typeshed declares only `bytes | str`. See
+        # ProtoBinaryCodec.decode for the upstream tracking issue.
+        MessageFromJson(data, message)  # ty: ignore[invalid-argument-type]
         return message
 
 
 _proto_binary_codec = ProtoBinaryCodec()
 _proto_json_codec = ProtoJSONCodec()
-_default_codecs = [_proto_binary_codec, _proto_json_codec]
+_default_codecs: list[Codec] = [_proto_binary_codec, _proto_json_codec]
 
 
 def get_default_codecs() -> list[Codec]:

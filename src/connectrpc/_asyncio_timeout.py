@@ -119,8 +119,8 @@ class Timeout:
                     raise TimeoutError from exc_val
                 if exc_val is not None:
                     self._insert_timeout_error(exc_val)
-                    if _HAX_EXCEPTION_GROUP and isinstance(exc_val, ExceptionGroup):  # pyright: ignore[reportUndefinedVariable] # noqa: F821
-                        for exc in exc_val.exceptions:  # pyright: ignore[reportAttributeAccessIssue]
+                    if _HAX_EXCEPTION_GROUP and isinstance(exc_val, ExceptionGroup):  # noqa: F821
+                        for exc in exc_val.exceptions:
                             self._insert_timeout_error(exc)
         elif self._state is _State.ENTERED:
             self._state = _State.EXITED

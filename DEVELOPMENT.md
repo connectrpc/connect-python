@@ -45,7 +45,7 @@ uv run poe test-conformance
 We use:
 
 - **ruff** for linting and formatting
-- **pyright** for type checking
+- **ty** for type checking
 - **pytest** for testing
 
 The project follows strict type checking and formatting standards.

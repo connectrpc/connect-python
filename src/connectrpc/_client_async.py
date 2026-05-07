@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import sys
 from asyncio import CancelledError, sleep, wait_for
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 from urllib.parse import urlencode
@@ -11,7 +12,6 @@ from pyqwest import FullResponse, Response
 from pyqwest import Headers as HTTPHeaders
 
 from . import _client_shared
-from ._asyncio_timeout import timeout as asyncio_timeout
 from ._codec import proto_binary_codec
 from ._compression import IdentityCompression, _gzip, resolve_compressions
 from ._interceptor_async import (
@@ -30,15 +30,12 @@ from .code import Code
 from .errors import ConnectError
 from .protocol import ProtocolType
 
-try:
-    from asyncio import (
-        timeout as asyncio_timeout,  # pyright: ignore[reportAttributeAccessIssue]
-    )
-except ImportError:
+if sys.version_info >= (3, 11):
+    from asyncio import timeout as asyncio_timeout
+else:
     from ._asyncio_timeout import timeout as asyncio_timeout
 
 if TYPE_CHECKING:
-    import sys
     from collections.abc import AsyncIterator, Iterable, Mapping
     from types import TracebackType
 

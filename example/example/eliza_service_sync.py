@@ -67,4 +67,4 @@ def health_check():
 
 eliza_app = ElizaServiceWSGIApplication(DemoElizaServiceSync())
 
-app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {eliza_app.path: eliza_app})
+app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {eliza_app.path: eliza_app})  # ty: ignore[invalid-assignment]

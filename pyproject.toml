@@ -47,10 +47,12 @@ dev = [
   "gunicorn==25.3.0",
   "hypercorn==0.18.0",
   "poethepoet==0.45.0",
-  "pyright[nodejs]==1.1.409",
   "pyvoy==0.3.0",
   "ruff==0.15.12",
   "tombi==0.10.2",
+  "ty==0.0.34",
+  "types-grpcio==1.0.0.20260408",
+  "types-protobuf==7.34.1.20260503",
   "typing_extensions==4.15.0",
   "uvicorn==0.46.0",
   "zstandard==0.25.0",
@@ -78,30 +80,6 @@ docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.39"]
 [build-system]
 requires = ["uv_build>=0.11.0,<0.12.0"]
 build-backend = "uv_build"
-
-[tool.pyright]
-exclude = [
-  # Defaults.
-  "**/node_modules",
-  "**/__pycache__",
-  "**/.*",
-  ".venv",
-
-  # Recent versions of typeshed fail on 5.x gencode.
-  # https://github.com/python/typeshed/pull/15677
-  "**/*_pb.py",
-
-  # Recent versions of typeshed have improved typing of functions that then expose
-  # type errors for accessing
-  "**/*_pb2.py",
-
-  # GRPC python files don't typecheck on their own.
-  # See https://github.com/grpc/grpc/issues/39555
-  "**/*_pb2_grpc.py",
-
-  # TODO: Work out the import issues to allow it to work.
-  "conformance/**",
-]
 
 [tool.pytest]
 # Turn all warnings into errors
@@ -249,6 +227,19 @@ typing-extensions = false
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]
 split-on-trailing-comma = false
+
+[tool.ty.src]
+exclude = [
+  # gRPC generated code references `grpc.experimental`, which is not exposed by the
+  # `grpc` package's public API. See https://github.com/grpc/grpc/issues/39555.
+  "**/*_pb2_grpc.py",
+]
+
+[tool.ty.environment]
+# Conformance test files import generated code as `from gen.connectrpc...` and
+# sibling modules like `_util`/`_cov_embed`. Pytest and the launched server/client
+# subprocesses put `conformance/test/` on sys.path; teach ty to do the same.
+extra-paths = ["conformance/test"]
 
 [tool.uv]
 constraint-dependencies = [
