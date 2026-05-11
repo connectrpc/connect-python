@@ -129,7 +129,7 @@ jobs:
           workdir: protoc-gen-connect-python
 
       - run: |
-          uv sync --frozen
+          uv sync --frozen --no-install-project
           uv run python scripts/generate_wheels.py
         working-directory: protoc-gen-connect-python
 
