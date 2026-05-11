@@ -44,15 +44,15 @@ dev = [
   "connect-python-example",
   "granian==2.7.4",
   "grpcio-tools==1.80.0",
-  "gunicorn==25.3.0",
+  "gunicorn==26.0.0",
   "hypercorn==0.18.0",
   "poethepoet==0.45.0",
   "pyvoy==0.3.0",
   "ruff==0.15.12",
-  "tombi==0.10.2",
-  "ty==0.0.34",
-  "types-grpcio==1.0.0.20260408",
-  "types-protobuf==7.34.1.20260503",
+  "tombi==0.11.1",
+  "ty==0.0.35",
+  "types-grpcio==1.0.0.20260508",
+  "types-protobuf==7.34.1.20260508",
   "typing_extensions==4.15.0",
   "uvicorn==0.46.0",
   "zstandard==0.25.0",
@@ -75,7 +75,7 @@ dev = [
   "pytest-timeout",
 ]
 
-docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.39"]
+docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.41"]
 
 [build-system]
 requires = ["uv_build>=0.11.0,<0.12.0"]
