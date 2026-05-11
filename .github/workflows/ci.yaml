@@ -129,8 +129,9 @@ jobs:
           workdir: protoc-gen-connect-python
 
       - run: |
+          # Make sure uv doesn't build the project since the data files aren't ready yet.
           uv sync --frozen --no-install-project
-          uv run python scripts/generate_wheels.py
+          uv run --no-sync python scripts/generate_wheels.py
         working-directory: protoc-gen-connect-python
 
       - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
