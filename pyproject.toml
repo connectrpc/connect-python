@@ -46,15 +46,15 @@ dev = [
   "grpcio-tools==1.80.0",
   "gunicorn==26.0.0",
   "hypercorn==0.18.0",
-  "poethepoet==0.45.0",
+  "poethepoet==0.46.0",
   "pyvoy==0.3.0",
-  "ruff==0.15.12",
-  "tombi==0.11.1",
-  "ty==0.0.35",
-  "types-grpcio==1.0.0.20260508",
+  "ruff==0.15.13",
+  "tombi==0.11.5",
+  "ty==0.0.37",
+  "types-grpcio==1.0.0.20260514",
   "types-protobuf==7.34.1.20260508",
   "typing_extensions==4.15.0",
-  "uvicorn==0.46.0",
+  "uvicorn==0.47.0",
   "zstandard==0.25.0",
 
   # dev dependencies only used in subprojects. Optimal structure would include these
@@ -75,7 +75,7 @@ dev = [
   "pytest-timeout",
 ]
 
-docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.41"]
+docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.42"]
 
 [build-system]
 requires = ["uv_build>=0.11.0,<0.12.0"]
