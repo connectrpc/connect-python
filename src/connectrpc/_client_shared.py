@@ -22,14 +22,12 @@ RES = TypeVar("RES")
 def prepare_get_params(
     codec: Codec, request_data: bytes, headers: HTTPHeaders
 ) -> dict[str, str]:
-    params = {
-        "connect": f"v{CONNECT_PROTOCOL_VERSION}",
-        "message": base64.urlsafe_b64encode(request_data).decode("ascii"),
-        "base64": "1",
-        "encoding": codec.name(),
-    }
+    # Follow order in spec: https://connectrpc.com/docs/protocol/#unary-get-request
+    params: dict[str, str] = {"connect": f"v{CONNECT_PROTOCOL_VERSION}", "base64": "1"}
     if "content-encoding" in headers:
         params["compression"] = headers.pop("content-encoding")
+    params["encoding"] = codec.name()
+    params["message"] = base64.urlsafe_b64encode(request_data).decode("ascii")
     return params
 
 
