@@ -83,7 +83,11 @@ build-backend = "uv_build"
 
 [tool.pytest]
 # Turn all warnings into errors
-filterwarnings = ["error"]
+filterwarnings = [
+  "error",
+  # Workaround https://github.com/open-telemetry/opentelemetry-python/issues/5231
+  "ignore:SelectableGroups dict interface is deprecated. Use select.",
+]
 strict = true
 testpaths = ["test"]
 timeout = "1800"  # 30 min
