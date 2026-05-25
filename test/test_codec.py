@@ -72,11 +72,14 @@ async def test_custom_codec() -> None:
             self.last_request_data: bytes | None = None
 
         async def execute(self, request: Request) -> Response:
-            chunks = []
-            async for chunk in request.content:
-                chunks.append(chunk)
             nonlocal logged_content
-            logged_content = b"".join(chunks)
+            if isinstance(request.content, bytes):
+                logged_content = request.content
+            else:
+                chunks = []
+                async for chunk in request.content:
+                    chunks.append(chunk)
+                logged_content = b"".join(chunks)
             return await self._transport.execute(
                 Request(
                     method=request.method,
@@ -114,7 +117,10 @@ def test_custom_codec_sync() -> None:
 
         def execute_sync(self, request: SyncRequest) -> SyncResponse:
             nonlocal logged_content
-            logged_content = b"".join(request.content)
+            if isinstance(request.content, bytes):
+                logged_content = request.content
+            else:
+                logged_content = b"".join(request.content)
             return self._transport.execute_sync(
                 SyncRequest(
                     method=request.method,
