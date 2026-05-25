@@ -22,9 +22,7 @@ RES = TypeVar("RES")
 def prepare_get_params(
     codec: Codec, request_data: bytes, headers: HTTPHeaders
 ) -> dict[str, str]:
-    # Insertion order is the Query-Get order from the Connect spec; urlencode
-    # iterates dict items in insertion order, which has been guaranteed since
-    # Python 3.7 (we require >= 3.10).
+    # Follow order in spec: https://connectrpc.com/docs/protocol/#unary-get-request
     params: dict[str, str] = {"connect": f"v{CONNECT_PROTOCOL_VERSION}", "base64": "1"}
     if "content-encoding" in headers:
         params["compression"] = headers.pop("content-encoding")
