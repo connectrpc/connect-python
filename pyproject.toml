@@ -1,6 +1,6 @@
 [project]
 name = "connectrpc"
-version = "0.9.0"
+version = "0.10.0"
 description = "Server and client runtime library for Connect RPC"
 readme = "README.md"
 requires-python = ">= 3.10"
@@ -28,7 +28,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Typing :: Typed",
 ]
-dependencies = ["protobuf>=5.28", "pyqwest>=0.4.1"]
+dependencies = ["protobuf>=5.28", "pyqwest>=0.5.1"]
 
 [project.urls]
 Documentation = "https://connectrpc.com/docs/python/getting-started/"
@@ -38,23 +38,23 @@ Repository = "https://github.com/connectrpc/connect-python"
 
 [dependency-groups]
 dev = [
-  # Needed to enable HTTP/2 in daphne
-  "Twisted[tls,http2]==25.5.0",
   "asgiref==3.11.1",
   "brotli==1.2.0",
+  "buf-bin==1.69.0",
   "connect-python-example",
-  "daphne==4.2.1",
-  "granian==2.7.2",
+  "granian==2.7.4",
   "grpcio-tools==1.80.0",
-  "gunicorn==25.3.0",
+  "gunicorn==26.0.0",
   "hypercorn==0.18.0",
-  "just-bin==1.48.1; sys_platform != 'win32'",
-  "pyright[nodejs]==1.1.408",
+  "poethepoet==0.46.0",
   "pyvoy==0.3.0",
-  "ruff==0.15.9",
-  "tombi==0.9.14",
+  "ruff==0.15.14",
+  "tombi==1.0.0",
+  "ty==0.0.39",
+  "types-grpcio==1.0.0.20260518",
+  "types-protobuf==7.34.1.20260518",
   "typing_extensions==4.15.0",
-  "uvicorn==0.43.0",
+  "uvicorn==0.48.0",
   "zstandard==0.25.0",
 
   # dev dependencies only used in subprojects. Optimal structure would include these
@@ -64,9 +64,9 @@ dev = [
   # If the below issue is resolved, we can move them back to subprojects and configure
   # our default sync setting as --all-packages.
   # https://github.com/astral-sh/uv/issues/5737
-  "opentelemetry-instrumentation-asgi==0.61b0",
-  "opentelemetry-instrumentation-wsgi==0.61b0",
-  "opentelemetry-sdk==1.40.0",
+  "opentelemetry-instrumentation-asgi==0.63b1",
+  "opentelemetry-instrumentation-wsgi==0.63b1",
+  "opentelemetry-sdk==1.42.1",
 
   # Versions locked in constraint-dependencies
   "pytest",
@@ -75,31 +75,19 @@ dev = [
   "pytest-timeout",
 ]
 
-docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.31"]
+docs = ["mkdocstrings-python==2.0.3", "zensical==0.0.43"]
 
 [build-system]
 requires = ["uv_build>=0.11.0,<0.12.0"]
 build-backend = "uv_build"
 
-[tool.pyright]
-exclude = [
-  # Defaults.
-  "**/node_modules",
-  "**/__pycache__",
-  "**/.*",
-  ".venv",
-
-  # GRPC python files don't typecheck on their own.
-  # See https://github.com/grpc/grpc/issues/39555
-  "**/*_pb2_grpc.py",
-
-  # TODO: Work out the import issues to allow it to work.
-  "conformance/**",
-]
-
 [tool.pytest]
 # Turn all warnings into errors
-filterwarnings = ["error"]
+filterwarnings = [
+  "error",
+  # Workaround https://github.com/open-telemetry/opentelemetry-python/issues/5231
+  "ignore:SelectableGroups dict interface is deprecated. Use select.",
+]
 strict = true
 testpaths = ["test"]
 timeout = "1800"  # 30 min
@@ -243,6 +231,19 @@ typing-extensions = false
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]
 split-on-trailing-comma = false
+
+[tool.ty.src]
+exclude = [
+  # gRPC generated code references `grpc.experimental`, which is not exposed by the
+  # `grpc` package's public API. See https://github.com/grpc/grpc/issues/39555.
+  "**/*_pb2_grpc.py",
+]
+
+[tool.ty.environment]
+# Conformance test files import generated code as `from gen.connectrpc...` and
+# sibling modules like `_util`/`_cov_embed`. Pytest and the launched server/client
+# subprocesses put `conformance/test/` on sys.path; teach ty to do the same.
+extra-paths = ["conformance/test"]
 
 [tool.uv]
 constraint-dependencies = [

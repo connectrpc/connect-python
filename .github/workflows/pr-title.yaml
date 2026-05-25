@@ -15,4 +15,4 @@ on:
       - synchronize
 jobs:
   lint:
-    uses: bufbuild/base-workflows/.github/workflows/pr-title.yaml@7be6b0f6700ab0c62145c2b4ca2efd103bfc4895 # main
+    uses: bufbuild/base-workflows/.github/workflows/pr-title.yaml@936b87d881ecb3b746df8b7e88ae583de5423a07 # main

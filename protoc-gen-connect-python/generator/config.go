@@ -34,6 +34,11 @@ type Config struct {
 
 	// Imports is how to import dependencies in the generated code.
 	Imports Imports
+
+	// Async indicates whether to only generate asynchronous code. If false,
+	// only synchronous code will be generated. If nil, both synchronous and
+	// asynchronous code will be generated.
+	Async *bool
 }
 
 func parseConfig(p string) Config {
@@ -63,6 +68,15 @@ func parseConfig(p string) Config {
 				cfg.Imports = ImportsAbsolute
 			case "relative":
 				cfg.Imports = ImportsRelative
+			}
+		case "async":
+			switch value {
+			case "true":
+				trueVal := true
+				cfg.Async = &trueVal
+			case "false":
+				falseVal := false
+				cfg.Async = &falseVal
 			}
 		}
 	}

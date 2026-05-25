@@ -4,6 +4,7 @@
 [![CI](https://github.com/connectrpc/connect-python/actions/workflows/ci.yaml/badge.svg)](https://github.com/connectrpc/connect-python/actions/workflows/ci.yaml)
 [![codecov](https://codecov.io/github/connectrpc/connect-python/graph/badge.svg)](https://codecov.io/github/connectrpc/connect-python)
 [![PyPI version](https://img.shields.io/pypi/v/connect-python)](https://pypi.org/project/connect-python)
+[![API Docs](https://img.shields.io/badge/API_Docs-connectrpc.github.io-blue)](https://connectrpc.github.io/connect-python/api/)
 
 A Python implementation of [Connect](https://connectrpc.com/): Protobuf RPC that works.
 
@@ -82,9 +83,7 @@ from your_service_connect import HelloServiceClient
 
 # Create async client
 async def main():
-    async with HelloServiceClient(
-        base_url="https://api.example.com",
-    ) as client:
+    async with HelloServiceClient("https://api.example.com") as client:
         # Make a unary RPC call
         response = await client.say_hello(HelloRequest(name="World"))
         print(response.message)  # "Hello, World!"
@@ -116,9 +115,7 @@ from your_service_connect import HelloServiceClientSync
 
 # Create sync client
 def main():
-    with HelloServiceClientSync(
-        base_url="https://api.example.com",
-    ) as client:
+    with HelloServiceClientSync("https://api.example.com") as client:
         # Make a unary RPC call
         response = client.say_hello(HelloRequest(name="World"))
         print(response.message)  # "Hello, World!"
@@ -292,14 +289,20 @@ Compression is automatically negotiated between client and server based on the `
 Interceptors allow you to add cross-cutting concerns like authentication, logging, and metrics:
 
 ```python
-from connectrpc.interceptor import Interceptor
+from connectrpc.interceptor import MetadataInterceptor
+from connectrpc.request import RequestContext
 
-class LoggingInterceptor(Interceptor):
-    async def intercept(self, method, request, context, next_handler):
-        print(f"Handling {method} request")
-        response = await next_handler(request, context)
-        print(f"Completed {method} request")
-        return response
+class LoggingInterceptor:
+    """Implements the MetadataInterceptor protocol."""
+
+    async def on_start(self, ctx: RequestContext) -> None:
+        print(f"Handling {ctx.method().name} request")
+
+    async def on_end(self, token: None, ctx: RequestContext, error: Exception | None) -> None:
+        if error:
+            print(f"Failed {ctx.method().name}: {error}")
+        else:
+            print(f"Completed {ctx.method().name} request")
 
 # Add to your application
 app = HelloServiceASGIApplication(
@@ -314,8 +317,7 @@ Clients also support interceptors for request/response processing:
 
 ```python
 client = HelloServiceClient(
-    base_url="https://api.example.com",
-    session=session,
+    "https://api.example.com",
     interceptors=[AuthInterceptor(), RetryInterceptor()]
 )
 ```
@@ -373,8 +375,7 @@ app = YourServiceASGIApplication(
 
 # Client with message size limit
 client = YourServiceClient(
-    base_url="https://api.example.com",
-    session=session,
+    "https://api.example.com",
     read_max_bytes=1024 * 1024
 )
 ```
@@ -397,7 +398,7 @@ service YourService {
 
 ## Development
 
-We use `ruff` for linting and formatting, and `pyright` for type checking.
+We use `ruff` for linting and formatting, `ty` for type checking, and `tombi` for TOML linting and formatting.
 
 We rely on the conformance test suit (in
 [./conformance](./conformance)) to verify behavior.
@@ -408,8 +409,7 @@ Set up a virtual env:
 uv sync
 ```
 
-Then, use `uv run just` to do development checks, or check out `uv run just --list` for other targets.
-`just` is run via `uv` as a development dependency, but you can also install it globally and omit the `uv run` from the commands.
+Then, use `uv run poe check` to do development checks, or check out `uv run poe` for other targets.
 
 ## Status
 

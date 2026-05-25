@@ -24,7 +24,6 @@ $ git commit -s -m "your commit message"
 
 - Python 3.10 or later
 - [uv](https://docs.astral.sh/uv/) for dependency management
-- [just](https://just.systems/) for running tasks
 
 ### Installation
 
@@ -38,13 +37,13 @@ $ git commit -s -m "your commit message"
 2. Verify everything is working:
 
    ```console
-   $ uv run just check
+   $ uv run poe check
    ```
 
 ## Development Workflow
 
-We use `just` as our task runner.
-Run `uv run just --list` to see all available commands.
+We use `poe` as our task runner.
+Run `uv run poe` to see all available commands.
 
 ## Submitting a Pull Request
 
@@ -57,7 +56,7 @@ Run `uv run just --list` to see all available commands.
 2. Make your changes and ensure all checks pass:
 
    ```console
-   $ uv run just check
+   $ uv run poe check
    ```
 
 3. Commit with a sign-off and a clear message, then push to your fork and open a pull

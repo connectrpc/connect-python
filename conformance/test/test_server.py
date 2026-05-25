@@ -7,8 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-
-from ._util import VERSION_CONFORMANCE, coverage_env, maybe_patch_args_with_debug
+from _util import VERSION_CONFORMANCE, coverage_env, maybe_patch_args_with_debug
 
 if TYPE_CHECKING:
     from coverage import Coverage
@@ -77,33 +76,13 @@ def test_server_sync(server: str, cov: Coverage) -> None:
         pytest.fail(f"\n{result.stdout}\n{result.stderr}")
 
 
-@pytest.mark.parametrize("server", ["daphne", "pyvoy", "uvicorn"])
+@pytest.mark.parametrize("server", ["pyvoy", "uvicorn"])
 def test_server_async(server: str, cov: Coverage) -> None:
     args = maybe_patch_args_with_debug(
         [sys.executable, _server_py_path, "--mode", "async", "--server", server]
     )
     opts = []
     match server:
-        case "daphne":
-            opts = [
-                # daphne doesn't support h2c
-                "--skip",
-                "**/HTTPVersion:2/**/TLS:false/**",
-                # daphne doesn't support HTTP/3
-                "--skip",
-                "**/HTTPVersion:3/**",
-                # daphne seems to block on the request body so can't do full duplex even with h2,
-                # it only works with websockets
-                "--skip",
-                "**/full-duplex/**",
-                # daphne doesn't support trailers
-                "--skip",
-                "**/Protocol:PROTOCOL_GRPC/**",
-                "--skip",
-                "gRPC Proto Sub-Format Requests/**",
-                "--skip",
-                "gRPC Unexpected Requests/**",
-            ]
         case "uvicorn":
             # uvicorn doesn't support HTTP/2 or 3
             opts = ["--skip", "**/HTTPVersion:2/**", "--skip", "**/HTTPVersion:3/**"]

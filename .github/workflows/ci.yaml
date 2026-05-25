@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  ci:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -57,62 +57,61 @@ jobs:
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
-      - uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           python-version: ${{ matrix.python }}
 
-      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version-file: protoc-gen-connect-python/go.mod
           cache-dependency-path: "**/go.mod"
 
-      - run: uv sync --all-packages
+      - run: uv sync --frozen
 
       - name: run lints
         if: startsWith(matrix.os, 'ubuntu-')
-        run: |
-          uv run ruff format --check .
-          uv run ruff check .
-          uv run pyright
+        run: uv run poe lint
+
+      - name: check running generate does not create a diff
+        # NOTE: running on macOS as our sed command only works there
+        # We expect uv.lock to change when matrix.resolution == "lowest-direct", so we don't check it there.
+        if: ${{ startsWith(matrix.os, 'macos-') && matrix.resolution == 'highest' }}
+        run: uv run poe checkgenerate
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
 
       - name: run python tests
-        run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
-
-      - name: run conformance tests
-        # TODO: Debug stdin/stdout issues on Windows
-        if: ${{ !startsWith(matrix.os, 'windows-') }}
-        run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
-        working-directory: conformance
+        run: uv run poe test ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
 
       - name: run OTel tests
-        run: uv run pytest ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
-        working-directory: connectrpc-otel
+        run: uv run poe test-otel ${{ matrix.coverage == 'cov' && '--cov=connectrpc_otel --cov-report=xml' || '' }}
 
       - name: run Go tests
         run: go test ./...
         working-directory: protoc-gen-connect-python
 
-      - name: check running `just generate` does not create a diff
-        # NOTE: running on macOS as our sed command only works there
-        # We expect uv.lock to change when matrix.resolution == "lowest-direct", so we don't check it there.
-        if: ${{ startsWith(matrix.os, 'macos-') && matrix.resolution == 'highest' }}
-        run: uv run just checkgenerate
-        env:
-          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+      - name: run conformance tests
+        # TODO: Debug stdin/stdout issues on Windows
+        if: ${{ !startsWith(matrix.os, 'windows-') }}
+        run: uv run poe test-conformance ${{ matrix.coverage == 'cov' && '--cov=connectrpc --cov-report=xml' || '' }}
 
-      - uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+      - uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         if: ${{ matrix.coverage == 'cov' }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   publish:
     runs-on: ubuntu-24.04
-    needs: build
+    needs: ci
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
-      - uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
 
       - run: uv sync --frozen
 
@@ -123,25 +122,26 @@ jobs:
         working-directory: connectrpc-otel
 
       - name: build codegen archives
-        uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0
+        uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
         with:
           version: "~> v2"
           args: release --snapshot --clean
           workdir: protoc-gen-connect-python
 
       - run: |
-          uv sync --frozen
-          uv run python scripts/generate_wheels.py
+          # Make sure uv doesn't build the project since the data files aren't ready yet.
+          uv sync --frozen --no-install-project
+          uv run --no-sync python scripts/generate_wheels.py
         working-directory: protoc-gen-connect-python
 
-      - uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+      - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
         if: github.event_name != 'pull_request'
         with:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
 
       - name: publish protoc-gen-connect-python
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
         if: github.event_name != 'pull_request'
         with:
           repository-url: https://test.pypi.org/legacy/

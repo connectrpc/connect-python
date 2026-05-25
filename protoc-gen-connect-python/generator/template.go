@@ -13,6 +13,8 @@ type ConnectTemplateVariables struct {
 	ModuleName string
 	Imports    []ImportStatement
 	Services   []*ConnectService
+	SkipAsync  bool
+	SkipSync   bool
 }
 
 type ConnectService struct {
@@ -61,9 +63,9 @@ from connectrpc.server import ConnectASGIApplication, ConnectWSGIApplication, En
 {{if .Relative}}from . import {{.Name}}{{else}}import {{.Name}}{{end}} as {{.Alias}}
 {{- end}}
 {{- end}}
+
+{{if not .SkipAsync }}
 {{- range .Services}}
-
-
 class {{.Name}}(Protocol):{{- range .Methods }}
     {{if not .ResponseStream }}async {{end}}def {{.PythonName}}(self, request: {{if .RequestStream}}AsyncIterator[{{end}}{{.InputType}}{{if .RequestStream}}]{{end}}, ctx: RequestContext) -> {{if .ResponseStream}}AsyncIterator[{{end}}{{.OutputType}}{{if .ResponseStream}}]{{end}}:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
@@ -124,6 +126,9 @@ class {{.Name}}Client(ConnectClient):{{range .Methods}}
             {{- end}}
         )
 {{end}}{{- end }}
+{{end}}
+
+{{if not .SkipSync }}
 {{range .Services}}
 class {{.Name}}Sync(Protocol):{{- range .Methods }}
     def {{.PythonName}}(self, request: {{if .RequestStream}}Iterator[{{end}}{{.InputType}}{{if .RequestStream}}]{{end}}, ctx: RequestContext) -> {{if .ResponseStream}}Iterator[{{end}}{{.OutputType}}{{if .ResponseStream}}]{{end}}:
@@ -184,4 +189,6 @@ class {{.Name}}ClientSync(ConnectClientSync):{{range .Methods}}
             use_get=use_get,
             {{- end}}
         )
-{{end}}{{end}}`))
+{{end}}{{end}}
+{{end}}
+`))

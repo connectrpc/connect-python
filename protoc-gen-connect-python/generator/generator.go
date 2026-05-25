@@ -55,6 +55,13 @@ func generateConnectFile(fd protoreflect.FileDescriptor, conf Config) (string, s
 		ModuleName: moduleName,
 		Imports:    importStatements(fd, conf),
 	}
+	if conf.Async != nil {
+		if *conf.Async {
+			vars.SkipSync = true
+		} else {
+			vars.SkipAsync = true
+		}
+	}
 
 	svcs := fd.Services()
 	packageName := string(fd.Package())
@@ -109,7 +116,7 @@ func generateConnectFile(fd protoreflect.FileDescriptor, conf Config) (string, s
 		vars.Services = append(vars.Services, connectSvc)
 	}
 
-	var buf = &bytes.Buffer{}
+	buf := &bytes.Buffer{}
 	err := ConnectTemplate.Execute(buf, vars)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to execute template: %w", err)

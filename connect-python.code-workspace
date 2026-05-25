@@ -26,7 +26,6 @@
       "golang.go",
       "ms-python.python",
       "ms-python.vscode-pylance",
-      "nefrob.vscode-just-syntax",
     ],
   },
   "settings": {

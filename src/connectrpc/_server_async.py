@@ -213,7 +213,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                 codec_name = protocol.codec_name_from_content_type(
                     headers.get("content-type", ""), stream=not is_unary
                 )
-            codec = self._codecs.get(codec_name.lower())
+            codec = self._codecs.get(codec_name)
             if not codec:
                 raise HTTPException(
                     HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
@@ -232,7 +232,10 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                     ctx,
                 )
         except Exception as e:
-            return await self._handle_error(e, ctx, send)
+            await self._handle_error(e, ctx, send)
+            if not isinstance(e, (ConnectError, HTTPException)):
+                raise
+            return None
 
         # Streams have their own error handling so move out of the try block.
         return await self._handle_stream(
@@ -486,6 +489,8 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                         "more_trailers": False,
                     }
                 )
+            if error and not isinstance(error, ConnectError):
+                raise error
 
     async def _handle_error(
         self, exc: Exception, ctx: RequestContext | None, send: ASGISendCallable

@@ -9,6 +9,7 @@ from collections.abc import (
     Sequence,
     ValuesView,
 )
+from typing import cast
 
 
 class Headers(MutableMapping[str, str]):
@@ -28,6 +29,10 @@ class Headers(MutableMapping[str, str]):
     ) -> None:
         self._extra = None
         if isinstance(items, Mapping):
+            # ty does not preserve type parameters when narrowing a union via
+            # `isinstance(x, Mapping)`, so we re-assert `Mapping[str, str]`.
+            # See https://github.com/astral-sh/ty/issues/456.
+            items = cast("Mapping[str, str]", items)
             self._store = {k.lower(): v for k, v in items.items()}
         else:
             self._store = {}

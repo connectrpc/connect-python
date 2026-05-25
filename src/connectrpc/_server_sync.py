@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import functools
+import traceback
 from abc import ABC, abstractmethod
 from dataclasses import replace
 from http import HTTPStatus
@@ -46,9 +47,9 @@ if TYPE_CHECKING:
     from .compression import Compression
 
     if sys.version_info >= (3, 11):
-        from wsgiref.types import StartResponse, WSGIEnvironment
+        from wsgiref.types import ErrorStream, StartResponse, WSGIEnvironment
     else:
-        from _typeshed.wsgi import StartResponse, WSGIEnvironment
+        from _typeshed.wsgi import ErrorStream, StartResponse, WSGIEnvironment
 else:
     StartResponse = "wsgiref.types.StartResponse"
     WSGIEnvironment = "wsgiref.types.WSGIEnvironment"
@@ -69,30 +70,18 @@ EndpointSync = (
 )
 
 
-def _normalize_wsgi_headers(environ: WSGIEnvironment) -> dict:
-    """Extract and normalize HTTP headers from WSGI environment."""
-    headers = {}
+def _process_headers(environ: WSGIEnvironment) -> Headers:
+    headers = Headers()
     if "CONTENT_TYPE" in environ:
-        headers["content-type"] = environ["CONTENT_TYPE"].lower()
+        headers["content-type"] = environ["CONTENT_TYPE"]
     if "CONTENT_LENGTH" in environ:
-        headers["content-length"] = environ["CONTENT_LENGTH"].lower()
+        headers["content-length"] = environ["CONTENT_LENGTH"]
 
     for key, value in environ.items():
         if key.startswith("HTTP_"):
             header = key[5:].replace("_", "-")
             headers[header] = value
     return headers
-
-
-def _process_headers(headers: dict) -> Headers:
-    result = Headers()
-    for key, value in headers.items():
-        if isinstance(value, list | tuple):
-            for v in value:
-                result.add(key, v)
-        else:
-            result.add(key, str(value))
-    return result
 
 
 def prepare_response_headers(
@@ -219,7 +208,7 @@ class ConnectWSGIApplication(ABC):
 
             http_method = environ["REQUEST_METHOD"]
             http_scheme = environ.get("wsgi.url_scheme", "http")
-            headers = _process_headers(_normalize_wsgi_headers(environ))
+            headers = _process_headers(environ)
             if ra := environ.get("REMOTE_ADDR"):
                 port = environ.get("REMOTE_PORT", "0")
                 client_address = f"{ra}:{port}"
@@ -251,6 +240,7 @@ class ConnectWSGIApplication(ABC):
 
         except Exception as e:
             _drain_request_body(environ)
+            _maybe_log_exception(environ, e)
             return self._handle_error(e, ctx, start_response)
 
     def _handle_unary(
@@ -502,6 +492,7 @@ class ConnectWSGIApplication(ABC):
             # response message will be handled by _response_stream, so here we have a
             # full error-only response.
             _drain_request_body(environ)
+            _maybe_log_exception(environ, e)
             _send_stream_response_headers(
                 start_response, protocol, codec, resp_compression.name(), ctx
             )
@@ -668,3 +659,12 @@ def _drain_request_body(environ: WSGIEnvironment) -> None:
         # server that doesn't do so, so we go ahead and do it ourselves.
         for _ in _read_body(environ):
             pass
+
+
+def _maybe_log_exception(environ: WSGIEnvironment, exc: Exception) -> None:
+    if isinstance(exc, (ConnectError, HTTPException)):
+        return
+    errors: ErrorStream = environ["wsgi.errors"]
+    errors.write(
+        f"Exception in WSGI application\n{''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))}"
+    )
