@@ -122,22 +122,22 @@ def _send_headers(
 ) -> None:
     for header in definition.response_headers:
         for value in header.value:
-            ctx.response_headers().add(header.name, value)
+            ctx.response_headers.add(header.name, value)
     for trailer in definition.response_trailers:
         for value in trailer.value:
-            ctx.response_trailers().add(trailer.name, value)
+            ctx.response_trailers.add(trailer.name, value)
 
 
 def _create_request_info(
     ctx: RequestContext, reqs: list[Any]
 ) -> ConformancePayload.RequestInfo:
     request_info = ConformancePayload.RequestInfo(requests=reqs)
-    timeout_ms = ctx.timeout_ms()
+    timeout_ms = ctx.timeout_ms
     if timeout_ms is not None:
         request_info.timeout_ms = int(timeout_ms)
-    for key in ctx.request_headers():
+    for key in ctx.request_headers:
         request_info.request_headers.add(
-            name=key, value=ctx.request_headers().getall(key)
+            name=key, value=ctx.request_headers.getall(key)
         )
     return request_info
 

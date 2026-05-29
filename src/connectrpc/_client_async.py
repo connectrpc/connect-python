@@ -283,9 +283,9 @@ class ConnectClient:
                 self._send_request_bidi_stream(_yield_single_message(request), ctx)
             )
 
-        request_headers = HTTPHeaders(ctx.request_headers().allitems())
-        url = f"{self._address}/{ctx.method().service_name}/{ctx.method().name}"
-        if (timeout_ms := ctx.timeout_ms()) is not None:
+        request_headers = HTTPHeaders(ctx.request_headers.allitems())
+        url = f"{self._address}/{ctx.method.service_name}/{ctx.method.name}"
+        if (timeout_ms := ctx.timeout_ms) is not None:
             timeout_s = timeout_ms / 1000.0
         else:
             timeout_s = None
@@ -295,7 +295,7 @@ class ConnectClient:
             if self._send_compression:
                 request_data = self._send_compression.compress(request_data)
 
-            if ctx.http_method() == "GET":
+            if ctx.http_method == "GET":
                 params = _client_shared.prepare_get_params(
                     self._codec, request_data, request_headers
                 )
@@ -333,7 +333,7 @@ class ConnectClient:
                         f"message is larger than configured max {self._read_max_bytes}",
                     )
 
-                response = ctx.method().output()
+                response = ctx.method.output()
                 self._codec.decode(resp.content, response)
                 return response
             raise ConnectWireError.from_response(resp).to_exception()
@@ -361,9 +361,9 @@ class ConnectClient:
     async def _send_request_bidi_stream(
         self, request: AsyncIterator[REQ], ctx: RequestContext[REQ, RES]
     ) -> AsyncIterator[RES]:
-        request_headers = HTTPHeaders(ctx.request_headers().allitems())
-        url = f"{self._address}/{ctx.method().service_name}/{ctx.method().name}"
-        if (timeout_ms := ctx.timeout_ms()) is not None:
+        request_headers = HTTPHeaders(ctx.request_headers.allitems())
+        url = f"{self._address}/{ctx.method.service_name}/{ctx.method.name}"
+        if (timeout_ms := ctx.timeout_ms) is not None:
             timeout_s = timeout_ms / 1000.0
         else:
             timeout_s = None
@@ -390,7 +390,7 @@ class ConnectClient:
                         resp.headers, self._response_compressions, stream=True
                     )
                     reader = self._protocol.create_envelope_reader(
-                        ctx.method().output,
+                        ctx.method.output,
                         self._codec,
                         compression,
                         self._read_max_bytes,

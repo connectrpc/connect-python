@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from opentelemetry.metrics import MeterProvider
     from opentelemetry.trace import TracerProvider
 
-_instruments = ("connectrpc>=0.9.0",)
+_instruments = ("connectrpc>=0.11.0",)
 
 P = ParamSpec("P")
 R = TypeVar("R")

@@ -674,13 +674,13 @@ async def _run_test(
 
         test_response.response.payloads.extend(payloads)
 
-        for name in meta.headers():
+        for name in meta.headers:
             test_response.response.response_headers.add(
-                name=name, value=meta.headers().getall(name)
+                name=name, value=meta.headers.getall(name)
             )
-        for name in meta.trailers():
+        for name in meta.trailers:
             test_response.response.response_trailers.add(
-                name=name, value=meta.trailers().getall(name)
+                name=name, value=meta.trailers.getall(name)
             )
 
     return test_response

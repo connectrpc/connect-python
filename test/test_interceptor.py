@@ -38,7 +38,7 @@ class RequestInterceptor:
         self.on_end_sync(token, ctx, error)
 
     def on_start_sync(self, ctx: RequestContext) -> str:
-        return f"Hello {ctx.method().name}"
+        return f"Hello {ctx.method.name}"
 
     def on_end_sync(
         self, token: str, ctx: RequestContext, error: Exception | None

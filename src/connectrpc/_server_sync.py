@@ -475,7 +475,7 @@ class ConnectWSGIApplication(ABC):
                 # without error.
                 return [
                     _end_response(
-                        writer.end(ctx.response_trailers(), None), send_trailers
+                        writer.end(ctx.response_trailers, None), send_trailers
                     )
                 ]
 
@@ -499,7 +499,7 @@ class ConnectWSGIApplication(ABC):
             return [
                 _end_response(
                     writer.end(
-                        ctx.response_trailers(), ConnectWireError.from_exception(e)
+                        ctx.response_trailers, ConnectWireError.from_exception(e)
                     ),
                     send_trailers,
                 )
@@ -542,9 +542,9 @@ def _end_response(
 
 
 def _add_context_headers(headers: list[tuple[str, str]], ctx: RequestContext) -> None:
-    headers.extend((key, value) for key, value in ctx.response_headers().allitems())
+    headers.extend((key, value) for key, value in ctx.response_headers.allitems())
     headers.extend(
-        (f"trailer-{key}", value) for key, value in ctx.response_trailers().allitems()
+        (f"trailer-{key}", value) for key, value in ctx.response_trailers.allitems()
     )
 
 
@@ -560,7 +560,7 @@ def _send_stream_response_headers(
         (protocol.compression_header_name(), compression_name),
     ]
     response_headers.extend(
-        (key, value) for key, value in ctx.response_headers().allitems()
+        (key, value) for key, value in ctx.response_headers.allitems()
     )
     start_response("200 OK", response_headers)
 
@@ -598,7 +598,7 @@ def _response_stream(
 
     yield _end_response(
         writer.end(
-            ctx.response_trailers(),
+            ctx.response_trailers,
             ConnectWireError.from_exception(error) if error else None,
         ),
         send_trailers,

@@ -61,7 +61,7 @@ dev = [
   # have a real dependency to avoid any possible version conflicts. But for Python,
   # the ecosystem vastly favors auto-instrumentation, and it is easier to add than remove
   # a transitive dependency, so we go ahead and leave it out.
-  "connectrpc>=0.8.0",
+  "connectrpc>=0.11.0",
 
   "connect-python-example",
   "pytest",
