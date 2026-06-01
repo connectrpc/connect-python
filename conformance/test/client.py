@@ -667,7 +667,7 @@ async def _run_test(
         except ConnectError as e:
             test_response.response.error.code = _convert_code(e.code)
             test_response.response.error.message = e.message
-            test_response.response.error.details.extend(e.details)
+            test_response.response.error.details.extend(d._any for d in e.details)
         except (asyncio.CancelledError, Exception) as e:
             traceback.print_tb(e.__traceback__, file=sys.stderr)
             test_response.error.message = str(e)
