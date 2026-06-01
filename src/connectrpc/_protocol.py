@@ -6,13 +6,12 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Protocol, TypeVar, cast
 
-from google.protobuf import symbol_database
 from google.protobuf.any_pb2 import Any
 from google.protobuf.json_format import MessageToDict
 
 from ._compression import Compression
 from .code import Code
-from .errors import ConnectError
+from .errors import ConnectError, ErrorDetail
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -91,7 +90,7 @@ _http_status_code_to_error = {
 class ConnectWireError:
     code: Code
     message: str
-    details: Sequence[Any]
+    details: Sequence[ErrorDetail]
 
     @staticmethod
     def from_exception(exc: Exception) -> ConnectWireError:
@@ -122,7 +121,7 @@ class ConnectWireError:
         else:
             code = _http_status_code_to_error.get(http_status, Code.UNKNOWN)
         message = data.get("message", "")
-        details: Sequence[Any] = ()
+        details: Sequence[ErrorDetail] = ()
         details_json = cast("list[dict[str, str]] | None", data.get("details"))
         if details_json:
             details = []
@@ -133,9 +132,11 @@ class ConnectWireError:
                     # Ignore malformed details
                     continue
                 details.append(
-                    Any(
-                        type_url="type.googleapis.com/" + detail_type,
-                        value=b64decode(detail_value + "==="),
+                    ErrorDetail(
+                        Any(
+                            type_url="type.googleapis.com/" + detail_type,
+                            value=b64decode(detail_value + "==="),
+                        )
                     )
                 )
         return ConnectWireError(code, message, details)
@@ -161,26 +162,17 @@ class ConnectWireError:
         if self.details:
             details: list[dict] = []
             for detail in self.details:
-                if detail.type_url.startswith("type.googleapis.com/"):
-                    detail_type = detail.type_url[len("type.googleapis.com/") :]
-                else:
-                    detail_type = detail.type_url
                 detail_dict: dict = {
-                    "type": detail_type,
+                    "type": detail.type_name,
                     # Connect requires unpadded base64
-                    "value": b64encode(detail.value).decode("utf-8").rstrip("="),
+                    "value": b64encode(detail.message_bytes)
+                    .decode("utf-8")
+                    .rstrip("="),
                 }
                 # Try to produce debug info, but expect failure when we don't
                 # have descriptors for the message type.
-                debug = None
-                try:
-                    msg_instance = symbol_database.Default().GetSymbol(detail_type)()
-                    if detail.Unpack(msg_instance):
-                        debug = MessageToDict(msg_instance)
-                except Exception:
-                    debug = None
-                if debug is not None:
-                    detail_dict["debug"] = debug
+                if (debug := detail.value()) is not None:
+                    detail_dict["debug"] = MessageToDict(debug)
                 details.append(detail_dict)
             data["details"] = details
         return data

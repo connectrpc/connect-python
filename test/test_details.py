@@ -11,7 +11,7 @@ from pyqwest.testing import ASGITransport, WSGITransport
 
 from connectrpc._protocol import ConnectWireError
 from connectrpc.code import Code
-from connectrpc.errors import ConnectError, pack_any
+from connectrpc.errors import ConnectError, ErrorDetail
 
 from .haberdasher_connect import (
     Haberdasher,
@@ -32,7 +32,7 @@ def test_details_sync() -> None:
                 "Resource exhausted",
                 details=[
                     Struct(fields={"animal": Value(string_value="bear")}),
-                    pack_any(Struct(fields={"color": Value(string_value="red")})),
+                    ErrorDetail(Struct(fields={"color": Value(string_value="red")})),
                 ],
             )
 
@@ -47,11 +47,11 @@ def test_details_sync() -> None:
     assert exc_info.value.code == Code.RESOURCE_EXHAUSTED
     assert exc_info.value.message == "Resource exhausted"
     assert len(exc_info.value.details) == 2
-    s0 = Struct()
-    assert exc_info.value.details[0].Unpack(s0)
+    s0 = exc_info.value.details[0].value(Struct)
+    assert s0 is not None
     assert s0.fields["animal"].string_value == "bear"
-    s1 = Struct()
-    assert exc_info.value.details[1].Unpack(s1)
+    s1 = exc_info.value.details[1].value(Struct)
+    assert s1 is not None
     assert s1.fields["color"].string_value == "red"
 
 
@@ -64,7 +64,7 @@ async def test_details_async() -> None:
                 "Resource exhausted",
                 details=[
                     Struct(fields={"animal": Value(string_value="bear")}),
-                    pack_any(Struct(fields={"color": Value(string_value="red")})),
+                    ErrorDetail(Struct(fields={"color": Value(string_value="red")})),
                 ],
             )
 
@@ -78,11 +78,11 @@ async def test_details_async() -> None:
     assert exc_info.value.code == Code.RESOURCE_EXHAUSTED
     assert exc_info.value.message == "Resource exhausted"
     assert len(exc_info.value.details) == 2
-    s0 = Struct()
-    assert exc_info.value.details[0].Unpack(s0)
+    s0 = exc_info.value.details[0].value(Struct)
+    assert s0 is not None
     assert s0.fields["animal"].string_value == "bear"
-    s1 = Struct()
-    assert exc_info.value.details[1].Unpack(s1)
+    s1 = exc_info.value.details[1].value(Struct)
+    assert s1 is not None
     assert s1.fields["color"].string_value == "red"
 
 
@@ -124,7 +124,7 @@ def test_error_detail_debug_field_absent_for_unknown_type() -> None:
         type_url="type.googleapis.com/completely.Unknown.Message", value=b"\x08\x01"
     )
     wire_error = ConnectWireError(
-        code=Code.INTERNAL, message="test", details=[unknown_detail]
+        code=Code.INTERNAL, message="test", details=[ErrorDetail(unknown_detail)]
     )
     data = wire_error.to_dict()
     assert len(data["details"]) == 1

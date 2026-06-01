@@ -169,7 +169,9 @@ class GRPCEnvelopeWriter(EnvelopeWriter):
                 trailers["grpc-message"] = message
             if error.details:
                 grpc_status = Status(
-                    code=int(status), message=error.message, details=error.details
+                    code=int(status),
+                    message=error.message,
+                    details=[d._any for d in error.details],  # noqa: SLF001
                 )
                 grpc_status_bin = (
                     b64encode(grpc_status.SerializeToString()).decode().rstrip("=")
