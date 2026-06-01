@@ -43,7 +43,7 @@ def handle_response_trailers(
     response = _current_response.get(None)
     if not response:
         return
-    response_trailers = response.trailers()
+    response_trailers = response.trailers
     for key, value in trailers.items():
         if isinstance(value, str):
             response_trailers.add(key, value)
@@ -95,12 +95,14 @@ class ResponseMetadata:
                 _current_response.reset(self._token)
         self._token = None
 
+    @property
     def headers(self) -> Headers:
         """Returns the response headers."""
         if self._headers is None:
             return Headers()
         return self._headers
 
+    @property
     def trailers(self) -> Headers:
         """Returns the response trailers."""
         if self._trailers is None:

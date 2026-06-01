@@ -56,7 +56,7 @@ def maybe_map_stream_reset(
         case StreamErrorCode.CANCEL:
             # Some servers use CANCEL when deadline expires. We can't differentiate
             # that from normal cancel without checking our own deadline.
-            if (t := ctx.timeout_ms()) is not None and t <= 0:
+            if (t := ctx.timeout_ms) is not None and t <= 0:
                 return ConnectError(Code.DEADLINE_EXCEEDED, msg)
             return ConnectError(Code.CANCELED, msg)
         case StreamErrorCode.ENHANCE_YOUR_CALM:

@@ -59,9 +59,9 @@ def test_headers_sync(headers, trailers, response_headers, response_trailers) ->
 
         def make_hat(self, request, ctx):
             for key, value in self.headers:
-                ctx.response_headers().add(key, value)
+                ctx.response_headers.add(key, value)
             for key, value in self.trailers:
-                ctx.response_trailers().add(key, value)
+                ctx.response_trailers.add(key, value)
             return Hat()
 
     transport = WSGITransport(
@@ -75,8 +75,8 @@ def test_headers_sync(headers, trailers, response_headers, response_trailers) ->
     with ResponseMetadata() as resp:
         client.make_hat(Size(inches=10))
 
-    assert list(resp.headers().allitems()) == response_headers
-    assert list(resp.trailers().allitems()) == response_trailers
+    assert list(resp.headers.allitems()) == response_headers
+    assert list(resp.trailers.allitems()) == response_trailers
 
 
 @pytest.mark.asyncio
@@ -95,9 +95,9 @@ async def test_headers_async(
 
         async def make_hat(self, request, ctx):
             for key, value in self.headers:
-                ctx.response_headers().add(key, value)
+                ctx.response_headers.add(key, value)
             for key, value in self.trailers:
-                ctx.response_trailers().add(key, value)
+                ctx.response_trailers.add(key, value)
             return Hat()
 
     transport = ASGITransport(
@@ -111,5 +111,5 @@ async def test_headers_async(
     with ResponseMetadata() as resp:
         await client.make_hat(Size(inches=10))
 
-    assert list(resp.headers().allitems()) == response_headers
-    assert list(resp.trailers().allitems()) == response_trailers
+    assert list(resp.headers.allitems()) == response_headers
+    assert list(resp.trailers.allitems()) == response_trailers

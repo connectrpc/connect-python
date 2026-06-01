@@ -102,13 +102,13 @@ class OpenTelemetryInterceptor:
     def on_start_sync(self, ctx: RequestContext) -> Token:
         start_time = time.perf_counter()
 
-        rpc_method = f"{ctx.method().service_name}/{ctx.method().name}"
+        rpc_method = f"{ctx.method.service_name}/{ctx.method.name}"
         shared_attrs: dict[str, AttributeValue] = {
             RPC_SYSTEM_NAME: RpcSystemNameValues.CONNECTRPC.value,
             RPC_METHOD: rpc_method,
         }
 
-        if sa := ctx.server_address():
+        if sa := ctx.server_address:
             addr, port = sa.rsplit(":", 1)
             shared_attrs[SERVER_ADDRESS] = addr
             shared_attrs[SERVER_PORT] = int(port)
@@ -150,18 +150,18 @@ class OpenTelemetryInterceptor:
         parent_otel_ctx = None
         if self._client:
             span_kind = SpanKind.CLIENT
-            carrier = ctx.request_headers()
+            carrier = ctx.request_headers
             self._propagator.inject(carrier, setter=_DEFAULT_TEXTMAP_SETTER)
         else:
             span_kind = SpanKind.SERVER
             parent_span = get_current_span()
             if not parent_span.get_span_context().is_valid:
-                carrier = ctx.request_headers()
+                carrier = ctx.request_headers
                 parent_otel_ctx = self._propagator.extract(carrier)
 
         attrs: dict[str, AttributeValue] = shared_attrs.copy()
 
-        if ca := ctx.client_address():
+        if ca := ctx.client_address:
             addr, port = ca.rsplit(":", 1)
             attrs[CLIENT_ADDRESS] = addr
             attrs[CLIENT_PORT] = int(port)

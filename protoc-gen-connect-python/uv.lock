@@ -13,7 +13,7 @@ wheels = [
 
 [[package]]
 name = "protoc-gen-connectrpc"
-version = "0.10.1"
+version = "0.11.0"
 source = { editable = "." }
 
 [package.dev-dependencies]

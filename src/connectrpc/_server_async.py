@@ -460,7 +460,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
             error = e
         finally:
             end_message = writer.end(
-                ctx.response_trailers(),
+                ctx.response_trailers,
                 ConnectWireError.from_exception(error) if error else None,
             )
             if not sent_headers:
@@ -546,8 +546,7 @@ async def _send_stream_response_headers(
         (protocol.compression_header_name().encode(), compression_name.encode()),
     ]
     response_headers.extend(
-        (key.encode(), value.encode())
-        for key, value in ctx.response_headers().allitems()
+        (key.encode(), value.encode()) for key, value in ctx.response_headers.allitems()
     )
     await send(
         {
@@ -624,12 +623,11 @@ def _add_context_headers(
     headers: list[tuple[bytes, bytes]], ctx: RequestContext
 ) -> None:
     headers.extend(
-        (key.encode(), value.encode())
-        for key, value in ctx.response_headers().allitems()
+        (key.encode(), value.encode()) for key, value in ctx.response_headers.allitems()
     )
     headers.extend(
         (f"trailer-{key}".encode(), value.encode())
-        for key, value in ctx.response_trailers().allitems()
+        for key, value in ctx.response_trailers.allitems()
     )
 
 

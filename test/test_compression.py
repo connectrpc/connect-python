@@ -56,7 +56,7 @@ async def test_server_compressions_async(
         res = await client.make_hat(Size(inches=10))
     assert res.size == 10
     assert res.color == "blue"
-    assert meta.headers().get("content-encoding") == encoding
+    assert meta.headers.get("content-encoding") == encoding
 
 
 @pytest.mark.parametrize(
@@ -87,4 +87,4 @@ def test_server_compressions_sync(compressions: tuple[str], encoding: str) -> No
         res = client.make_hat(Size(inches=10))
     assert res.size == 10
     assert res.color == "blue"
-    assert meta.headers().get("content-encoding") == encoding
+    assert meta.headers.get("content-encoding") == encoding

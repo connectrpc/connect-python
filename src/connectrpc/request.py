@@ -50,10 +50,12 @@ class RequestContext(Generic[REQ, RES]):
         else:
             self._end_time = time.monotonic() + (timeout_ms / 1000.0)
 
+    @property
     def method(self) -> MethodInfo[REQ, RES]:
         """Returns information about the RPC method being invoked."""
         return self._method
 
+    @property
     def http_method(self) -> str:
         """Returns the HTTP method for this request.
 
@@ -62,10 +64,12 @@ class RequestContext(Generic[REQ, RES]):
         """
         return self._http_method
 
+    @property
     def request_headers(self) -> Headers:
         """Returns the request headers associated with the context."""
         return self._request_headers
 
+    @property
     def response_headers(self) -> Headers:
         """
         Returns the response headers that will be sent before the response.
@@ -74,6 +78,7 @@ class RequestContext(Generic[REQ, RES]):
             self._response_headers = Headers()
         return self._response_headers
 
+    @property
     def response_trailers(self) -> Headers:
         """
         Returns the response trailers that will be sent after the response.
@@ -82,12 +87,14 @@ class RequestContext(Generic[REQ, RES]):
             self._response_trailers = Headers()
         return self._response_trailers
 
+    @property
     def timeout_ms(self) -> float | None:
         """Returns the remaining time until the timeout in milliseconds, or None if no timeout is set."""
         if self._end_time is None:
             return None
         return (self._end_time - time.monotonic()) * 1000.0
 
+    @property
     def server_address(self) -> str | None:
         """
         Returns the server address for this request, if available, as a "address:port" string.
@@ -97,6 +104,7 @@ class RequestContext(Generic[REQ, RES]):
         """
         return self._server_address
 
+    @property
     def client_address(self) -> str | None:
         """
         Returns the client address for this request, if available, as a "address:port" string.
