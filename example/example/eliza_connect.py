@@ -35,19 +35,31 @@ if TYPE_CHECKING:
 
 class ElizaService(Protocol):
     async def say(
-        self, request: example_dot_eliza__pb2.SayRequest, ctx: RequestContext
+        self,
+        request: example_dot_eliza__pb2.SayRequest,
+        ctx: RequestContext[
+            example_dot_eliza__pb2.SayRequest, example_dot_eliza__pb2.SayResponse
+        ],
     ) -> example_dot_eliza__pb2.SayResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def converse(
         self,
         request: AsyncIterator[example_dot_eliza__pb2.ConverseRequest],
-        ctx: RequestContext,
+        ctx: RequestContext[
+            example_dot_eliza__pb2.ConverseRequest,
+            example_dot_eliza__pb2.ConverseResponse,
+        ],
     ) -> AsyncIterator[example_dot_eliza__pb2.ConverseResponse]:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def introduce(
-        self, request: example_dot_eliza__pb2.IntroduceRequest, ctx: RequestContext
+        self,
+        request: example_dot_eliza__pb2.IntroduceRequest,
+        ctx: RequestContext[
+            example_dot_eliza__pb2.IntroduceRequest,
+            example_dot_eliza__pb2.IntroduceResponse,
+        ],
     ) -> AsyncIterator[example_dot_eliza__pb2.IntroduceResponse]:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
@@ -174,19 +186,31 @@ class ElizaServiceClient(ConnectClient):
 
 class ElizaServiceSync(Protocol):
     def say(
-        self, request: example_dot_eliza__pb2.SayRequest, ctx: RequestContext
+        self,
+        request: example_dot_eliza__pb2.SayRequest,
+        ctx: RequestContext[
+            example_dot_eliza__pb2.SayRequest, example_dot_eliza__pb2.SayResponse
+        ],
     ) -> example_dot_eliza__pb2.SayResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def converse(
         self,
         request: Iterator[example_dot_eliza__pb2.ConverseRequest],
-        ctx: RequestContext,
+        ctx: RequestContext[
+            example_dot_eliza__pb2.ConverseRequest,
+            example_dot_eliza__pb2.ConverseResponse,
+        ],
     ) -> Iterator[example_dot_eliza__pb2.ConverseResponse]:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def introduce(
-        self, request: example_dot_eliza__pb2.IntroduceRequest, ctx: RequestContext
+        self,
+        request: example_dot_eliza__pb2.IntroduceRequest,
+        ctx: RequestContext[
+            example_dot_eliza__pb2.IntroduceRequest,
+            example_dot_eliza__pb2.IntroduceResponse,
+        ],
     ) -> Iterator[example_dot_eliza__pb2.IntroduceResponse]:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 

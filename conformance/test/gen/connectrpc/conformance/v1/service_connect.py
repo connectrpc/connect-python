@@ -37,14 +37,20 @@ class ConformanceService(Protocol):
     async def unary(
         self,
         request: connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnaryRequest,
-        ctx: RequestContext,
+        ctx: RequestContext[
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnaryRequest,
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnaryResponse,
+        ],
     ) -> connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnaryResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def server_stream(
         self,
         request: connectrpc_dot_conformance_dot_v1_dot_service__pb2.ServerStreamRequest,
-        ctx: RequestContext,
+        ctx: RequestContext[
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.ServerStreamRequest,
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.ServerStreamResponse,
+        ],
     ) -> AsyncIterator[
         connectrpc_dot_conformance_dot_v1_dot_service__pb2.ServerStreamResponse
     ]:
@@ -55,7 +61,10 @@ class ConformanceService(Protocol):
         request: AsyncIterator[
             connectrpc_dot_conformance_dot_v1_dot_service__pb2.ClientStreamRequest
         ],
-        ctx: RequestContext,
+        ctx: RequestContext[
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.ClientStreamRequest,
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.ClientStreamResponse,
+        ],
     ) -> connectrpc_dot_conformance_dot_v1_dot_service__pb2.ClientStreamResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
@@ -64,7 +73,10 @@ class ConformanceService(Protocol):
         request: AsyncIterator[
             connectrpc_dot_conformance_dot_v1_dot_service__pb2.BidiStreamRequest
         ],
-        ctx: RequestContext,
+        ctx: RequestContext[
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.BidiStreamRequest,
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.BidiStreamResponse,
+        ],
     ) -> AsyncIterator[
         connectrpc_dot_conformance_dot_v1_dot_service__pb2.BidiStreamResponse
     ]:
@@ -73,14 +85,20 @@ class ConformanceService(Protocol):
     async def unimplemented(
         self,
         request: connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnimplementedRequest,
-        ctx: RequestContext,
+        ctx: RequestContext[
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnimplementedRequest,
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnimplementedResponse,
+        ],
     ) -> connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnimplementedResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     async def idempotent_unary(
         self,
         request: connectrpc_dot_conformance_dot_v1_dot_service__pb2.IdempotentUnaryRequest,
-        ctx: RequestContext,
+        ctx: RequestContext[
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.IdempotentUnaryRequest,
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.IdempotentUnaryResponse,
+        ],
     ) -> connectrpc_dot_conformance_dot_v1_dot_service__pb2.IdempotentUnaryResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
@@ -307,14 +325,20 @@ class ConformanceServiceSync(Protocol):
     def unary(
         self,
         request: connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnaryRequest,
-        ctx: RequestContext,
+        ctx: RequestContext[
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnaryRequest,
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnaryResponse,
+        ],
     ) -> connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnaryResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def server_stream(
         self,
         request: connectrpc_dot_conformance_dot_v1_dot_service__pb2.ServerStreamRequest,
-        ctx: RequestContext,
+        ctx: RequestContext[
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.ServerStreamRequest,
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.ServerStreamResponse,
+        ],
     ) -> Iterator[
         connectrpc_dot_conformance_dot_v1_dot_service__pb2.ServerStreamResponse
     ]:
@@ -325,7 +349,10 @@ class ConformanceServiceSync(Protocol):
         request: Iterator[
             connectrpc_dot_conformance_dot_v1_dot_service__pb2.ClientStreamRequest
         ],
-        ctx: RequestContext,
+        ctx: RequestContext[
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.ClientStreamRequest,
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.ClientStreamResponse,
+        ],
     ) -> connectrpc_dot_conformance_dot_v1_dot_service__pb2.ClientStreamResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
@@ -334,7 +361,10 @@ class ConformanceServiceSync(Protocol):
         request: Iterator[
             connectrpc_dot_conformance_dot_v1_dot_service__pb2.BidiStreamRequest
         ],
-        ctx: RequestContext,
+        ctx: RequestContext[
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.BidiStreamRequest,
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.BidiStreamResponse,
+        ],
     ) -> Iterator[
         connectrpc_dot_conformance_dot_v1_dot_service__pb2.BidiStreamResponse
     ]:
@@ -343,14 +373,20 @@ class ConformanceServiceSync(Protocol):
     def unimplemented(
         self,
         request: connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnimplementedRequest,
-        ctx: RequestContext,
+        ctx: RequestContext[
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnimplementedRequest,
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnimplementedResponse,
+        ],
     ) -> connectrpc_dot_conformance_dot_v1_dot_service__pb2.UnimplementedResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def idempotent_unary(
         self,
         request: connectrpc_dot_conformance_dot_v1_dot_service__pb2.IdempotentUnaryRequest,
-        ctx: RequestContext,
+        ctx: RequestContext[
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.IdempotentUnaryRequest,
+            connectrpc_dot_conformance_dot_v1_dot_service__pb2.IdempotentUnaryResponse,
+        ],
     ) -> connectrpc_dot_conformance_dot_v1_dot_service__pb2.IdempotentUnaryResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 

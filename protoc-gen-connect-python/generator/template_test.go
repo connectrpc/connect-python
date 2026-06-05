@@ -90,3 +90,78 @@ func TestConnectTemplate(t *testing.T) {
 		})
 	}
 }
+
+// TestConnectTemplateRequestContextTypeParams verifies that server-side Protocol handlers
+// receive a precisely-parameterized context, ctx: RequestContext[Input, Output], rather than
+// a bare RequestContext (which is an implicit RequestContext[Any, Any] and trips strict
+// mypy's disallow_any_generics). The type params must always be the BARE message types and
+// must agree with MethodInfo(input=..., output=...) -- even for streaming methods, whose
+// request/return are wrapped in AsyncIterator/Iterator but whose context params are not.
+func TestConnectTemplateRequestContextTypeParams(t *testing.T) {
+	t.Parallel()
+
+	vars := ConnectTemplateVariables{
+		FileName:   "test.proto",
+		ModuleName: "test",
+		Services: []*ConnectService{
+			{
+				Package: "test",
+				Name:    "TestService",
+				Methods: []*ConnectMethod{
+					{
+						Package:     "test",
+						ServiceName: "TestService",
+						Name:        "Unary",
+						PythonName:  "Unary",
+						InputType:   "_pb2.TestRequest",
+						OutputType:  "_pb2.TestResponse",
+					},
+					{
+						Package:        "test",
+						ServiceName:    "TestService",
+						Name:           "Bidi",
+						PythonName:     "Bidi",
+						InputType:      "_pb2.StreamRequest",
+						OutputType:     "_pb2.StreamResponse",
+						Stream:         true,
+						RequestStream:  true,
+						ResponseStream: true,
+					},
+				},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	if err := ConnectTemplate.Execute(&buf, vars); err != nil {
+		t.Fatalf("Template execution failed: %v", err)
+	}
+	result := buf.String()
+
+	// The precise, parameterized form must be emitted for both the async (ASGI) and the
+	// sync (WSGI) Protocol handlers; each appears once per variant.
+	for _, want := range []string{
+		"ctx: RequestContext[_pb2.TestRequest, _pb2.TestResponse]",
+		"ctx: RequestContext[_pb2.StreamRequest, _pb2.StreamResponse]",
+	} {
+		if !strings.Contains(result, want) {
+			t.Errorf("generated handler missing parameterized context %q\n--- got ---\n%s", want, result)
+		}
+	}
+
+	// A bare RequestContext on a handler signature is an implicit RequestContext[Any, Any];
+	// none should remain.
+	for _, bad := range []string{"ctx: RequestContext)", "ctx: RequestContext,", "ctx: RequestContext "} {
+		if strings.Contains(result, bad) {
+			t.Errorf("generated handler still emits bare context %q\n--- got ---\n%s", bad, result)
+		}
+	}
+
+	// The context's type params must be the bare message types, never the stream-wrapped
+	// forms -- they have to agree with MethodInfo(input=..., output=...).
+	for _, bad := range []string{"RequestContext[AsyncIterator", "RequestContext[Iterator"} {
+		if strings.Contains(result, bad) {
+			t.Errorf("context type params must be bare messages, not stream-wrapped: found %q\n--- got ---\n%s", bad, result)
+		}
+	}
+}

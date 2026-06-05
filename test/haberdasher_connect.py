@@ -37,32 +37,49 @@ if TYPE_CHECKING:
 
 class Haberdasher(Protocol):
     async def make_hat(
-        self, request: haberdasher__pb2.Size, ctx: RequestContext
+        self,
+        request: haberdasher__pb2.Size,
+        ctx: RequestContext[haberdasher__pb2.Size, haberdasher__pb2.Hat],
     ) -> haberdasher__pb2.Hat:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     async def make_flexible_hat(
-        self, request: AsyncIterator[haberdasher__pb2.Size], ctx: RequestContext
+        self,
+        request: AsyncIterator[haberdasher__pb2.Size],
+        ctx: RequestContext[haberdasher__pb2.Size, haberdasher__pb2.Hat],
     ) -> haberdasher__pb2.Hat:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def make_similar_hats(
-        self, request: haberdasher__pb2.Size, ctx: RequestContext
+        self,
+        request: haberdasher__pb2.Size,
+        ctx: RequestContext[haberdasher__pb2.Size, haberdasher__pb2.Hat],
     ) -> AsyncIterator[haberdasher__pb2.Hat]:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def make_various_hats(
-        self, request: AsyncIterator[haberdasher__pb2.Size], ctx: RequestContext
+        self,
+        request: AsyncIterator[haberdasher__pb2.Size],
+        ctx: RequestContext[haberdasher__pb2.Size, haberdasher__pb2.Hat],
     ) -> AsyncIterator[haberdasher__pb2.Hat]:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def list_parts(
-        self, request: google_dot_protobuf_dot_empty__pb2.Empty, ctx: RequestContext
+        self,
+        request: google_dot_protobuf_dot_empty__pb2.Empty,
+        ctx: RequestContext[
+            google_dot_protobuf_dot_empty__pb2.Empty, haberdasher__pb2.Hat.Part
+        ],
     ) -> AsyncIterator[haberdasher__pb2.Hat.Part]:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     async def do_nothing(
-        self, request: google_dot_protobuf_dot_empty__pb2.Empty, ctx: RequestContext
+        self,
+        request: google_dot_protobuf_dot_empty__pb2.Empty,
+        ctx: RequestContext[
+            google_dot_protobuf_dot_empty__pb2.Empty,
+            google_dot_protobuf_dot_empty__pb2.Empty,
+        ],
     ) -> google_dot_protobuf_dot_empty__pb2.Empty:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
@@ -279,32 +296,49 @@ class HaberdasherClient(ConnectClient):
 
 class HaberdasherSync(Protocol):
     def make_hat(
-        self, request: haberdasher__pb2.Size, ctx: RequestContext
+        self,
+        request: haberdasher__pb2.Size,
+        ctx: RequestContext[haberdasher__pb2.Size, haberdasher__pb2.Hat],
     ) -> haberdasher__pb2.Hat:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def make_flexible_hat(
-        self, request: Iterator[haberdasher__pb2.Size], ctx: RequestContext
+        self,
+        request: Iterator[haberdasher__pb2.Size],
+        ctx: RequestContext[haberdasher__pb2.Size, haberdasher__pb2.Hat],
     ) -> haberdasher__pb2.Hat:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def make_similar_hats(
-        self, request: haberdasher__pb2.Size, ctx: RequestContext
+        self,
+        request: haberdasher__pb2.Size,
+        ctx: RequestContext[haberdasher__pb2.Size, haberdasher__pb2.Hat],
     ) -> Iterator[haberdasher__pb2.Hat]:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def make_various_hats(
-        self, request: Iterator[haberdasher__pb2.Size], ctx: RequestContext
+        self,
+        request: Iterator[haberdasher__pb2.Size],
+        ctx: RequestContext[haberdasher__pb2.Size, haberdasher__pb2.Hat],
     ) -> Iterator[haberdasher__pb2.Hat]:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def list_parts(
-        self, request: google_dot_protobuf_dot_empty__pb2.Empty, ctx: RequestContext
+        self,
+        request: google_dot_protobuf_dot_empty__pb2.Empty,
+        ctx: RequestContext[
+            google_dot_protobuf_dot_empty__pb2.Empty, haberdasher__pb2.Hat.Part
+        ],
     ) -> Iterator[haberdasher__pb2.Hat.Part]:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     def do_nothing(
-        self, request: google_dot_protobuf_dot_empty__pb2.Empty, ctx: RequestContext
+        self,
+        request: google_dot_protobuf_dot_empty__pb2.Empty,
+        ctx: RequestContext[
+            google_dot_protobuf_dot_empty__pb2.Empty,
+            google_dot_protobuf_dot_empty__pb2.Empty,
+        ],
     ) -> google_dot_protobuf_dot_empty__pb2.Empty:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 

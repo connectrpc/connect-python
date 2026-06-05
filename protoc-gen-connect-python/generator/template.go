@@ -67,7 +67,7 @@ from connectrpc.server import ConnectASGIApplication, ConnectWSGIApplication, En
 {{if not .SkipAsync }}
 {{- range .Services}}
 class {{.Name}}(Protocol):{{- range .Methods }}
-    {{if not .ResponseStream }}async {{end}}def {{.PythonName}}(self, request: {{if .RequestStream}}AsyncIterator[{{end}}{{.InputType}}{{if .RequestStream}}]{{end}}, ctx: RequestContext) -> {{if .ResponseStream}}AsyncIterator[{{end}}{{.OutputType}}{{if .ResponseStream}}]{{end}}:
+    {{if not .ResponseStream }}async {{end}}def {{.PythonName}}(self, request: {{if .RequestStream}}AsyncIterator[{{end}}{{.InputType}}{{if .RequestStream}}]{{end}}, ctx: RequestContext[{{.InputType}}, {{.OutputType}}]) -> {{if .ResponseStream}}AsyncIterator[{{end}}{{.OutputType}}{{if .ResponseStream}}]{{end}}:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 {{ end }}
 
@@ -131,7 +131,7 @@ class {{.Name}}Client(ConnectClient):{{range .Methods}}
 {{if not .SkipSync }}
 {{range .Services}}
 class {{.Name}}Sync(Protocol):{{- range .Methods }}
-    def {{.PythonName}}(self, request: {{if .RequestStream}}Iterator[{{end}}{{.InputType}}{{if .RequestStream}}]{{end}}, ctx: RequestContext) -> {{if .ResponseStream}}Iterator[{{end}}{{.OutputType}}{{if .ResponseStream}}]{{end}}:
+    def {{.PythonName}}(self, request: {{if .RequestStream}}Iterator[{{end}}{{.InputType}}{{if .RequestStream}}]{{end}}, ctx: RequestContext[{{.InputType}}, {{.OutputType}}]) -> {{if .ResponseStream}}Iterator[{{end}}{{.OutputType}}{{if .ResponseStream}}]{{end}}:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 {{- end }}
 
