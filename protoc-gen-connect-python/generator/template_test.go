@@ -132,8 +132,6 @@ func TestConnectTemplateRequestContextTypeParams(t *testing.T) {
 	}
 	result := buf.String()
 
-	// The precise, parameterized form must be emitted for both the async (ASGI) and the
-	// sync (WSGI) Protocol handlers; each appears once per variant.
 	for _, want := range []string{
 		"ctx: RequestContext[_pb2.TestRequest, _pb2.TestResponse]",
 		"ctx: RequestContext[_pb2.StreamRequest, _pb2.StreamResponse]",
