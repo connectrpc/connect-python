@@ -91,12 +91,6 @@ func TestConnectTemplate(t *testing.T) {
 	}
 }
 
-// TestConnectTemplateRequestContextTypeParams verifies that server-side Protocol handlers
-// receive a precisely-parameterized context, ctx: RequestContext[Input, Output], rather than
-// a bare RequestContext (which is an implicit RequestContext[Any, Any] and trips strict
-// mypy's disallow_any_generics). The type params must always be the BARE message types and
-// must agree with MethodInfo(input=..., output=...) -- even for streaming methods, whose
-// request/return are wrapped in AsyncIterator/Iterator but whose context params are not.
 func TestConnectTemplateRequestContextTypeParams(t *testing.T) {
 	t.Parallel()
 
