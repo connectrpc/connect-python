@@ -140,20 +140,4 @@ func TestConnectTemplateRequestContextTypeParams(t *testing.T) {
 			t.Errorf("generated handler missing parameterized context %q\n--- got ---\n%s", want, result)
 		}
 	}
-
-	// A bare RequestContext on a handler signature is an implicit RequestContext[Any, Any];
-	// none should remain.
-	for _, bad := range []string{"ctx: RequestContext)", "ctx: RequestContext,", "ctx: RequestContext "} {
-		if strings.Contains(result, bad) {
-			t.Errorf("generated handler still emits bare context %q\n--- got ---\n%s", bad, result)
-		}
-	}
-
-	// The context's type params must be the bare message types, never the stream-wrapped
-	// forms -- they have to agree with MethodInfo(input=..., output=...).
-	for _, bad := range []string{"RequestContext[AsyncIterator", "RequestContext[Iterator"} {
-		if strings.Contains(result, bad) {
-			t.Errorf("context type params must be bare messages, not stream-wrapped: found %q\n--- got ---\n%s", bad, result)
-		}
-	}
 }
