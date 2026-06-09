@@ -90,3 +90,54 @@ func TestConnectTemplate(t *testing.T) {
 		})
 	}
 }
+
+func TestConnectTemplateRequestContextTypeParams(t *testing.T) {
+	t.Parallel()
+
+	vars := ConnectTemplateVariables{
+		FileName:   "test.proto",
+		ModuleName: "test",
+		Services: []*ConnectService{
+			{
+				Package: "test",
+				Name:    "TestService",
+				Methods: []*ConnectMethod{
+					{
+						Package:     "test",
+						ServiceName: "TestService",
+						Name:        "Unary",
+						PythonName:  "Unary",
+						InputType:   "_pb2.TestRequest",
+						OutputType:  "_pb2.TestResponse",
+					},
+					{
+						Package:        "test",
+						ServiceName:    "TestService",
+						Name:           "Bidi",
+						PythonName:     "Bidi",
+						InputType:      "_pb2.StreamRequest",
+						OutputType:     "_pb2.StreamResponse",
+						Stream:         true,
+						RequestStream:  true,
+						ResponseStream: true,
+					},
+				},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	if err := ConnectTemplate.Execute(&buf, vars); err != nil {
+		t.Fatalf("Template execution failed: %v", err)
+	}
+	result := buf.String()
+
+	for _, want := range []string{
+		"ctx: RequestContext[_pb2.TestRequest, _pb2.TestResponse]",
+		"ctx: RequestContext[_pb2.StreamRequest, _pb2.StreamResponse]",
+	} {
+		if !strings.Contains(result, want) {
+			t.Errorf("generated handler missing parameterized context %q\n--- got ---\n%s", want, result)
+		}
+	}
+}
