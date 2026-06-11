@@ -228,23 +228,24 @@ python -m example.eliza_client
 
 - ✅ Connect Protocol over HTTP/1.1 and HTTP/2
 - ✅ gRPC Protocol support
-- 🚧 gRPC-Web Protocol support is not available
+- ✅ gRPC-Web Protocol support
 
 ## Server Runtime Options
 
+We verify the following servers with ConnectRPC's conformance suite.
+
 For ASGI servers:
 
-- [Uvicorn](https://www.uvicorn.org/) - Lightning-fast ASGI server
-- [Daphne](https://github.com/django/daphne) - Django Channels' ASGI server with HTTP/2 support
-- [Hypercorn](https://gitlab.com/pgjones/hypercorn) - ASGI server with HTTP/2 and HTTP/3 support
+- [pyvoy](https://pyvoy.dev) - Fully-featured ASGI server, enables all of Connect-Python's features
+- [Uvicorn](https://www.uvicorn.org/) - Lightning-fast ASGI server for HTTP/1
 
 For WSGI servers:
 
-- [Gunicorn](https://gunicorn.org/) - Python WSGI HTTP Server
-- [uWSGI](https://uwsgi-docs.readthedocs.io/) - Full-featured application server
-- Any WSGI-compliant server
+- [pyvoy](https://pyvoy.dev) - Fully-featured WSGI server, enables all of Connect-Python's features
+- [Gunicorn](https://gunicorn.org/) - Python WSGI HTTP Server for HTTP/1
 
-For testing, you'll need the [buf CLI](https://buf.build/docs/installation) for running conformance tests.
+Other ASGI and WSGI servers should also generally work though we have found some issues with flakiness
+with our conformance tests. If you don't have any preference, we recommend one of the above servers.
 
 ## WSGI Support
 
