@@ -17,7 +17,7 @@
         "project.dependencies",
         "project.optional-dependencies"
       ],
-      "matchFileNames": ["**/pyproject.toml"],
+      "matchFileNames": ["pyproject.toml", "connectrpc-otel/pyproject.toml"],
       // We manage production dependencies ourselves, only bumping
       // when necessary.
       "enabled": false
