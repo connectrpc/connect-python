@@ -243,11 +243,6 @@ exclude = [
 # subprocesses put `conformance/test/` on sys.path; teach ty to do the same.
 extra-paths = ["conformance/test"]
 
-[tool.uv]
-constraint-dependencies = [
-  "coverage==7.13.2",
-]
-
 [tool.uv.build-backend]
 module-name = "connectrpc"
 
