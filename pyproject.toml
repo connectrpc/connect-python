@@ -40,21 +40,21 @@ Repository = "https://github.com/connectrpc/connect-python"
 dev = [
   "asgiref==3.11.1",
   "brotli==1.2.0",
-  "buf-bin==1.70.0",
+  "buf-bin==1.71.0",
   "connect-python-example",
   "granian==2.7.6",
   "grpcio-tools==1.81.1",
   "gunicorn==26.0.0",
   "hypercorn==0.18.0",
   "poethepoet==0.46.0",
-  "pytest==9.1.0",
+  "pytest==9.1.1",
   "pytest-asyncio==1.4.0",
   "pytest-cov==7.1.0",
   "pytest-timeout==2.4.0",
-  "pyvoy==0.3.0",
-  "ruff==0.15.17",
-  "tombi==1.1.3",
-  "ty==0.0.49",
+  "pyvoy==0.4.0",
+  "ruff==0.15.18",
+  "tombi==1.1.4",
+  "ty==0.0.51",
   "types-grpcio==1.0.0.20260614",
   "types-protobuf==7.34.1.20260518",
   "typing_extensions==4.15.0",
@@ -73,7 +73,7 @@ dev = [
   "opentelemetry-sdk==1.42.1",
 ]
 
-docs = ["mkdocstrings-python==2.0.4", "zensical==0.0.45"]
+docs = ["mkdocstrings-python==2.0.5", "zensical==0.0.46"]
 
 [build-system]
 requires = ["uv_build>=0.11.0,<0.12.0"]
