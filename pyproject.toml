@@ -29,7 +29,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "protobuf-py==0.1.0",
+  "protobuf-py==0.1.1",
   "pyqwest>=0.5.1",
 ]
 
@@ -77,8 +77,8 @@ dev = [
   "opentelemetry-instrumentation-wsgi==0.63b1",
   "opentelemetry-sdk==1.42.1",
   "protobuf>=5.28",
-  "protoc-gen-grpc-py==0.1.0",
-  "protoc-gen-py==0.1.0",
+  "protoc-gen-grpc-py==0.1.1",
+  "protoc-gen-py==0.1.1",
 ]
 
 docs = ["mkdocstrings-python==2.0.5", "zensical==0.0.46"]
