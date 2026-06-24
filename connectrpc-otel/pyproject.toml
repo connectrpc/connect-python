@@ -13,7 +13,7 @@ maintainers = [
   { name = "Yasushi Itoh", email = "i2y.may.roku@gmail.com" },
 ]
 keywords = [
-  "connect-python",
+  "connect-py",
   "connectrpc",
   "middleware",
   "observability",
@@ -44,15 +44,17 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/connectrpc/connect-python"
-Issues = "https://github.com/connectrpc/connect-python/issues"
-Repository = "https://github.com/connectrpc/connect-python"
+Homepage = "https://github.com/connectrpc/connect-py"
+Issues = "https://github.com/connectrpc/connect-py/issues"
+Repository = "https://github.com/connectrpc/connect-py"
 
 [project.entry-points.opentelemetry_instrumentor]
 connectrpc = "connectrpc_otel:ConnectInstrumentor"
 
 [dependency-groups]
 dev = [
+  "example",
+
   # auto-instrumentation shouldn't include a dependency on the library being instrumented
   # so it can be packaged in auto-instrumentation distros for general use.
   #
@@ -63,7 +65,6 @@ dev = [
   # a transitive dependency, so we go ahead and leave it out.
   "connectrpc>=0.11.0",
 
-  "connect-python-example",
   "pytest==9.1.1",
 ]
 

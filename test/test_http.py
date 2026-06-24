@@ -16,7 +16,7 @@ from .haberdasher_connect import (
     HaberdasherSync,
     HaberdasherWSGIApplication,
 )
-from .haberdasher_pb2 import Hat, Size
+from .haberdasher_pb import Hat, Size
 
 if TYPE_CHECKING:
     from pyqwest._pyqwest import Response, SyncResponse

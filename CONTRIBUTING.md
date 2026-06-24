@@ -1,4 +1,4 @@
-# Contributing to connect-python
+# Contributing to Connect
 
 ## Before You Contribute
 
@@ -30,8 +30,8 @@ $ git commit -s -m "your commit message"
 1. Fork and clone the repository:
 
    ```console
-   $ gh repo fork connectrpc/connect-python --clone
-   $ cd connect-python
+   $ gh repo fork connectrpc/connect-py --clone
+   $ cd connect-py
    ```
 
 2. Verify everything is working:

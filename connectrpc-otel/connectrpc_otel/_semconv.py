@@ -1,4 +1,4 @@
-# Vendored in OpenTelemetry semantic conventions for connect-python to avoid
+# Vendored in OpenTelemetry semantic conventions for connectrpc-otel to avoid
 # unstable imports. We don't copy docstrings since for us they are implementation
 # details and should be obvious enough.
 

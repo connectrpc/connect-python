@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from google.protobuf.message import Message
+from protobuf import Message
 from pyqwest import (
     Client,
     Request,
@@ -24,7 +24,7 @@ from .haberdasher_connect import (
     HaberdasherSync,
     HaberdasherWSGIApplication,
 )
-from .haberdasher_pb2 import Hat, Size
+from .haberdasher_pb import Hat, Size
 
 
 class CustomCodec(Codec[Message, Message]):

@@ -118,13 +118,7 @@ venv.bak/
 
 .vscode
 
-# generated Go binary
-protoc-gen-connect-python/protoc-gen-connect-python
-
-# goreleaser archives
 out/
-
-go.work.sum
 
 # GitHub Actions temporary files
 .github/.tmp/

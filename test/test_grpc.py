@@ -3,8 +3,8 @@ from __future__ import annotations
 import grpc
 import pytest
 import pytest_asyncio
-from example.eliza_pb2 import SayRequest, SayResponse
-from example.eliza_pb2_grpc import ElizaServiceStub
+from example.gen.connectrpc.eliza.v1.eliza_pb import SayRequest, SayResponse
+from example.gen.connectrpc.eliza.v1.eliza_pb_grpc import ElizaServiceClient
 from pyvoy import Interface, PyvoyServer
 
 from connectrpc._protocol_grpc import _parse_timeout
@@ -39,8 +39,8 @@ def url(interface: Interface, url_asgi: str, url_wsgi: str) -> str:
 @pytest.mark.asyncio
 async def test_grpc_unary(url: str) -> None:
     async with grpc.aio.insecure_channel(url) as channel:
-        client = ElizaServiceStub(channel)
-        response: SayResponse = await client.Say(SayRequest(sentence="Hello"))
+        client = ElizaServiceClient(channel)
+        response: SayResponse = await client.say(SayRequest(sentence="Hello"))
         assert len(response.sentence) > 0
 
 

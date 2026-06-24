@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Literal
 import pytest
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
-from example.eliza_connect import (
+from example.gen.connectrpc.eliza.v1.eliza_connect import (
     ElizaService,
     ElizaServiceASGIApplication,
     ElizaServiceClient,
@@ -17,7 +17,7 @@ from example.eliza_connect import (
     ElizaServiceSync,
     ElizaServiceWSGIApplication,
 )
-from example.eliza_pb2 import SayRequest, SayResponse
+from example.gen.connectrpc.eliza.v1.eliza_pb import SayRequest, SayResponse
 from opentelemetry.trace import SpanKind
 from pyqwest import Client, SyncClient
 from pyqwest.testing import ASGITransport, WSGITransport
@@ -173,12 +173,12 @@ def test_entrypoint_auto_instruments() -> None:
 
         from importlib.metadata import entry_points
 
-        from example.eliza_connect import (
+        from example.gen.connectrpc.eliza.v1.eliza_connect import (
             ElizaServiceClientSync,
             ElizaServiceSync,
             ElizaServiceWSGIApplication,
         )
-        from example.eliza_pb2 import SayRequest, SayResponse
+        from example.gen.connectrpc.eliza.v1.eliza_pb import SayRequest, SayResponse
         from opentelemetry import trace
         from opentelemetry.instrumentation.auto_instrumentation._load import _load_instrumentors
         from opentelemetry.instrumentation.distro import DefaultDistro

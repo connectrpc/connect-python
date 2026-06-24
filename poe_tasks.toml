@@ -4,7 +4,7 @@
 help = "Bump the project version"
 sequence = [
   { cmd = "uv version --active --bump=${_version}" },
-  { cmd = "uv version --active --directory protoc-gen-connect-python --bump=${_version}" }
+  { cmd = "uv version --active --directory protoc-gen-connectrpc --bump=${_version}" }
 ]
 args = [
   { name = "_version", required = true, help = "The type of version bump to apply", choices = [
@@ -55,16 +55,12 @@ sequence = [
   "generate-example",
   "generate-status",
   "generate-test",
-  { cmd = "go mod tidy", cwd = "protoc-gen-connect-python" },
   "format",
 ]
 
 [tasks.generate-conformance]
 help = "Generate conformance files"
-sequence = [
-  { cmd = "buf generate" },
-  { shell = "find test/gen -type f -exec sed -i '' 's/from connectrpc.conformance.v1/from gen.connectrpc.conformance.v1/' {} +", env = { "LC_ALL" = "c" } },
-]
+cmd = "buf generate"
 cwd = "conformance"
 
 [tasks.generate-example]

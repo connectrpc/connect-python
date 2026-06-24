@@ -5,12 +5,13 @@ __all__ = ["ConnectError", "ErrorDetail"]
 
 from typing import TYPE_CHECKING, TypeVar, overload
 
-from google.protobuf import symbol_database
-from google.protobuf.any_pb2 import Any
-from google.protobuf.message import Message
+from protobuf import Message, Registry
+from protobuf.wkt import Any
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
+
+    from protobuf import DescMessage
 
     from .code import Code
 
@@ -32,7 +33,7 @@ class ErrorDetail:
             self._any = message
             return
         self._message = message
-        self._any = pack_any(message)
+        self._any = Any.pack(message)
 
     @property
     def type_name(self) -> str:
@@ -48,25 +49,29 @@ class ErrorDetail:
     def value(self) -> Message | None: ...
 
     @overload
+    def value(self, desc: DescMessage, /) -> Message | None: ...
+
+    @overload
     def value(self, typ: type[T], /) -> T | None: ...
 
-    def value(self, desc: type[Message] | None = None) -> Message | None:
+    @overload
+    def value(self, registry: Registry, /) -> Message | None: ...
+
+    def value(
+        self, desc_or_registry: Registry | DescMessage | type[Message] | None = None
+    ) -> Message | None:
         """The details message as a Protobuf message, or None if it cannot be deserialized."""
         if self._message:
             return self._message
-        if isinstance(desc, type):
-            msg = desc()
-            if self._any.Unpack(msg):
-                return msg
+        if not desc_or_registry:
             return None
-        try:
-            detail_type = self._any.type_url.removeprefix("type.googleapis.com/")
-            msg_instance = symbol_database.Default().GetSymbol(detail_type)()
-            if self._any.Unpack(msg_instance):
-                return msg_instance
-            return None
-        except Exception:
-            return None
+        if isinstance(desc_or_registry, Registry):
+            desc = desc_or_registry.message(self.type_name)
+            if not desc:
+                return None
+        else:
+            desc = desc_or_registry
+        return self._any.unpack(desc)
 
 
 class ConnectError(Exception):
@@ -110,9 +115,3 @@ class ConnectError(Exception):
     @property
     def details(self) -> Sequence[ErrorDetail]:
         return self._details
-
-
-def pack_any(msg: Message) -> Any:
-    any_msg = Any()
-    any_msg.Pack(msg=msg, type_url_prefix="type.googleapis.com/")
-    return any_msg

@@ -21,7 +21,7 @@ from .haberdasher_connect import (
     HaberdasherSync,
     HaberdasherWSGIApplication,
 )
-from .haberdasher_pb2 import Hat, Size
+from .haberdasher_pb import Hat, Size
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator
@@ -291,7 +291,7 @@ async def test_message_limit_async(client_bad: bool, compression_name: str) -> N
 async def test_server_stream_client_disconnect() -> None:
     """Server streaming generator should be closed when the client disconnects.
 
-    Regression test for https://github.com/connectrpc/connect-python/issues/174.
+    Regression test for https://github.com/connectrpc/connect-py/issues/174.
     """
     generator_closed = asyncio.Event()
 
@@ -307,7 +307,7 @@ async def test_server_stream_client_disconnect() -> None:
     app = HaberdasherASGIApplication(InfiniteHaberdasher())
 
     # Encode a Connect protocol (application/connect+proto) request for Size(inches=10).
-    request_bytes = Size(inches=10).SerializeToString()
+    request_bytes = Size(inches=10).to_binary()
     request_body = struct.pack(">BI", 0, len(request_bytes)) + request_bytes
 
     # We invoke the ASGI app directly rather than using a real client with a

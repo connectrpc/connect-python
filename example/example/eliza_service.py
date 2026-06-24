@@ -8,8 +8,12 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Mount, Route
 
 from example import _eliza
-from example.eliza_connect import ElizaService, ElizaServiceASGIApplication
-from example.eliza_pb2 import (
+
+from .gen.connectrpc.eliza.v1.eliza_connect import (
+    ElizaService,
+    ElizaServiceASGIApplication,
+)
+from .gen.connectrpc.eliza.v1.eliza_pb import (
     ConverseRequest,
     ConverseResponse,
     IntroduceRequest,

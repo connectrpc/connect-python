@@ -13,7 +13,7 @@ from .haberdasher_connect import (
     HaberdasherASGIApplication,
     HaberdasherClient,
 )
-from .haberdasher_pb2 import Hat, Size
+from .haberdasher_pb import Hat, Size
 
 
 class CountingHaberdasher(Haberdasher):

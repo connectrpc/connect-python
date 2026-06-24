@@ -44,12 +44,12 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
     from io import BytesIO
 
-    from .compression import Compression
-
     if sys.version_info >= (3, 11):
         from wsgiref.types import ErrorStream, StartResponse, WSGIEnvironment
     else:
         from _typeshed.wsgi import ErrorStream, StartResponse, WSGIEnvironment
+
+    from .compression import Compression
 else:
     StartResponse = "wsgiref.types.StartResponse"
     WSGIEnvironment = "wsgiref.types.WSGIEnvironment"
