@@ -73,7 +73,7 @@ component.
 #### google.protobuf compatibility
 
 Connect defaults to targeting [protobuf-py](https://protobufpy.com) as the Protocol Buffers
-implementation bug Google's Protocol Buffers for Python are also fully supported. Pass `protobuf=google`
+implementation but Google's Protocol Buffers for Python are also fully supported. Pass `protobuf=google`
 to the codegen plugin to use it.
 
 ```yaml
