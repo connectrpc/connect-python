@@ -9,7 +9,7 @@ license-files = ["LICENSE"]
 maintainers = [
   { name = "Anuraag Agrawal", email = "anuraaga@gmail.com" },
   { name = "Spencer Nelson", email = "spencer@firetiger.com" },
-  { name = "Stefan VanBuren", email = "svanburen@buf.build" },
+  { name = "Stefan VanBuren", email = "stefan@vanburen.xyz" },
   { name = "Yasushi Itoh", email = "i2y.may.roku@gmail.com" },
 ]
 keywords = ["connect", "grpc", "http", "protobuf", "rpc"]
