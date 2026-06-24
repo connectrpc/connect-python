@@ -330,7 +330,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
             message = compression.decompress(message)
 
         # Get the appropriate decoder for the endpoint
-        return codec.decode(message, endpoint.method.input())
+        return codec.decode(message, endpoint.method.input)
 
     async def _read_post_request(
         self,
@@ -363,7 +363,7 @@ class ConnectASGIApplication(ABC, Generic[_SVC]):
                 f"message is larger than configured max {self._read_max_bytes}",
             )
 
-        return codec.decode(req_body, endpoint.method.input())
+        return codec.decode(req_body, endpoint.method.input)
 
     async def _handle_stream(
         self,

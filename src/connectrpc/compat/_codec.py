@@ -26,9 +26,8 @@ class ProtoBinaryCodec(Codec[Message, V]):
     def encode(self, message: Message) -> bytes:
         return message.SerializeToString()
 
-    def decode(self, data: bytes | bytearray, message: V) -> V:
-        message.ParseFromString(data)  # ty:ignore[invalid-argument-type] type is incorrect
-        return message
+    def decode(self, data: bytes | bytearray, message_class: type[V]) -> V:
+        return message_class.FromString(data)  # ty:ignore[invalid-argument-type] type is incorrect
 
 
 class ProtoJSONCodec(Codec[Message, V]):
@@ -43,7 +42,8 @@ class ProtoJSONCodec(Codec[Message, V]):
     def encode(self, message: Message) -> bytes:
         return MessageToJson(message).encode()
 
-    def decode(self, data: bytes | bytearray, message: V) -> V:
+    def decode(self, data: bytes | bytearray, message_class: type[V]) -> V:
+        message = message_class()
         MessageFromJson(data, message)  # ty:ignore[invalid-argument-type] type is incorrect
         return message
 

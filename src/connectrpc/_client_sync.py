@@ -330,8 +330,7 @@ class ConnectClientSync:
                         f"message is larger than configured max {self._read_max_bytes}",
                     )
 
-                response = ctx.method.output()
-                return self._codec.decode(resp.content, response)
+                return self._codec.decode(resp.content, ctx.method.output)
             raise ConnectWireError.from_response(resp).to_exception()
         except TimeoutError as e:
             raise ConnectError(Code.DEADLINE_EXCEEDED, "Request timed out") from e

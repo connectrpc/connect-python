@@ -336,7 +336,7 @@ class ConnectWSGIApplication(ABC):
                 )
 
             try:
-                return codec.decode(req_body, endpoint.method.input()), codec
+                return codec.decode(req_body, endpoint.method.input), codec
             except Exception as e:
                 raise ConnectError(
                     Code.INVALID_ARGUMENT, f"Failed to decode request body: {e!s}"
@@ -396,7 +396,7 @@ class ConnectWSGIApplication(ABC):
             # Handle GET request with proto decoder
             try:
                 # TODO - Use content type from queryparam
-                request = codec.decode(message, endpoint.method.input())
+                request = codec.decode(message, endpoint.method.input)
                 return request, codec
             except Exception as e:
                 raise ConnectError(

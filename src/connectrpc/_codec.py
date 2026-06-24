@@ -57,7 +57,7 @@ class Codec(Protocol[T_contra, U]):
         """Marshals the given message."""
         ...
 
-    def decode(self, data: bytes | bytearray, message: U) -> U:
+    def decode(self, data: bytes | bytearray, message_class: type[U]) -> U:
         """Unmarshals the given message."""
         ...
 
@@ -71,8 +71,8 @@ class ProtoBinaryCodec(Codec[Message, V]):
     def encode(self, message: Message) -> bytes:
         return message.to_binary()
 
-    def decode(self, data: bytes | bytearray, message: V) -> V:
-        return message.__class__.from_binary(data)  # TODO: fix type
+    def decode(self, data: bytes | bytearray, message_class: type[V]) -> V:
+        return message_class.from_binary(data)
 
 
 class ProtoJSONCodec(Codec[Message, V]):
@@ -88,8 +88,8 @@ class ProtoJSONCodec(Codec[Message, V]):
     def encode(self, message: Message) -> bytes:
         return message.to_json(registry=self._registry).encode()
 
-    def decode(self, data: bytes | bytearray, message: V) -> V:
-        return message.__class__.from_json(data, registry=self._registry)
+    def decode(self, data: bytes | bytearray, message_class: type[V]) -> V:
+        return message_class.from_json(data, registry=self._registry)
 
 
 _proto_binary_codec = ProtoBinaryCodec()

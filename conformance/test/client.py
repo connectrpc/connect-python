@@ -475,6 +475,7 @@ async def _run_test(
                         if test_request.cancel:
                             match test_request.cancel.cancel_timing:
                                 case Oneof("after_close_send_ms", after_close_send_ms):
+                                    await request_closed.wait()
                                     await asyncio.sleep(after_close_send_ms / 1000.0)
                                     task.cancel()
                         await task
