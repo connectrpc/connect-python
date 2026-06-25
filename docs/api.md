@@ -15,6 +15,7 @@
 ::: connectrpc.protocol
 
 ::: connectrpc.compression
-::: connectrpc.compression.brotli
-::: connectrpc.compression.gzip
-::: connectrpc.compression.zstd
+    options:
+        show_submodules: true
+
+::: connectrpc.compat
