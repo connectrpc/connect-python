@@ -119,7 +119,7 @@ class MyHelloService(HelloService):
 # Create ASGI app
 app = HelloServiceASGIApplication(MyHelloService())
 
-# Run with any ASGI server like uvicorn and hypercorn:
+# Run with any ASGI server like uvicorn:
 # uvicorn server:app --port 8080
 ```
 
@@ -211,7 +211,7 @@ async for response in client.converse(chat()):
 
 ### Streaming Notes
 
-- **HTTP/2 ASGI servers** (Hypercorn, Daphne): Support all streaming types including full-duplex bidirectional
+- **HTTP/2 ASGI servers**: Support all streaming types including full-duplex bidirectional
 - **HTTP/1.1 servers**: Support half-duplex bidirectional streaming only
 - **WSGI servers**: Support streaming but not full-duplex bidirectional due to protocol limitations
 
