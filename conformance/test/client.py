@@ -12,25 +12,28 @@ from typing import TYPE_CHECKING, Literal, TypeVar, get_args
 
 import _cov_embed  # noqa: F401
 from _util import create_standard_streams
-from gen.connectrpc.conformance.v1.client_compat_pb2 import (
+from gen.connectrpc.conformance.v1 import client_compat_pb, service_pb
+from gen.connectrpc.conformance.v1.client_compat_pb import (
     ClientCompatRequest,
     ClientCompatResponse,
+    ClientErrorResult,
+    ClientResponseResult,
 )
-from gen.connectrpc.conformance.v1.config_pb2 import Code as ConformanceCode
-from gen.connectrpc.conformance.v1.config_pb2 import (
+from gen.connectrpc.conformance.v1.config_pb import Code as ConformanceCode
+from gen.connectrpc.conformance.v1.config_pb import (
     Codec,
     HTTPVersion,
     Protocol,
     StreamType,
 )
-from gen.connectrpc.conformance.v1.config_pb2 import (
+from gen.connectrpc.conformance.v1.config_pb import (
     Compression as ConformanceCompression,
 )
 from gen.connectrpc.conformance.v1.service_connect import (
     ConformanceServiceClient,
     ConformanceServiceClientSync,
 )
-from gen.connectrpc.conformance.v1.service_pb2 import (
+from gen.connectrpc.conformance.v1.service_pb import (
     BidiStreamRequest,
     ClientStreamRequest,
     ConformancePayload,
@@ -39,7 +42,9 @@ from gen.connectrpc.conformance.v1.service_pb2 import (
     UnaryRequest,
     UnimplementedRequest,
 )
-from google.protobuf.message import Message
+from gen.connectrpc.conformance.v1.service_pb import Error as ConformanceError
+from gen.connectrpc.conformance.v1.service_pb import Header as ConformanceHeader
+from protobuf import Message, Oneof, Registry
 from pyqwest import Client, HTTPTransport, SyncClient, SyncHTTPTransport
 from pyqwest import HTTPVersion as PyQwestHTTPVersion
 
@@ -56,56 +61,58 @@ from connectrpc.request import Headers
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator
 
-    from google.protobuf.any_pb2 import Any
+    from protobuf.wkt import Any
 
     from connectrpc.compression import Compression
+
+_REGISTRY = Registry(client_compat_pb.desc(), service_pb.desc())
 
 
 def _convert_code(error: Code) -> ConformanceCode:
     match error:
         case Code.CANCELED:
-            return ConformanceCode.CODE_CANCELED
+            return ConformanceCode.CANCELED
         case Code.UNKNOWN:
-            return ConformanceCode.CODE_UNKNOWN
+            return ConformanceCode.UNKNOWN
         case Code.INVALID_ARGUMENT:
-            return ConformanceCode.CODE_INVALID_ARGUMENT
+            return ConformanceCode.INVALID_ARGUMENT
         case Code.DEADLINE_EXCEEDED:
-            return ConformanceCode.CODE_DEADLINE_EXCEEDED
+            return ConformanceCode.DEADLINE_EXCEEDED
         case Code.NOT_FOUND:
-            return ConformanceCode.CODE_NOT_FOUND
+            return ConformanceCode.NOT_FOUND
         case Code.ALREADY_EXISTS:
-            return ConformanceCode.CODE_ALREADY_EXISTS
+            return ConformanceCode.ALREADY_EXISTS
         case Code.PERMISSION_DENIED:
-            return ConformanceCode.CODE_PERMISSION_DENIED
+            return ConformanceCode.PERMISSION_DENIED
         case Code.RESOURCE_EXHAUSTED:
-            return ConformanceCode.CODE_RESOURCE_EXHAUSTED
+            return ConformanceCode.RESOURCE_EXHAUSTED
         case Code.FAILED_PRECONDITION:
-            return ConformanceCode.CODE_FAILED_PRECONDITION
+            return ConformanceCode.FAILED_PRECONDITION
         case Code.ABORTED:
-            return ConformanceCode.CODE_ABORTED
+            return ConformanceCode.ABORTED
         case Code.OUT_OF_RANGE:
-            return ConformanceCode.CODE_OUT_OF_RANGE
+            return ConformanceCode.OUT_OF_RANGE
         case Code.UNIMPLEMENTED:
-            return ConformanceCode.CODE_UNIMPLEMENTED
+            return ConformanceCode.UNIMPLEMENTED
         case Code.INTERNAL:
-            return ConformanceCode.CODE_INTERNAL
+            return ConformanceCode.INTERNAL
         case Code.UNAVAILABLE:
-            return ConformanceCode.CODE_UNAVAILABLE
+            return ConformanceCode.UNAVAILABLE
         case Code.DATA_LOSS:
-            return ConformanceCode.CODE_DATA_LOSS
+            return ConformanceCode.DATA_LOSS
         case Code.UNAUTHENTICATED:
-            return ConformanceCode.CODE_UNAUTHENTICATED
+            return ConformanceCode.UNAUTHENTICATED
 
 
 def _convert_compression(compression: ConformanceCompression) -> Compression | None:
     match compression:
-        case ConformanceCompression.COMPRESSION_IDENTITY:
+        case ConformanceCompression.IDENTITY:
             return None
-        case ConformanceCompression.COMPRESSION_GZIP:
+        case ConformanceCompression.GZIP:
             return GzipCompression()
-        case ConformanceCompression.COMPRESSION_BR:
+        case ConformanceCompression.BR:
             return BrotliCompression()
-        case ConformanceCompression.COMPRESSION_ZSTD:
+        case ConformanceCompression.ZSTD:
             return ZstdCompression()
         case _:
             msg = f"Unsupported compression: {compression}"
@@ -115,9 +122,10 @@ def _convert_compression(compression: ConformanceCompression) -> Compression | N
 T = TypeVar("T", bound=Message)
 
 
-def _unpack_request(message: Any, request: T) -> T:
-    message.Unpack(request)
-    return request
+def _unpack_request(message: Any, request: type[T]) -> T:
+    res = message.unpack(request)
+    assert res is not None
+    return res
 
 
 def pyqwest_client_kwargs(test_request: ClientCompatRequest) -> dict:
@@ -131,7 +139,7 @@ def pyqwest_client_kwargs(test_request: ClientCompatRequest) -> dict:
             kwargs["http_version"] = PyQwestHTTPVersion.HTTP3
     if test_request.server_tls_cert:
         kwargs["tls_ca_cert"] = test_request.server_tls_cert
-        if test_request.HasField("client_tls_creds"):
+        if test_request.client_tls_creds:
             kwargs["tls_key"] = test_request.client_tls_creds.key
             kwargs["tls_cert"] = test_request.client_tls_creds.cert
 
@@ -156,11 +164,11 @@ async def client_sync(
         http_client = None
 
     match test_request.protocol:
-        case Protocol.PROTOCOL_CONNECT:
+        case Protocol.CONNECT:
             protocol = ProtocolType.CONNECT
-        case Protocol.PROTOCOL_GRPC:
+        case Protocol.GRPC:
             protocol = ProtocolType.GRPC
-        case Protocol.PROTOCOL_GRPC_WEB:
+        case Protocol.GRPC_WEB:
             protocol = ProtocolType.GRPC_WEB
 
     with (
@@ -174,8 +182,8 @@ async def client_sync(
                 ZstdCompression(),
             ],
             send_compression=_convert_compression(test_request.compression),
-            codec=proto_json_codec()
-            if test_request.codec == Codec.CODEC_JSON
+            codec=proto_json_codec(_REGISTRY)
+            if test_request.codec == Codec.JSON
             else None,
             protocol=protocol,
             read_max_bytes=read_max_bytes,
@@ -205,11 +213,11 @@ async def client_async(
         http_client = None
 
     match test_request.protocol:
-        case Protocol.PROTOCOL_CONNECT:
+        case Protocol.CONNECT:
             protocol = ProtocolType.CONNECT
-        case Protocol.PROTOCOL_GRPC:
+        case Protocol.GRPC:
             protocol = ProtocolType.GRPC
-        case Protocol.PROTOCOL_GRPC_WEB:
+        case Protocol.GRPC_WEB:
             protocol = ProtocolType.GRPC_WEB
 
     async with (
@@ -223,8 +231,8 @@ async def client_async(
                 ZstdCompression(),
             ],
             send_compression=_convert_compression(test_request.compression),
-            codec=proto_json_codec()
-            if test_request.codec == Codec.CODEC_JSON
+            codec=proto_json_codec(_REGISTRY)
+            if test_request.codec == Codec.JSON
             else None,
             protocol=protocol,
             read_max_bytes=read_max_bytes,
@@ -238,6 +246,7 @@ async def _run_test(
 ) -> ClientCompatResponse:
     test_response = ClientCompatResponse()
     test_response.test_name = test_request.test_name
+    client_response_result = ClientResponseResult()
 
     timeout_ms = None
     if test_request.timeout_ms:
@@ -276,42 +285,46 @@ async def _run_test(
                                                 test_request.request_delay_ms / 1000.0
                                             )
                                         request_queue.put(
-                                            _unpack_request(
-                                                message, BidiStreamRequest()
-                                            )
+                                            _unpack_request(message, BidiStreamRequest)
                                         )
 
                                         if (
                                             test_request.stream_type
-                                            != StreamType.STREAM_TYPE_FULL_DUPLEX_BIDI_STREAM
+                                            != StreamType.FULL_DUPLEX_BIDI_STREAM
                                         ):
                                             continue
 
                                         response = next(responses, None)
                                         if response is not None:
-                                            payloads.append(response.payload)
-                                            if (
-                                                num
-                                                := test_request.cancel.after_num_responses
-                                            ) and len(payloads) >= num:
-                                                task.cancel()
+                                            payloads.append(
+                                                response.payload or ConformancePayload()
+                                            )
+                                            if test_request.cancel:
+                                                match test_request.cancel.cancel_timing:
+                                                    case Oneof(
+                                                        "after_num_responses", num
+                                                    ):
+                                                        if len(payloads) >= num:
+                                                            task.cancel()
 
-                                    if test_request.cancel.HasField(
-                                        "before_close_send"
-                                    ):
-                                        task.cancel()
+                                    if test_request.cancel:
+                                        match test_request.cancel.cancel_timing:
+                                            case Oneof("before_close_send", _):
+                                                task.cancel()
 
                                     request_queue.put(None)
 
                                     request_closed.set()
 
                                     for response in responses:
-                                        payloads.append(response.payload)
-                                        if (
-                                            num
-                                            := test_request.cancel.after_num_responses
-                                        ) and len(payloads) >= num:
-                                            task.cancel()
+                                        payloads.append(
+                                            response.payload or ConformancePayload()
+                                        )
+                                        if test_request.cancel:
+                                            match test_request.cancel.cancel_timing:
+                                                case Oneof("after_num_responses", num):
+                                                    if len(payloads) >= num:
+                                                        task.cancel()
 
                                 def bidi_stream_request_sync():
                                     while True:
@@ -339,7 +352,7 @@ async def _run_test(
                                         headers=request_headers,
                                         timeout_ms=timeout_ms,
                                     )
-                                    payloads.append(res.payload)
+                                    payloads.append(res.payload or ConformancePayload())
 
                                 def request_stream_sync():
                                     for message in test_request.request_messages:
@@ -348,12 +361,12 @@ async def _run_test(
                                                 test_request.request_delay_ms / 1000.0
                                             )
                                         yield _unpack_request(
-                                            message, ClientStreamRequest()
+                                            message, ClientStreamRequest
                                         )
-                                    if test_request.cancel.HasField(
-                                        "before_close_send"
-                                    ):
-                                        task.cancel()
+                                    if test_request.cancel:
+                                        match test_request.cancel.cancel_timing:
+                                            case Oneof("before_close_send", _):
+                                                task.cancel()
                                     request_closed.set()
 
                                 task = asyncio.create_task(
@@ -375,7 +388,7 @@ async def _run_test(
                                         use_get=test_request.use_get_http_method,
                                         timeout_ms=timeout_ms,
                                     )
-                                    payloads.append(res.payload)
+                                    payloads.append(res.payload or ConformancePayload())
 
                                 task = asyncio.create_task(
                                     asyncio.to_thread(
@@ -383,7 +396,7 @@ async def _run_test(
                                         client,
                                         _unpack_request(
                                             test_request.request_messages[0],
-                                            IdempotentUnaryRequest(),
+                                            IdempotentUnaryRequest,
                                         ),
                                     )
                                 )
@@ -399,12 +412,14 @@ async def _run_test(
                                         headers=request_headers,
                                         timeout_ms=timeout_ms,
                                     ):
-                                        payloads.append(message.payload)
-                                        if (
-                                            num
-                                            := test_request.cancel.after_num_responses
-                                        ) and len(payloads) >= num:
-                                            task.cancel()
+                                        payloads.append(
+                                            message.payload or ConformancePayload()
+                                        )
+                                        if test_request.cancel:
+                                            match test_request.cancel.cancel_timing:
+                                                case Oneof("after_num_responses", num):
+                                                    if len(payloads) >= num:
+                                                        task.cancel()
 
                                 task = asyncio.create_task(
                                     asyncio.to_thread(
@@ -412,7 +427,7 @@ async def _run_test(
                                         client,
                                         _unpack_request(
                                             test_request.request_messages[0],
-                                            ServerStreamRequest(),
+                                            ServerStreamRequest,
                                         ),
                                     )
                                 )
@@ -428,7 +443,7 @@ async def _run_test(
                                         headers=request_headers,
                                         timeout_ms=timeout_ms,
                                     )
-                                    payloads.append(res.payload)
+                                    payloads.append(res.payload or ConformancePayload())
 
                                 task = asyncio.create_task(
                                     asyncio.to_thread(
@@ -436,7 +451,7 @@ async def _run_test(
                                         client,
                                         _unpack_request(
                                             test_request.request_messages[0],
-                                            UnaryRequest(),
+                                            UnaryRequest,
                                         ),
                                     )
                                 )
@@ -447,7 +462,7 @@ async def _run_test(
                                         client.unimplemented,
                                         _unpack_request(
                                             test_request.request_messages[0],
-                                            UnimplementedRequest(),
+                                            UnimplementedRequest,
                                         ),
                                         headers=request_headers,
                                         timeout_ms=timeout_ms,
@@ -457,11 +472,12 @@ async def _run_test(
                             case _:
                                 msg = f"Unrecognized method: {test_request.method}"
                                 raise ValueError(msg)
-                        if test_request.cancel.after_close_send_ms:
-                            await asyncio.sleep(
-                                test_request.cancel.after_close_send_ms / 1000.0
-                            )
-                            task.cancel()
+                        if test_request.cancel:
+                            match test_request.cancel.cancel_timing:
+                                case Oneof("after_close_send_ms", after_close_send_ms):
+                                    await request_closed.wait()
+                                    await asyncio.sleep(after_close_send_ms / 1000.0)
+                                    task.cancel()
                         await task
                 case "async":
                     async with client_async(test_request) as client:
@@ -484,42 +500,46 @@ async def _run_test(
                                                 test_request.request_delay_ms / 1000.0
                                             )
                                         await request_queue.put(
-                                            _unpack_request(
-                                                message, BidiStreamRequest()
-                                            )
+                                            _unpack_request(message, BidiStreamRequest)
                                         )
 
                                         if (
                                             test_request.stream_type
-                                            != StreamType.STREAM_TYPE_FULL_DUPLEX_BIDI_STREAM
+                                            != StreamType.FULL_DUPLEX_BIDI_STREAM
                                         ):
                                             continue
 
                                         response = await anext(responses, None)
                                         if response is not None:
-                                            payloads.append(response.payload)
-                                            if (
-                                                num
-                                                := test_request.cancel.after_num_responses
-                                            ) and len(payloads) >= num:
-                                                task.cancel()
+                                            payloads.append(
+                                                response.payload or ConformancePayload()
+                                            )
+                                            if test_request.cancel:
+                                                match test_request.cancel.cancel_timing:
+                                                    case Oneof(
+                                                        "after_num_responses", num
+                                                    ):
+                                                        if len(payloads) >= num:
+                                                            task.cancel()
 
-                                    if test_request.cancel.HasField(
-                                        "before_close_send"
-                                    ):
-                                        task.cancel()
+                                    if test_request.cancel:
+                                        match test_request.cancel.cancel_timing:
+                                            case Oneof("before_close_send", _):
+                                                task.cancel()
 
                                     await request_queue.put(None)
 
                                     request_closed.set()
 
                                     async for response in responses:
-                                        payloads.append(response.payload)
-                                        if (
-                                            num
-                                            := test_request.cancel.after_num_responses
-                                        ) and len(payloads) >= num:
-                                            task.cancel()
+                                        payloads.append(
+                                            response.payload or ConformancePayload()
+                                        )
+                                        if test_request.cancel:
+                                            match test_request.cancel.cancel_timing:
+                                                case Oneof("after_num_responses", num):
+                                                    if len(payloads) >= num:
+                                                        task.cancel()
 
                                 async def bidi_stream_request():
                                     while True:
@@ -545,7 +565,7 @@ async def _run_test(
                                         headers=request_headers,
                                         timeout_ms=timeout_ms,
                                     )
-                                    payloads.append(res.payload)
+                                    payloads.append(res.payload or ConformancePayload())
 
                                 async def client_stream_request():
                                     for message in test_request.request_messages:
@@ -554,12 +574,12 @@ async def _run_test(
                                                 test_request.request_delay_ms / 1000.0
                                             )
                                         yield _unpack_request(
-                                            message, ClientStreamRequest()
+                                            message, ClientStreamRequest
                                         )
-                                    if test_request.cancel.HasField(
-                                        "before_close_send"
-                                    ):
-                                        task.cancel()
+                                    if test_request.cancel:
+                                        match test_request.cancel.cancel_timing:
+                                            case Oneof("before_close_send", _):
+                                                task.cancel()
                                     request_closed.set()
 
                                 task = asyncio.create_task(
@@ -579,14 +599,14 @@ async def _run_test(
                                         use_get=test_request.use_get_http_method,
                                         timeout_ms=timeout_ms,
                                     )
-                                    payloads.append(res.payload)
+                                    payloads.append(res.payload or ConformancePayload())
 
                                 task = asyncio.create_task(
                                     send_idempotent_unary_request(
                                         client,
                                         _unpack_request(
                                             test_request.request_messages[0],
-                                            IdempotentUnaryRequest(),
+                                            IdempotentUnaryRequest,
                                         ),
                                     )
                                 )
@@ -602,19 +622,21 @@ async def _run_test(
                                         headers=request_headers,
                                         timeout_ms=timeout_ms,
                                     ):
-                                        payloads.append(message.payload)
-                                        if (
-                                            num
-                                            := test_request.cancel.after_num_responses
-                                        ) and len(payloads) >= num:
-                                            task.cancel()
+                                        payloads.append(
+                                            message.payload or ConformancePayload()
+                                        )
+                                        if test_request.cancel:
+                                            match test_request.cancel.cancel_timing:
+                                                case Oneof("after_num_responses", num):
+                                                    if len(payloads) >= num:
+                                                        task.cancel()
 
                                 task = asyncio.create_task(
                                     send_server_stream_request(
                                         client,
                                         _unpack_request(
                                             test_request.request_messages[0],
-                                            ServerStreamRequest(),
+                                            ServerStreamRequest,
                                         ),
                                     )
                                 )
@@ -630,14 +652,14 @@ async def _run_test(
                                         headers=request_headers,
                                         timeout_ms=timeout_ms,
                                     )
-                                    payloads.append(res.payload)
+                                    payloads.append(res.payload or ConformancePayload())
 
                                 task = asyncio.create_task(
                                     send_unary_request(
                                         client,
                                         _unpack_request(
                                             test_request.request_messages[0],
-                                            UnaryRequest(),
+                                            UnaryRequest,
                                         ),
                                     )
                                 )
@@ -647,7 +669,7 @@ async def _run_test(
                                     client.unimplemented(
                                         _unpack_request(
                                             test_request.request_messages[0],
-                                            UnimplementedRequest(),
+                                            UnimplementedRequest,
                                         ),
                                         headers=request_headers,
                                         timeout_ms=timeout_ms,
@@ -657,31 +679,35 @@ async def _run_test(
                             case _:
                                 msg = f"Unrecognized method: {test_request.method}"
                                 raise ValueError(msg)
-                        if test_request.cancel.after_close_send_ms:
-                            await request_closed.wait()
-                            await asyncio.sleep(
-                                test_request.cancel.after_close_send_ms / 1000.0
-                            )
-                            task.cancel()
+                        if test_request.cancel:
+                            match test_request.cancel.cancel_timing:
+                                case Oneof("after_close_send_ms", after_close_send_ms):
+                                    await request_closed.wait()
+                                    await asyncio.sleep(after_close_send_ms / 1000.0)
+                                    task.cancel()
                         await task
         except ConnectError as e:
-            test_response.response.error.code = _convert_code(e.code)
-            test_response.response.error.message = e.message
-            test_response.response.error.details.extend(d._any for d in e.details)
+            client_response_result.error = ConformanceError(
+                code=_convert_code(e.code),
+                message=e.message,
+                details=[d._any for d in e.details],
+            )
         except (asyncio.CancelledError, Exception) as e:
             traceback.print_tb(e.__traceback__, file=sys.stderr)
-            test_response.error.message = str(e)
+            test_response.result = Oneof("error", ClientErrorResult(message=str(e)))
+            return test_response
 
-        test_response.response.payloads.extend(payloads)
+        client_response_result.payloads.extend(payloads)
 
         for name in meta.headers:
-            test_response.response.response_headers.add(
-                name=name, value=meta.headers.getall(name)
+            client_response_result.response_headers.append(
+                ConformanceHeader(name=name, value=list(meta.headers.getall(name)))
             )
         for name in meta.trailers:
-            test_response.response.response_trailers.add(
-                name=name, value=meta.trailers.getall(name)
+            client_response_result.response_trailers.append(
+                ConformanceHeader(name=name, value=list(meta.trailers.getall(name)))
             )
+        test_response.result = Oneof("response", client_response_result)
 
     return test_response
 
@@ -712,14 +738,13 @@ async def main() -> None:
             size = int.from_bytes(size_buf, byteorder="big")
             # Allow to raise even on EOF since we always should have a message
             request_buf = await stdin.readexactly(size)
-            request = ClientCompatRequest()
-            request.ParseFromString(request_buf)
+            request = ClientCompatRequest.from_binary(request_buf)
 
             async def task(request: ClientCompatRequest) -> None:
                 async with sema:
                     response = await _run_test(args.mode, request)
 
-                    response_buf = response.SerializeToString()
+                    response_buf = response.to_binary()
                     size_buf = len(response_buf).to_bytes(4, byteorder="big")
                     stdout.write(size_buf + response_buf)
                     await stdout.drain()

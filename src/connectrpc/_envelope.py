@@ -75,8 +75,7 @@ class EnvelopeReader(Generic[_RES]):
                 if self.handle_end_message(prefix_byte, message_data):
                     return
 
-                res = self._message_class()
-                self._codec.decode(message_data, res)
+                res = self._codec.decode(message_data, self._message_class)
                 yield res
 
             if len(self._buffer) < 5:

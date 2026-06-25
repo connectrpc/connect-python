@@ -12,8 +12,8 @@
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/connectrpc/connect-python
-   cd connect-python
+   git clone https://github.com/connectrpc/connect-py
+   cd connect-py
    ```
 
 2. Install dependencies:

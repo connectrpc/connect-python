@@ -4,9 +4,12 @@ import threading
 from wsgiref.simple_server import WSGIServer, make_server
 
 import pytest
-from example.eliza_connect import ElizaServiceClient, ElizaServiceClientSync
-from example.eliza_pb2 import SayRequest
 from example.eliza_service_sync import app as wsgi_app
+from example.gen.connectrpc.eliza.v1.eliza_connect import (
+    ElizaServiceClient,
+    ElizaServiceClientSync,
+)
+from example.gen.connectrpc.eliza.v1.eliza_pb import SayRequest
 
 
 @pytest.fixture(scope="module")

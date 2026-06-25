@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import NoReturn
 
 import pytest
-from google.protobuf.any_pb2 import Any as AnyPb
-from google.protobuf.duration_pb2 import Duration
-from google.protobuf.struct_pb2 import Struct, Value
+from protobuf import Oneof
+from protobuf.wkt import Any as AnyPb
+from protobuf.wkt import Duration, Struct, Value
 from pyqwest import Client, SyncClient
 from pyqwest.testing import ASGITransport, WSGITransport
 
@@ -21,7 +21,7 @@ from .haberdasher_connect import (
     HaberdasherSync,
     HaberdasherWSGIApplication,
 )
-from .haberdasher_pb2 import Size
+from .haberdasher_pb import Size
 
 
 def test_details_sync() -> None:
@@ -31,28 +31,36 @@ def test_details_sync() -> None:
                 Code.RESOURCE_EXHAUSTED,
                 "Resource exhausted",
                 details=[
-                    Struct(fields={"animal": Value(string_value="bear")}),
-                    ErrorDetail(Struct(fields={"color": Value(string_value="red")})),
+                    Struct(
+                        fields={"animal": Value(kind=Oneof("string_value", "bear"))}
+                    ),
+                    AnyPb.pack(
+                        Struct(
+                            fields={"color": Value(kind=Oneof("string_value", "red"))}
+                        )
+                    ),
                 ],
             )
 
     app = HaberdasherWSGIApplication(DetailsHaberdasherSync())
+    transport = WSGITransport(app)
     with (
         HaberdasherClientSync(
-            "http://localhost", http_client=SyncClient(transport=WSGITransport(app=app))
+            "http://localhost", http_client=SyncClient(transport)
         ) as client,
         pytest.raises(ConnectError) as exc_info,
     ):
         client.make_hat(request=Size(inches=10))
+    assert not transport.app_exception
     assert exc_info.value.code == Code.RESOURCE_EXHAUSTED
     assert exc_info.value.message == "Resource exhausted"
     assert len(exc_info.value.details) == 2
     s0 = exc_info.value.details[0].value(Struct)
     assert s0 is not None
-    assert s0.fields["animal"].string_value == "bear"
+    assert s0.fields["animal"].kind == Oneof("string_value", "bear")
     s1 = exc_info.value.details[1].value(Struct)
     assert s1 is not None
-    assert s1.fields["color"].string_value == "red"
+    assert s1.fields["color"].kind == Oneof("string_value", "red")
 
 
 @pytest.mark.asyncio
@@ -63,8 +71,14 @@ async def test_details_async() -> None:
                 Code.RESOURCE_EXHAUSTED,
                 "Resource exhausted",
                 details=[
-                    Struct(fields={"animal": Value(string_value="bear")}),
-                    ErrorDetail(Struct(fields={"color": Value(string_value="red")})),
+                    Struct(
+                        fields={"animal": Value(kind=Oneof("string_value", "bear"))}
+                    ),
+                    AnyPb.pack(
+                        Struct(
+                            fields={"color": Value(kind=Oneof("string_value", "red"))}
+                        )
+                    ),
                 ],
             )
 
@@ -80,10 +94,10 @@ async def test_details_async() -> None:
     assert len(exc_info.value.details) == 2
     s0 = exc_info.value.details[0].value(Struct)
     assert s0 is not None
-    assert s0.fields["animal"].string_value == "bear"
+    assert s0.fields["animal"].kind == Oneof("string_value", "bear")
     s1 = exc_info.value.details[1].value(Struct)
     assert s1 is not None
-    assert s1.fields["color"].string_value == "red"
+    assert s1.fields["color"].kind == Oneof("string_value", "red")
 
 
 def test_error_detail_debug_field() -> None:
@@ -92,7 +106,9 @@ def test_error_detail_debug_field() -> None:
         ConnectError(
             Code.RESOURCE_EXHAUSTED,
             "Resource exhausted",
-            details=[Struct(fields={"animal": Value(string_value="bear")})],
+            details=[
+                Struct(fields={"animal": Value(kind=Oneof("string_value", "bear"))})
+            ],
         )
     )
     data = wire_error.to_dict()
@@ -120,11 +136,13 @@ def test_error_detail_debug_field_well_known_type() -> None:
 
 def test_error_detail_debug_field_absent_for_unknown_type() -> None:
     """Debug field is omitted when no descriptor is available for the type."""
-    unknown_detail = AnyPb(
-        type_url="type.googleapis.com/completely.Unknown.Message", value=b"\x08\x01"
+    unknown_detail = ErrorDetail(
+        AnyPb(
+            type_url="type.googleapis.com/completely.Unknown.Message", value=b"\x08\x01"
+        )
     )
     wire_error = ConnectWireError(
-        code=Code.INTERNAL, message="test", details=[ErrorDetail(unknown_detail)]
+        code=Code.INTERNAL, message="test", details=[unknown_detail]
     )
     data = wire_error.to_dict()
     assert len(data["details"]) == 1

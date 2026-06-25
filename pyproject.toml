@@ -28,20 +28,25 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Typing :: Typed",
 ]
-dependencies = ["protobuf>=5.28", "pyqwest>=0.5.1"]
+dependencies = [
+  "protobuf-py==0.1.1",
+  "pyqwest>=0.5.1",
+]
 
 [project.urls]
 Documentation = "https://connectrpc.com/docs/python/getting-started/"
-Homepage = "https://github.com/connectrpc/connect-python"
-Issues = "https://github.com/connectrpc/connect-python/issues"
-Repository = "https://github.com/connectrpc/connect-python"
+Homepage = "https://github.com/connectrpc/connect-py"
+Issues = "https://github.com/connectrpc/connect-py/issues"
+Repository = "https://github.com/connectrpc/connect-py"
 
 [dependency-groups]
 dev = [
+  "example",
+  "protoc-gen-connectrpc",
+
   "asgiref==3.11.1",
   "brotli==1.2.0",
   "buf-bin==1.71.0",
-  "connect-python-example",
   "granian==2.7.6",
   "grpcio-tools==1.81.1",
   "gunicorn==26.0.0",
@@ -71,6 +76,9 @@ dev = [
   "opentelemetry-instrumentation-asgi==0.63b1",
   "opentelemetry-instrumentation-wsgi==0.63b1",
   "opentelemetry-sdk==1.42.1",
+  "protobuf>=5.28",
+  "protoc-gen-grpc-py==0.1.1",
+  "protoc-gen-py==0.1.1",
 ]
 
 docs = ["mkdocstrings-python==2.0.5", "zensical==0.0.46"]
@@ -247,9 +255,11 @@ extra-paths = ["conformance/test"]
 module-name = "connectrpc"
 
 [tool.uv.workspace]
-members = ["connectrpc-otel", "example"]
+members = ["connectrpc-otel", "example", "protoc-gen-connectrpc"]
 
 [tool.uv.sources]
 connectrpc = { workspace = true }
-connect-python-example = { workspace = true }
 connectrpc-otel = { workspace = true }
+protoc-gen-connectrpc = { workspace = true }
+
+example = { workspace = true }

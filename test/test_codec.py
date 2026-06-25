@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from google.protobuf.message import Message
+from protobuf import Message
 from pyqwest import (
     Client,
     Request,
@@ -24,7 +24,7 @@ from .haberdasher_connect import (
     HaberdasherSync,
     HaberdasherWSGIApplication,
 )
-from .haberdasher_pb2 import Hat, Size
+from .haberdasher_pb import Hat, Size
 
 
 class CustomCodec(Codec[Message, Message]):
@@ -40,8 +40,9 @@ class CustomCodec(Codec[Message, Message]):
             case _:
                 raise ValueError(f"unexpected message type: {type(message)}")
 
-    def decode(self, data: bytes | bytearray, message: Message) -> Message:
+    def decode(self, data: bytes | bytearray, message_class: type[Message]) -> Message:
         s = data.decode()
+        message = message_class()
         match message:
             case Size():
                 message.inches = int(s)

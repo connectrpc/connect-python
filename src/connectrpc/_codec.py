@@ -2,12 +2,42 @@ from __future__ import annotations
 
 from typing import Protocol, TypeVar
 
-from google.protobuf.json_format import MessageToJson
-from google.protobuf.json_format import Parse as MessageFromJson
-from google.protobuf.message import Message
+from protobuf import Message, Registry
+from protobuf.wkt import (
+    api_pb,
+    cpp_features_pb,
+    descriptor_pb,
+    duration_pb,
+    empty_pb,
+    field_mask_pb,
+    go_features_pb,
+    java_features_pb,
+    source_context_pb,
+    struct_pb,
+    timestamp_pb,
+    type_pb,
+    wrappers_pb,
+)
 
 CODEC_NAME_PROTO = "proto"
 CODEC_NAME_JSON = "json"
+
+
+DEFAULT_REGISTRY = Registry(
+    api_pb.desc(),
+    cpp_features_pb.desc(),
+    descriptor_pb.desc(),
+    duration_pb.desc(),
+    empty_pb.desc(),
+    field_mask_pb.desc(),
+    go_features_pb.desc(),
+    java_features_pb.desc(),
+    source_context_pb.desc(),
+    struct_pb.desc(),
+    timestamp_pb.desc(),
+    type_pb.desc(),
+    wrappers_pb.desc(),
+)
 
 
 T_contra = TypeVar("T_contra", contravariant=True)
@@ -27,7 +57,7 @@ class Codec(Protocol[T_contra, U]):
         """Marshals the given message."""
         ...
 
-    def decode(self, data: bytes | bytearray, message: U) -> U:
+    def decode(self, data: bytes | bytearray, message_class: type[U]) -> U:
         """Unmarshals the given message."""
         ...
 
@@ -39,35 +69,27 @@ class ProtoBinaryCodec(Codec[Message, V]):
         return "proto"
 
     def encode(self, message: Message) -> bytes:
-        return message.SerializeToString()
+        return message.to_binary()
 
-    def decode(self, data: bytes | bytearray, message: V) -> V:
-        # ParseFromString accepts the buffer protocol at runtime, but typeshed
-        # declares only `bytes`. Skipping the conversion avoids a copy on the
-        # streaming decode path (see _envelope.py). Tracked upstream in
-        # https://github.com/python/typeshed/issues/9006.
-        message.ParseFromString(data)  # ty: ignore[invalid-argument-type]
-        return message
+    def decode(self, data: bytes | bytearray, message_class: type[V]) -> V:
+        return message_class.from_binary(data)
 
 
 class ProtoJSONCodec(Codec[Message, V]):
     """Codec for the Protocol Buffers JSON format."""
 
-    def __init__(self, name: str = "json") -> None:
+    def __init__(self, name: str = "json", registry: Registry | None = None) -> None:
         self._name = name
+        self._registry = registry or DEFAULT_REGISTRY
 
     def name(self) -> str:
         return self._name
 
     def encode(self, message: Message) -> bytes:
-        return MessageToJson(message).encode()
+        return message.to_json(registry=self._registry).encode()
 
-    def decode(self, data: bytes | bytearray, message: V) -> V:
-        # google.protobuf.json_format.Parse accepts the buffer protocol at
-        # runtime, but typeshed declares only `bytes | str`. See
-        # ProtoBinaryCodec.decode for the upstream tracking issue.
-        MessageFromJson(data, message)  # ty: ignore[invalid-argument-type]
-        return message
+    def decode(self, data: bytes | bytearray, message_class: type[V]) -> V:
+        return message_class.from_json(data, registry=self._registry)
 
 
 _proto_binary_codec = ProtoBinaryCodec()
@@ -84,6 +106,13 @@ def proto_binary_codec() -> Codec:
     return _proto_binary_codec
 
 
-def proto_json_codec() -> Codec:
-    """Returns the Protocol Buffers JSON codec."""
+def proto_json_codec(registry: Registry | None = None) -> Codec:
+    """Returns the Protocol Buffers JSON codec.
+
+    Args:
+        registry: An optional protobuf Registry to use for marshaling Any and extensions in messages.
+                  If not provided, a default registry containing WKTs will be used.
+    """
+    if registry:
+        return ProtoJSONCodec(name=CODEC_NAME_JSON, registry=registry)
     return _proto_json_codec

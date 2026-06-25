@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from example.eliza_connect import ElizaServiceClientSync
-from example.eliza_pb2 import IntroduceRequest, SayRequest
+from .gen.connectrpc.eliza.v1.eliza_connect import ElizaServiceClientSync
+from .gen.connectrpc.eliza.v1.eliza_pb import IntroduceRequest, SayRequest
 
 
 def main():

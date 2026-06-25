@@ -6,7 +6,12 @@ from typing import TYPE_CHECKING
 from flask import Flask
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
-from example.eliza_pb2 import (
+from . import _eliza
+from .gen.connectrpc.eliza.v1.eliza_connect import (
+    ElizaServiceSync,
+    ElizaServiceWSGIApplication,
+)
+from .gen.connectrpc.eliza.v1.eliza_pb import (
     ConverseRequest,
     ConverseResponse,
     IntroduceRequest,
@@ -14,9 +19,6 @@ from example.eliza_pb2 import (
     SayRequest,
     SayResponse,
 )
-
-from . import _eliza
-from .eliza_connect import ElizaServiceSync, ElizaServiceWSGIApplication
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

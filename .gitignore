@@ -110,21 +110,7 @@ venv.bak/
 *.so
 *.dylib
 
-# Test binary, build with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
 .vscode
-
-# generated Go binary
-protoc-gen-connect-python/protoc-gen-connect-python
-
-# goreleaser archives
-out/
-
-go.work.sum
 
 # GitHub Actions temporary files
 .github/.tmp/

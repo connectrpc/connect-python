@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Protocol, TypeVar, cast
 
-from google.protobuf.any_pb2 import Any
-from google.protobuf.json_format import MessageToDict
+from protobuf import message_to_json_value
+from protobuf.wkt import Any
 
 from ._compression import Compression
 from .code import Code
@@ -171,8 +171,13 @@ class ConnectWireError:
                 }
                 # Try to produce debug info, but expect failure when we don't
                 # have descriptors for the message type.
-                if (debug := detail.value()) is not None:
-                    detail_dict["debug"] = MessageToDict(debug)
+                if debug := detail.value():
+                    try:
+                        debug_value = message_to_json_value(debug)
+                    except Exception:  # noqa: S110
+                        pass
+                    else:
+                        detail_dict["debug"] = debug_value
                 details.append(detail_dict)
             data["details"] = details
         return data

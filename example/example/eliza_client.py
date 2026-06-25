@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import asyncio
 
-from example.eliza_connect import ElizaServiceClient
-from example.eliza_pb2 import ConverseRequest, IntroduceRequest, SayRequest
+from .gen.connectrpc.eliza.v1.eliza_connect import ElizaServiceClient
+from .gen.connectrpc.eliza.v1.eliza_pb import (
+    ConverseRequest,
+    IntroduceRequest,
+    SayRequest,
+)
 
 
 async def main():

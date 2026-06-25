@@ -1,10 +1,10 @@
 [project]
 site_name = "connectrpc"
-site_url = "https://connectrpc.github.io/connect-python/"
+site_url = "https://connectrpc.github.io/connect-py/"
 site_description = "The Python implementation of Connect: Protobuf RPC that works"
 site_author = "Connect Authors"
 copyright = "&copy; The Connect Authors"
-repo_url = "https://github.com/connectrpc/connect-python"
+repo_url = "https://github.com/connectrpc/connect-py"
 nav = ["api.md"]
 
 [project.theme]

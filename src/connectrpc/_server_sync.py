@@ -44,12 +44,12 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
     from io import BytesIO
 
-    from .compression import Compression
-
     if sys.version_info >= (3, 11):
         from wsgiref.types import ErrorStream, StartResponse, WSGIEnvironment
     else:
         from _typeshed.wsgi import ErrorStream, StartResponse, WSGIEnvironment
+
+    from .compression import Compression
 else:
     StartResponse = "wsgiref.types.StartResponse"
     WSGIEnvironment = "wsgiref.types.WSGIEnvironment"
@@ -336,7 +336,7 @@ class ConnectWSGIApplication(ABC):
                 )
 
             try:
-                return codec.decode(req_body, endpoint.method.input()), codec
+                return codec.decode(req_body, endpoint.method.input), codec
             except Exception as e:
                 raise ConnectError(
                     Code.INVALID_ARGUMENT, f"Failed to decode request body: {e!s}"
@@ -396,7 +396,7 @@ class ConnectWSGIApplication(ABC):
             # Handle GET request with proto decoder
             try:
                 # TODO - Use content type from queryparam
-                request = codec.decode(message, endpoint.method.input())
+                request = codec.decode(message, endpoint.method.input)
                 return request, codec
             except Exception as e:
                 raise ConnectError(

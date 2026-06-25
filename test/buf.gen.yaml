@@ -1,16 +1,15 @@
 version: v2
 plugins:
+  - local: protoc-gen-py
+    out: .
+  - local: protoc-gen-connectrpc
+    out: .
+
   # NOTE: v26.0 is the earliest version supporting protobuf==5.
   - remote: buf.build/protocolbuffers/python:v26.0
-    out: .
+    out: google_compat
   - remote: buf.build/protocolbuffers/pyi:v26.0
-    out: .
-  - local:
-      - go
-      - run
-      - -C
-      - ../protoc-gen-connect-python
-      - .
-    out: .
-    opt:
-      - imports=relative
+    out: google_compat
+  - local: protoc-gen-connectrpc
+    out: google_compat
+    opt: protobuf=google

@@ -18,9 +18,10 @@ from typing import TYPE_CHECKING, Literal, TypeVar, get_args
 # Needs to run before importing from connectrpc
 import _cov_embed  # noqa: F401
 from _util import create_standard_streams
-from gen.connectrpc.conformance.v1.config_pb2 import Code as ConformanceCode
-from gen.connectrpc.conformance.v1.config_pb2 import HTTPVersion
-from gen.connectrpc.conformance.v1.server_compat_pb2 import (
+from gen.connectrpc.conformance.v1 import service_pb
+from gen.connectrpc.conformance.v1.config_pb import Code as ConformanceCode
+from gen.connectrpc.conformance.v1.config_pb import HTTPVersion
+from gen.connectrpc.conformance.v1.server_compat_pb import (
     ServerCompatRequest,
     ServerCompatResponse,
 )
@@ -30,7 +31,7 @@ from gen.connectrpc.conformance.v1.service_connect import (
     ConformanceServiceSync,
     ConformanceServiceWSGIApplication,
 )
-from gen.connectrpc.conformance.v1.service_pb2 import (
+from gen.connectrpc.conformance.v1.service_pb import (
     BidiStreamRequest,
     BidiStreamResponse,
     ClientStreamRequest,
@@ -45,10 +46,13 @@ from gen.connectrpc.conformance.v1.service_pb2 import (
     UnaryResponse,
     UnaryResponseDefinition,
 )
-from google.protobuf.any_pb2 import Any
+from gen.connectrpc.conformance.v1.service_pb import Header as ConformanceHeader
+from protobuf import Oneof, Registry
+from protobuf.wkt import Any
 from pyvoy import PyvoyServer
 
 from connectrpc.code import Code
+from connectrpc.codec import proto_binary_codec, proto_json_codec
 from connectrpc.compression.brotli import BrotliCompression
 from connectrpc.compression.gzip import GzipCompression
 from connectrpc.compression.zstd import ZstdCompression
@@ -57,51 +61,47 @@ from connectrpc.errors import ConnectError
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator
 
-    from google.protobuf.message import Message
+    from protobuf import Message
 
     from connectrpc.request import RequestContext
 
 
-# TODO: Use google.protobuf.any.pack on upgrade to protobuf==6.
-def pack(msg: Message) -> Any:
-    any_msg = Any()
-    any_msg.Pack(msg)
-    return any_msg
+_REGISTRY = Registry(service_pb.desc())
 
 
 def _convert_code(conformance_code: ConformanceCode) -> Code:
     match conformance_code:
-        case ConformanceCode.CODE_CANCELED:
+        case ConformanceCode.CANCELED:
             return Code.CANCELED
-        case ConformanceCode.CODE_UNKNOWN:
+        case ConformanceCode.UNKNOWN:
             return Code.UNKNOWN
-        case ConformanceCode.CODE_INVALID_ARGUMENT:
+        case ConformanceCode.INVALID_ARGUMENT:
             return Code.INVALID_ARGUMENT
-        case ConformanceCode.CODE_DEADLINE_EXCEEDED:
+        case ConformanceCode.DEADLINE_EXCEEDED:
             return Code.DEADLINE_EXCEEDED
-        case ConformanceCode.CODE_NOT_FOUND:
+        case ConformanceCode.NOT_FOUND:
             return Code.NOT_FOUND
-        case ConformanceCode.CODE_ALREADY_EXISTS:
+        case ConformanceCode.ALREADY_EXISTS:
             return Code.ALREADY_EXISTS
-        case ConformanceCode.CODE_PERMISSION_DENIED:
+        case ConformanceCode.PERMISSION_DENIED:
             return Code.PERMISSION_DENIED
-        case ConformanceCode.CODE_RESOURCE_EXHAUSTED:
+        case ConformanceCode.RESOURCE_EXHAUSTED:
             return Code.RESOURCE_EXHAUSTED
-        case ConformanceCode.CODE_FAILED_PRECONDITION:
+        case ConformanceCode.FAILED_PRECONDITION:
             return Code.FAILED_PRECONDITION
-        case ConformanceCode.CODE_ABORTED:
+        case ConformanceCode.ABORTED:
             return Code.ABORTED
-        case ConformanceCode.CODE_OUT_OF_RANGE:
+        case ConformanceCode.OUT_OF_RANGE:
             return Code.OUT_OF_RANGE
-        case ConformanceCode.CODE_UNIMPLEMENTED:
+        case ConformanceCode.UNIMPLEMENTED:
             return Code.UNIMPLEMENTED
-        case ConformanceCode.CODE_INTERNAL:
+        case ConformanceCode.INTERNAL:
             return Code.INTERNAL
-        case ConformanceCode.CODE_UNAVAILABLE:
+        case ConformanceCode.UNAVAILABLE:
             return Code.UNAVAILABLE
-        case ConformanceCode.CODE_DATA_LOSS:
+        case ConformanceCode.DATA_LOSS:
             return Code.DATA_LOSS
-        case ConformanceCode.CODE_UNAUTHENTICATED:
+        case ConformanceCode.UNAUTHENTICATED:
             return Code.UNAUTHENTICATED
     msg = f"Unknown ConformanceCode: {conformance_code}"
     raise ValueError(msg)
@@ -136,8 +136,8 @@ def _create_request_info(
     if timeout_ms is not None:
         request_info.timeout_ms = int(timeout_ms)
     for key in ctx.request_headers:
-        request_info.request_headers.add(
-            name=key, value=ctx.request_headers.getall(key)
+        request_info.request_headers.append(
+            ConformanceHeader(name=key, value=list(ctx.request_headers.getall(key)))
         )
     return request_info
 
@@ -148,31 +148,41 @@ async def _handle_unary_response(
     _send_headers(ctx, definition)
     request_info = _create_request_info(ctx, reqs)
 
-    if definition.WhichOneof("response") == "error":
-        raise ConnectError(
-            code=_convert_code(definition.error.code),
-            message=definition.error.message,
-            details=[*definition.error.details, request_info],
-        )
+    match definition.response:
+        case Oneof("error", error):
+            raise ConnectError(
+                code=_convert_code(error.code),
+                message=error.message,
+                details=[*error.details, request_info],
+            )
+        case Oneof("response_data", response_data):
+            pass
+        case _:
+            response_data = b""
     if definition.response_delay_ms:
         await asyncio.sleep(definition.response_delay_ms / 1000.0)
 
-    res.payload.request_info.CopyFrom(request_info)
-    res.payload.data = definition.response_data
+    res.payload = ConformancePayload(request_info=request_info, data=response_data)
     return res
 
 
 class TestService(ConformanceService):
     async def unary(self, request: UnaryRequest, ctx: RequestContext) -> UnaryResponse:
         return await _handle_unary_response(
-            request.response_definition, [pack(request)], UnaryResponse(), ctx
+            request.response_definition or UnaryResponseDefinition(),
+            [Any.pack(request)],
+            UnaryResponse(),
+            ctx,
         )
 
     async def idempotent_unary(
         self, request: IdempotentUnaryRequest, ctx: RequestContext
     ) -> IdempotentUnaryResponse:
         return await _handle_unary_response(
-            request.response_definition, [pack(request)], IdempotentUnaryResponse(), ctx
+            request.response_definition or UnaryResponseDefinition(),
+            [Any.pack(request)],
+            IdempotentUnaryResponse(),
+            ctx,
         )
 
     async def client_stream(
@@ -181,9 +191,9 @@ class TestService(ConformanceService):
         requests: list[Any] = []
         definition: UnaryResponseDefinition | None = None
         async for message in request:
-            requests.append(pack(message))
+            requests.append(Any.pack(message))
             if not definition:
-                definition = message.response_definition
+                definition = message.response_definition or UnaryResponseDefinition()
 
         if not definition:
             msg = "ClientStream must have a response definition"
@@ -195,21 +205,22 @@ class TestService(ConformanceService):
     async def server_stream(
         self, request: ServerStreamRequest, ctx: RequestContext
     ) -> AsyncIterator[ServerStreamResponse]:
-        definition = request.response_definition
+        definition = request.response_definition or StreamResponseDefinition()
         _send_headers(ctx, definition)
-        request_info = _create_request_info(ctx, [pack(request)])
+        request_info = _create_request_info(ctx, [Any.pack(request)])
         sent_message = False
         for res_data in definition.response_data:
             res = ServerStreamResponse()
+            res.payload = ConformancePayload()
             if not sent_message:
-                res.payload.request_info.CopyFrom(request_info)
+                res.payload.request_info = request_info
             res.payload.data = res_data
             if definition.response_delay_ms:
                 await asyncio.sleep(definition.response_delay_ms / 1000.0)
             sent_message = True
             yield res
 
-        if definition.HasField("error"):
+        if definition.error:
             details: list[Message] = [*definition.error.details]
             if not sent_message:
                 details.append(request_info)
@@ -228,10 +239,10 @@ class TestService(ConformanceService):
         res_idx = 0
         async for message in request:
             if not definition:
-                definition = message.response_definition
+                definition = message.response_definition or StreamResponseDefinition()
                 _send_headers(ctx, definition)
                 full_duplex = message.full_duplex
-            requests.append(pack(message))
+            requests.append(Any.pack(message))
             if not full_duplex:
                 continue
             if not definition or res_idx >= len(definition.response_data):
@@ -239,10 +250,9 @@ class TestService(ConformanceService):
             if definition.response_delay_ms:
                 await asyncio.sleep(definition.response_delay_ms / 1000.0)
             res = BidiStreamResponse()
+            res.payload = ConformancePayload()
             res.payload.data = definition.response_data[res_idx]
-            res.payload.request_info.CopyFrom(
-                _create_request_info(ctx, [pack(message)])
-            )
+            res.payload.request_info = _create_request_info(ctx, [Any.pack(message)])
             yield res
             res_idx += 1
             requests = []
@@ -255,12 +265,13 @@ class TestService(ConformanceService):
             if definition.response_delay_ms:
                 await asyncio.sleep(definition.response_delay_ms / 1000.0)
             res = BidiStreamResponse()
+            res.payload = ConformancePayload()
             res.payload.data = definition.response_data[i]
             if i == 0:
-                res.payload.request_info.CopyFrom(request_info)
+                res.payload.request_info = request_info
             yield res
 
-        if definition.HasField("error"):
+        if definition.error:
             details: list[Message] = [*definition.error.details]
             if len(definition.response_data) == 0:
                 details.append(request_info)
@@ -277,31 +288,41 @@ def _handle_unary_response_sync(
     _send_headers(ctx, definition)
     request_info = _create_request_info(ctx, reqs)
 
-    if definition.WhichOneof("response") == "error":
-        raise ConnectError(
-            code=_convert_code(definition.error.code),
-            message=definition.error.message,
-            details=[*definition.error.details, request_info],
-        )
+    match definition.response:
+        case Oneof("error", error):
+            raise ConnectError(
+                code=_convert_code(error.code),
+                message=error.message,
+                details=[*error.details, request_info],
+            )
+        case Oneof("response_data", response_data):
+            pass
+        case _:
+            response_data = b""
     if definition.response_delay_ms:
         time.sleep(definition.response_delay_ms / 1000.0)
 
-    res.payload.request_info.CopyFrom(request_info)
-    res.payload.data = definition.response_data
+    res.payload = ConformancePayload(request_info=request_info, data=response_data)
     return res
 
 
 class TestServiceSync(ConformanceServiceSync):
     def unary(self, request: UnaryRequest, ctx: RequestContext) -> UnaryResponse:
         return _handle_unary_response_sync(
-            request.response_definition, [pack(request)], UnaryResponse(), ctx
+            request.response_definition or UnaryResponseDefinition(),
+            [Any.pack(request)],
+            UnaryResponse(),
+            ctx,
         )
 
     def idempotent_unary(
         self, request: IdempotentUnaryRequest, ctx: RequestContext
     ) -> IdempotentUnaryResponse:
         return _handle_unary_response_sync(
-            request.response_definition, [pack(request)], IdempotentUnaryResponse(), ctx
+            request.response_definition or UnaryResponseDefinition(),
+            [Any.pack(request)],
+            IdempotentUnaryResponse(),
+            ctx,
         )
 
     def client_stream(
@@ -310,9 +331,9 @@ class TestServiceSync(ConformanceServiceSync):
         requests: list[Any] = []
         definition: UnaryResponseDefinition | None = None
         for message in request:
-            requests.append(pack(message))
+            requests.append(Any.pack(message))
             if not definition:
-                definition = message.response_definition
+                definition = message.response_definition or UnaryResponseDefinition()
 
         if not definition:
             msg = "ClientStream must have a response definition"
@@ -324,21 +345,22 @@ class TestServiceSync(ConformanceServiceSync):
     def server_stream(
         self, request: ServerStreamRequest, ctx: RequestContext
     ) -> Iterator[ServerStreamResponse]:
-        definition = request.response_definition
+        definition = request.response_definition or StreamResponseDefinition()
         _send_headers(ctx, definition)
-        request_info = _create_request_info(ctx, [pack(request)])
+        request_info = _create_request_info(ctx, [Any.pack(request)])
         sent_message = False
         for res_data in definition.response_data:
             res = ServerStreamResponse()
+            res.payload = ConformancePayload()
             if not sent_message:
-                res.payload.request_info.CopyFrom(request_info)
+                res.payload.request_info = request_info
             res.payload.data = res_data
             if definition.response_delay_ms:
                 time.sleep(definition.response_delay_ms / 1000.0)
             sent_message = True
             yield res
 
-        if definition.HasField("error"):
+        if definition.error:
             details: list[Message] = [*definition.error.details]
             if not sent_message:
                 details.append(request_info)
@@ -357,10 +379,10 @@ class TestServiceSync(ConformanceServiceSync):
         res_idx = 0
         for message in request:
             if not definition:
-                definition = message.response_definition
+                definition = message.response_definition or StreamResponseDefinition()
                 _send_headers(ctx, definition)
                 full_duplex = message.full_duplex
-            requests.append(pack(message))
+            requests.append(Any.pack(message))
             if not full_duplex:
                 continue
             if not definition or res_idx >= len(definition.response_data):
@@ -368,10 +390,9 @@ class TestServiceSync(ConformanceServiceSync):
             if definition.response_delay_ms:
                 time.sleep(definition.response_delay_ms / 1000.0)
             res = BidiStreamResponse()
+            res.payload = ConformancePayload()
             res.payload.data = definition.response_data[res_idx]
-            res.payload.request_info.CopyFrom(
-                _create_request_info(ctx, [pack(message)])
-            )
+            res.payload.request_info = _create_request_info(ctx, [Any.pack(message)])
             yield res
             res_idx += 1
             requests = []
@@ -384,12 +405,13 @@ class TestServiceSync(ConformanceServiceSync):
             if definition.response_delay_ms:
                 time.sleep(definition.response_delay_ms / 1000.0)
             res = BidiStreamResponse()
+            res.payload = ConformancePayload()
             res.payload.data = definition.response_data[i]
             if i == 0:
-                res.payload.request_info.CopyFrom(request_info)
+                res.payload.request_info = request_info
             yield res
 
-        if definition.HasField("error"):
+        if definition.error:
             details: list[Message] = [*definition.error.details]
             if len(definition.response_data) == 0:
                 details.append(request_info)
@@ -408,11 +430,13 @@ asgi_app = ConformanceServiceASGIApplication(
     TestService(),
     read_max_bytes=read_max_bytes,
     compressions=(GzipCompression(), ZstdCompression(), BrotliCompression()),
+    codecs=(proto_binary_codec(), proto_json_codec(_REGISTRY)),
 )
 wsgi_app = ConformanceServiceWSGIApplication(
     TestServiceSync(),
     read_max_bytes=read_max_bytes,
     compressions=(GzipCompression(), ZstdCompression(), BrotliCompression()),
+    codecs=(proto_binary_codec(), proto_json_codec(_REGISTRY)),
 )
 
 
@@ -707,8 +731,7 @@ async def main() -> None:
     size = int.from_bytes(size_buf, byteorder="big")
     # Allow to raise even on EOF since we always should have a message
     request_buf = await stdin.readexactly(size)
-    request = ServerCompatRequest()
-    request.ParseFromString(request_buf)
+    request = ServerCompatRequest.from_binary(request_buf)
 
     cleanup = ExitStack()
     certfile = None
@@ -717,10 +740,11 @@ async def main() -> None:
     if request.use_tls:
         cert_file = cleanup.enter_context(NamedTemporaryFile())
         key_file = cleanup.enter_context(NamedTemporaryFile())
-        cert_file.write(request.server_creds.cert)
-        cert_file.flush()
-        key_file.write(request.server_creds.key)
-        key_file.flush()
+        if request.server_creds:
+            cert_file.write(request.server_creds.cert)
+            cert_file.flush()
+            key_file.write(request.server_creds.key)
+            key_file.flush()
         certfile = cert_file.name
         keyfile = key_file.name
         if request.client_tls_cert:
@@ -771,9 +795,9 @@ async def main() -> None:
         response = ServerCompatResponse()
         response.host = "127.0.0.1"
         response.port = port
-        if request.use_tls:
+        if request.use_tls and request.server_creds:
             response.pem_cert = request.server_creds.cert
-        response_buf = response.SerializeToString()
+        response_buf = response.to_binary()
         size_buf = len(response_buf).to_bytes(4, byteorder="big")
         stdout.write(size_buf)
         stdout.write(response_buf)

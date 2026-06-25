@@ -11,7 +11,7 @@ from pyqwest import Headers as HTTPHeaders
 
 from ._compression import IdentityCompression, negotiate_compression
 from ._envelope import EnvelopeReader, EnvelopeWriter
-from ._gen.status_pb2 import Status
+from ._gen.status_pb import Status
 from ._protocol import (
     ConnectWireError,
     HTTPException,
@@ -174,7 +174,7 @@ class GRPCEnvelopeWriter(EnvelopeWriter):
                     details=[d._any for d in error.details],  # noqa: SLF001
                 )
                 grpc_status_bin = (
-                    b64encode(grpc_status.SerializeToString()).decode().rstrip("=")
+                    b64encode(grpc_status.to_binary()).decode().rstrip("=")
                 )
                 trailers["grpc-status-details-bin"] = grpc_status_bin
         else:
@@ -359,8 +359,7 @@ class GRPCEnvelopeReader(EnvelopeReader[RES]):
         if grpc_status != "0":
             message = trailers.get("grpc-message", "")
             if grpc_status_details := trailers.get("grpc-status-details-bin"):
-                status = Status()
-                status.ParseFromString(b64decode(grpc_status_details + "==="))
+                status = Status.from_binary(b64decode(grpc_status_details + "==="))
                 connect_code = code or _grpc_status_to_connect.get(
                     str(status.code), Code.UNKNOWN
                 )

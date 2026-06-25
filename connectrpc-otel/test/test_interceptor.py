@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, cast
 import pytest
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
-from example.eliza_connect import (
+from example.gen.connectrpc.eliza.v1.eliza_connect import (
     ElizaService,
     ElizaServiceASGIApplication,
     ElizaServiceClient,
@@ -14,7 +14,7 @@ from example.eliza_connect import (
     ElizaServiceSync,
     ElizaServiceWSGIApplication,
 )
-from example.eliza_pb2 import SayRequest, SayResponse
+from example.gen.connectrpc.eliza.v1.eliza_pb import SayRequest, SayResponse
 from opentelemetry.instrumentation.asgi import (
     OpenTelemetryMiddleware as ASGIOpenTelemetryMiddleware,
 )
