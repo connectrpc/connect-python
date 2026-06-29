@@ -43,7 +43,6 @@ Repository = "https://github.com/connectrpc/connect-py"
 dev = [
   "example",
   "protoc-gen-connectrpc",
-
   "asgiref==3.11.1",
   "brotli==1.2.0",
   "buf-bin==1.71.0",
@@ -56,7 +55,7 @@ dev = [
   "pytest-asyncio==1.4.0",
   "pytest-cov==7.1.0",
   "pytest-timeout==2.4.0",
-  "pyvoy==0.4.0",
+  "pyvoy==0.4.1",
   "ruff==0.15.20",
   "tombi==1.1.6",
   "ty==0.0.55",
@@ -65,7 +64,6 @@ dev = [
   "typing_extensions==4.15.0",
   "uvicorn==0.49.0",
   "zstandard==0.25.0",
-
   # dev dependencies only used in subprojects. Optimal structure would include these
   # in the subproject itself, but then `uv sync` does not install them from the
   # workspace root. We strategically keep them here instead so the entire workspace
