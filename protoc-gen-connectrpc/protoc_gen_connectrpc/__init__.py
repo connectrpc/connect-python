@@ -575,6 +575,8 @@ def _idempotency_level(desc: DescMethod) -> str:
             return "NO_SIDE_EFFECTS"
         case MethodOptions.IdempotencyLevel.IDEMPOTENT:
             return "IDEMPOTENT"
+    msg = f"Unknown idempotency level: {desc.idempotency}"
+    raise ValueError(msg)
 
 
 def _supports_get(desc: DescMethod) -> bool:
